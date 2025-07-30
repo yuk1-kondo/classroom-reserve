@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Deploy to Google Apps Script",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"教室予約システムが完成しました！以下の手順でデプロイしてください：\n1. Google Apps Script (script.google.com) で新しいプロジェクトを作成\n2. appsscript.json の内容をプロジェクト設定にコピー\n3. Code.gs の内容をコード.gs にコピー\n4. Views.html の内容をHTMLファイルとして追加\n5. Googleスプレッドシートを作成してRooms、Periods、Logsシートを設定\n6. 各教室用のGoogleカレンダーを作成\n7. スプレッドシートIDとカレンダーIDを Code.gs で設定\n8. ウェブアプリとして公開"
+			],
+			"group": "build",
+			"isBackground": false
+		}
+	]
+}

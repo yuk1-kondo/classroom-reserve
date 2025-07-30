@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>教室予約（シンプル版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+    .header { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+    .btn { padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: #fff; }
+    .btn:hover { background: #f5f5f5; }
+    #calendar { max-width: 900px; margin: 0 auto; }
+    
+    /* モーダル */
+    .modal { 
+      display: none; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0,0,0,0.5); 
+      z-index: 9999; 
+    }
+    .modal-content { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      background: white; 
+      padding: 20px; 
+      border-radius: 8px; 
+      width: 400px; 
+      z-index: 10000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .form-group { margin: 10px 0; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+    <div class="header">
+    <h1>教室予約システム（シンプル版）</h1>
+    <button class="btn" onclick="showReservationModal()">新規予約</button>
+    <span id="userInfo" style="margin-left: auto;"></span>
+  </div>
+  
+  <div id="calendar"></div>
+  
+  <!-- 予約モーダル -->
+  <div id="reservationModal" class="modal">
+    <div class="modal-content">
+      <h3>新規予約</h3>
+      <div class="form-group">
+        <label>タイトル:</label>
+        <input type="text" id="eventTitle" placeholder="会議名など">
+      </div>
+      <div class="form-group">
+        <label>開始日時:</label>
+        <input type="datetime-local" id="startDateTime">
+      </div>
+      <div class="form-group">
+        <label>終了日時:</label>
+        <input type="datetime-local" id="endDateTime">
+      </div>
+      <div class="form-group">
+        <button class="btn" onclick="createReservation()">予約する</button>
+        <button class="btn" onclick="closeModal()">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = '';
+    let calendar = null;
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('初期化開始');
+      
+      google.script.run
+        .withSuccessHandler(function(data) {
+          console.log('初期化成功:', data);
+          currentUser = data.user;
+          
+          document.getElementById('userInfo').textContent = 'ログイン: ' + currentUser;
+          
+          // カレンダー初期化
+          initCalendar();
+        })
+        .withFailureHandler(function(error) {
+          console.error('初期化失敗:', error);
+          alert('初期化に失敗しました: ' + error);
+        })
+        .getInitData();
+    });
+
+    // カレンダー初期化
+    function initCalendar() {
+      console.log('カレンダー初期化開始');
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'ja',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay'
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '20:00:00',
+        businessHours: {
+          daysOfWeek: [1, 2, 3, 4, 5],
+          startTime: '09:00',
+          endTime: '18:00',
+        },
+        events: function(info, successCallback, failureCallback) {
+          console.log('イベント取得開始:', info);
+          
+          // 自分のメインカレンダーを使用
+          const calendarId = currentUser;
+          
+          google.script.run
+            .withSuccessHandler(function(result) {
+              console.log('イベント取得成功:', result);
+              if (result.success) {
+                successCallback(result.events);
+              } else {
+                console.error('イベント取得エラー:', result.error);
+                failureCallback(result.error);
+              }
+            })
+            .withFailureHandler(function(error) {
+              console.error('イベント取得失敗:', error);
+              failureCallback(error);
+            })
+            .getEvents(calendarId, info.startStr, info.endStr);
+        },
+        eventClick: function(info) {
+          if (confirm('この予約を削除しますか？')) {
+            deleteReservation(info.event.id);
+          }
+        }
+      });
+      calendar.render();
+      console.log('カレンダー表示完了');
+    }
+
+    // 予約モーダル表示
+    function showReservationModal() {
+      // デフォルト時間設定（現在時刻の次の時間）
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(start.getHours() + 1);
+      start.setMinutes(0);
+      start.setSeconds(0);
+      
+      const end = new Date(start);
+      end.setHours(end.getHours() + 1);
+      
+      document.getElementById('startDateTime').value = formatDateTime(start);
+      document.getElementById('endDateTime').value = formatDateTime(end);
+      document.getElementById('reservationModal').style.display = 'block';
+    }
+
+    // 予約作成
+    function createReservation() {
+      const title = document.getElementById('eventTitle').value;
+      const startDateTime = document.getElementById('startDateTime').value;
+      const endDateTime = document.getElementById('endDateTime').value;
+      
+      if (!title || !startDateTime || !endDateTime) {
+        alert('すべての項目を入力してください');
+        return;
+      }
+      
+      // 自分のメインカレンダーを使用
+      const calendarId = currentUser;
+      
+      console.log('予約作成開始:', { title, startDateTime, endDateTime });
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('予約作成結果:', result);
+          if (result.success) {
+            alert('予約しました！');
+            closeModal();
+            calendar.refetchEvents();
+          } else {
+            alert('予約に失敗しました: ' + result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('予約作成エラー:', error);
+          alert('エラーが発生しました: ' + error);
+        })
+        .createReservation(calendarId, title, startDateTime, endDateTime);
+    }
+
+    // 予約削除
+    function deleteReservation(eventId) {
+      console.log('予約削除開始:', eventId);
+      
+      // 自分のメインカレンダーを使用
+      const calendarId = currentUser;
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('削除結果:', result);
+          if (result.success) {
+            alert('削除しました');
+            calendar.refetchEvents();
+          } else {
+            alert('削除に失敗しました: ' + result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('削除エラー:', error);
+          alert('エラーが発生しました: ' + error);
+        })
+        .deleteReservation(calendarId, eventId);
+    }
+
+    // モーダル閉じる
+    function closeModal() {
+      document.getElementById('reservationModal').style.display = 'none';
+      document.getElementById('eventTitle').value = '';
+    }
+
+    // 日時フォーマット
+    function formatDateTime(date) {
+      return date.getFullYear() + '-' + 
+             String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+             String(date.getDate()).padStart(2, '0') + 'T' +
+             String(date.getHours()).padStart(2, '0') + ':' +
+             String(date.getMinutes()).padStart(2, '0');
+    }
+  </script>
+</body>
+</html>
