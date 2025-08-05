@@ -18,7 +18,7 @@ interface SidePanelProps {
   onReservationCreated?: () => void;
 }
 
-export const SidePanel: React.FC<SidePanelProps> = ({
+export const SidePanelRefactored: React.FC<SidePanelProps> = ({
   selectedDate,
   selectedEventId,
   onClose,
@@ -60,14 +60,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       return;
     }
 
-    // 権限チェック - currentUserから直接確認
-    const canDelete = currentUser && (
-      currentUser.role === 'admin' || 
-      currentUser.uid === reservation.createdBy
-    );
-    
-    if (!canDelete) {
-      alert('この予約を削除する権限がありません');
+    if (!reservationsService || typeof reservationsService.deleteReservation !== 'function') {
+      alert('予約削除機能が利用できません');
       return;
     }
 
@@ -184,4 +178,4 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   );
 };
 
-export default SidePanel;
+export default SidePanelRefactored;
