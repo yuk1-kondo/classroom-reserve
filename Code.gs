@@ -1,11 +1,168 @@
-/***** 最小限の教室予約システム *****/
+/***** 設定 *****/
+var SPREADSHEET_ID = '18oK4-xjGWPAkcbRl9vKCyXC_aUOdpk-vdS5BlNXLOAM';
+var TZ = 'Asia/Tokyo';
+
+/***** 権限テスト用関数 *****/
+function testPermissions() {
+  console.log('権限テスト開始');
+  try {
+    var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    console.log('スプレッドシートアクセス成功:', spreadsheet.getName());
+    return '成功: ' + spreadsheet.getName();
+  } catch (e) {
+    console.error('権限エラー:', e.toString());
+    return 'エラー: ' + e.toString();
+  }
+}
+
+/***** カレンダーアクセス診断機能 *****/
+function testCalendarAccess() {
+  console.log('カレンダーアクセス診断開始');
+  var currentUser = getUserEmail();
+  console.log('現在のユーザー:', currentUser);
+  
+  var rooms = getRooms();
+  var results = [];
+  
+  rooms.forEach(function(room) {
+    try {
+      var calendar = CalendarApp.getCalendarById(room.calendarId);
+      if (calendar) {
+        results.push({
+          room: room.name,
+          calendarId: room.calendarId,
+          status: '✅ アクセス可能',
+          name: calendar.getName()
+        });
+      } else {
+        results.push({
+          room: room.name,
+          calendarId: room.calendarId,
+          status: '❌ カレンダーが見つかりません',
+          name: null
+        });
+      }
+    } catch (e) {
+      results.push({
+        room: room.name,
+        calendarId: room.calendarId,
+        status: '❌ アクセス拒否: ' + e.toString(),
+        name: null
+      });
+    }
+  });
+  
+  console.log('カレンダーアクセス診断結果:', results);
+  return {
+    user: currentUser,
+    results: results
+  };
+}
 
 /***** HTML 配信 *****/
 function doGet() {
   return HtmlService.createTemplateFromFile('Views')
     .evaluate()
-    .setTitle('教室予約（シンプル版）')
+    .setTitle('教室予約システム')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/***** 教室一覧取得（スプレッドシート版・復元） *****/
+function getRooms() {
+  try {
+    console.log('getRooms開始 - スプレッドシートID:', SPREADSHEET_ID);
+    console.log('探しているシート名: Rooms');
+    
+    var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    console.log('スプレッドシート取得成功:', spreadsheet.getName());
+    
+    // 全シート名を確認
+    var allSheets = spreadsheet.getSheets();
+    var sheetNames = allSheets.map(function(s) { return s.getName(); });
+    console.log('利用可能なシート名:', sheetNames);
+    
+    var sheet = spreadsheet.getSheetByName('Rooms');
+    if (!sheet) {
+      // Roomsが見つからない場合、類似名を探す
+      var alternativeSheet = null;
+      for (var i = 0; i < allSheets.length; i++) {
+        var name = allSheets[i].getName().toLowerCase();
+        if (name.includes('room')) {
+          alternativeSheet = allSheets[i];
+          console.log('代替シートを発見:', allSheets[i].getName());
+          break;
+        }
+      }
+      
+      if (alternativeSheet) {
+        sheet = alternativeSheet;
+      } else {
+        throw new Error('シート "Rooms" が見つかりません。利用可能なシート: ' + sheetNames.join(', '));
+      }
+    }
+    
+    console.log('使用するシート:', sheet.getName());
+    
+    var values = sheet.getDataRange().getValues();
+    console.log('取得した全データ:', values.length + '行');
+    
+    if (values.length === 0) {
+      throw new Error('シートにデータがありません');
+    }
+    
+    var headers = values.shift().map(function(h) { 
+      return h.includes(':') ? String(h).split(':')[1].trim() : String(h).trim(); 
+    });
+    console.log('取得したヘッダー:', headers);
+
+    var col = {
+      id: headers.indexOf('id'),
+      name: headers.indexOf('name'),
+      calendarId: headers.indexOf('calendarId'),
+      openTo: headers.indexOf('openTo'),
+      enabled: headers.indexOf('enabled')
+    };
+
+    console.log('列位置:', col);
+
+    if (col.name === -1 || col.calendarId === -1) {
+      throw new Error('スプレッドシートに "name" または "calendarId" の列ヘッダーが必要です。現在のヘッダー: ' + headers.join(', '));
+    }
+
+    var rooms = values.map(function(row, index) {
+      console.log('行' + (index + 2) + 'データ:', row);
+      
+      var room = {
+        id: col.id !== -1 ? row[col.id] : null,
+        name: row[col.name],
+        calendarId: row[col.calendarId],
+        openTo: col.openTo !== -1 && row[col.openTo] ? formatSheetTime(row[col.openTo]) : '18:30'
+      };
+      
+      console.log('変換後の教室オブジェクト:', room);
+      return room;
+    }).filter(function(room) {
+      var isValid = room && room.name && room.calendarId;
+      console.log('教室判定:', room ? room.name : 'null', 'isValid:', isValid);
+      return isValid;
+    });
+    
+    console.log('最終的な教室取得成功:', rooms.length + '件');
+    console.log('教室リスト:', rooms);
+    return rooms;
+  } catch (e) {
+    console.error('教室取得エラー詳細:', e.toString());
+    console.error('エラースタック:', e.stack || 'スタック情報なし');
+    return [];
+  }
+}
+
+// スプレッドシートの時刻書式（Dateオブジェクト）を "HH:mm" 形式の文字列に変換
+function formatSheetTime(timeValue) {
+  if (timeValue instanceof Date) {
+    return Utilities.formatDate(timeValue, TZ, 'HH:mm');
+  }
+  return timeValue.toString(); // すでに文字列ならそのまま返す
 }
 
 /***** ユーザー情報 *****/
@@ -15,331 +172,235 @@ function getUserEmail() {
 
 /***** 初期データ *****/
 function getInitData() {
-  return {
-    user: getUserEmail()
-  };
+  console.log('getInitData開始');
+  
+  try {
+    var user = getUserEmail();
+    console.log('ユーザー取得成功:', user);
+    
+    var rooms = getRooms();
+    console.log('教室取得成功:', rooms ? rooms.length : '0', '件');
+    
+    var result = {
+      user: user,
+      rooms: rooms
+    };
+    
+    console.log('初期データ準備完了 - ユーザー:', user, '教室数:', rooms.length);
+    return result;
+    
+  } catch (e) {
+    console.error('getInitData エラー詳細:', e.toString());
+    console.error('エラースタック:', e.stack || 'スタック情報なし');
+    
+    // エラー情報を含むレスポンスを返す
+    return {
+      error: true,
+      message: e.toString(),
+      user: null,
+      rooms: []
+    };
+  }
 }
 
-/***** イベント一覧取得 *****/
+/***** イベント一覧取得（Googleカレンダー版） *****/
 function getEvents(calendarId, startDate, endDate) {
+  console.log('getEvents開始（Googleカレンダー版）:', calendarId, startDate, endDate);
+  
   try {
-    console.log('イベント取得:', calendarId, startDate, endDate);
-    var cal = CalendarApp.getCalendarById(calendarId);
-    var events = cal.getEvents(new Date(startDate), new Date(endDate));
-    
-    var result = [];
-    for (var i = 0; i < events.length; i++) {
-      var ev = events[i];
-      result.push({
-        id: ev.getId(),
-        title: ev.getTitle(),
-        start: ev.getStartTime().toISOString(),
-        end: ev.getEndTime().toISOString()
-      });
+    // テストカレンダーIDの場合はダミーデータを返す
+    if (calendarId.startsWith('test-calendar-')) {
+      console.log('テストカレンダーID検出、ダミーデータを返却');
+      var events = [];
+      
+      if (calendarId === 'test-calendar-1@group.calendar.google.com') {
+        events.push({
+          id: 'test-event-1',
+          title: 'テスト予約（小練習室1）',
+          start: startDate,
+          end: endDate
+        });
+      } else if (calendarId === 'test-calendar-3@group.calendar.google.com') {
+        events.push({
+          id: 'test-event-3',
+          title: 'テスト予約（大練習室1）',
+          start: startDate,
+          end: endDate
+        });
+      }
+      
+      return {
+        success: true,
+        events: events
+      };
     }
-    console.log('取得成功:', result.length + '件');
-    return { success: true, events: result };
-  } catch (error) {
-    console.error('イベント取得エラー:', error);
-    return { success: false, error: error.toString() };
+    
+    // 実際のGoogleカレンダーからイベントを取得
+    var calendar;
+    try {
+      calendar = CalendarApp.getCalendarById(calendarId);
+    } catch (e) {
+      console.error('カレンダー取得エラー:', e.toString());
+      // カレンダーが見つからない場合の詳細ログ
+      console.log('アクセス試行カレンダーID:', calendarId);
+      console.log('現在のユーザー:', getUserEmail());
+      
+      return {
+        success: false,
+        error: 'カレンダーにアクセスできません。管理者にカレンダーの共有設定を確認してもらってください。カレンダーID: ' + calendarId,
+        events: []
+      };
+    }
+    
+    if (!calendar) {
+      console.error('カレンダーが見つかりません:', calendarId);
+      return {
+        success: false,
+        error: 'カレンダーが見つかりません: ' + calendarId,
+        events: []
+      };
+    }
+    
+    var start = new Date(startDate);
+    var end = new Date(endDate);
+    
+    console.log('カレンダーイベント検索:', start, 'から', end);
+    var calendarEvents = calendar.getEvents(start, end);
+    
+    var events = calendarEvents.map(function(event) {
+      return {
+        id: event.getId(),
+        title: event.getTitle(),
+        start: Utilities.formatDate(event.getStartTime(), TZ, 'yyyy-MM-dd\'T\'HH:mm:ss'),
+        end: Utilities.formatDate(event.getEndTime(), TZ, 'yyyy-MM-dd\'T\'HH:mm:ss'),
+        description: event.getDescription() || ''
+      };
+    });
+    
+    console.log('イベント取得成功:', events.length + '件');
+    return {
+      success: true,
+      events: events
+    };
+    
+  } catch (e) {
+    console.error('イベント取得エラー:', e.toString());
+    return {
+      success: false,
+      error: e.toString(),
+      events: []
+    };
   }
 }
 
-/***** 予約作成 *****/
+/***** 予約作成（Googleカレンダー版） *****/
 function createReservation(calendarId, title, startDateTime, endDateTime) {
+  console.log('createReservation開始（Googleカレンダー版）:', calendarId, title, startDateTime, endDateTime);
+  
   try {
-    console.log('予約作成:', calendarId, title, startDateTime, endDateTime);
-    var user = getUserEmail();
-    var cal = CalendarApp.getCalendarById(calendarId);
-    var start = new Date(startDateTime);
-    var end = new Date(endDateTime);
-    
-    // 重複チェック
-    var existing = cal.getEvents(start, end);
-    if (existing.length > 0) {
-      return { success: false, error: 'その時間は既に予約があります' };
+    // テストカレンダーIDの場合はダミーレスポンスを返す
+    if (calendarId.startsWith('test-calendar-')) {
+      console.log('テストカレンダーID検出、ダミーレスポンスを返却');
+      return {
+        success: true,
+        eventId: 'test-event-' + Date.now(),
+        message: 'テスト予約が作成されました'
+      };
     }
     
-    // 予約作成
-    var event = cal.createEvent(
-      '【予約】' + title + ' (' + user.split('@')[0] + ')',
-      start,
-      end,
-      { description: 'Created by: ' + user }
-    );
+    // 実際のGoogleカレンダーにイベントを作成
+    var calendar = CalendarApp.getCalendarById(calendarId);
+    if (!calendar) {
+      console.error('カレンダーが見つかりません:', calendarId);
+      return {
+        success: false,
+        error: 'カレンダーが見つかりません: ' + calendarId
+      };
+    }
     
-    console.log('予約作成成功:', event.getId());
-    return { success: true, eventId: event.getId() };
-  } catch (error) {
-    console.error('予約作成エラー:', error);
-    return { success: false, error: error.toString() };
+    var startTime = new Date(startDateTime);
+    var endTime = new Date(endDateTime);
+    
+    console.log('イベント作成:', title, startTime, 'から', endTime);
+    
+    // 重複チェック（既存のイベントと時間が重複していないか）
+    var existingEvents = calendar.getEvents(startTime, endTime);
+    if (existingEvents.length > 0) {
+      console.log('時間重複検出:', existingEvents.length + '件');
+      return {
+        success: false,
+        error: 'この時間帯は既に予約されています'
+      };
+    }
+    
+    // イベント作成
+    var event = calendar.createEvent(title, startTime, endTime, {
+      description: '教室予約システムにより作成\n作成者: ' + getUserEmail()
+    });
+    
+    console.log('イベント作成成功:', event.getId());
+    return {
+      success: true,
+      eventId: event.getId(),
+      message: '予約が正常に作成されました'
+    };
+    
+  } catch (e) {
+    console.error('予約作成エラー:', e.toString());
+    return {
+      success: false,
+      error: '予約作成に失敗しました: ' + e.toString()
+    };
   }
 }
 
-/***** 予約削除 *****/
+/***** 予約削除（Googleカレンダー版） *****/
 function deleteReservation(calendarId, eventId) {
+  console.log('deleteReservation開始（Googleカレンダー版）:', calendarId, eventId);
+  
   try {
-    console.log('予約削除:', calendarId, eventId);
-    var user = getUserEmail();
-    var cal = CalendarApp.getCalendarById(calendarId);
-    var event = cal.getEventById(eventId);
+    // テストカレンダーIDの場合はダミーレスポンスを返す
+    if (calendarId.startsWith('test-calendar-') || eventId.startsWith('test-event-')) {
+      console.log('テストカレンダー/イベントID検出、ダミーレスポンスを返却');
+      return {
+        success: true,
+        message: 'テスト予約が削除されました'
+      };
+    }
     
+    // 実際のGoogleカレンダーからイベントを削除
+    var calendar = CalendarApp.getCalendarById(calendarId);
+    if (!calendar) {
+      console.error('カレンダーが見つかりません:', calendarId);
+      return {
+        success: false,
+        error: 'カレンダーが見つかりません: ' + calendarId
+      };
+    }
+    
+    var event = calendar.getEventById(eventId);
     if (!event) {
-      return { success: false, error: 'イベントが見つかりません' };
+      console.error('イベントが見つかりません:', eventId);
+      return {
+        success: false,
+        error: 'イベントが見つかりません: ' + eventId
+      };
     }
     
-    // 作成者チェック（簡易版）
-    var description = event.getDescription() || '';
-    if (!description.indexOf('Created by: ' + user) === -1) {
-      return { success: false, error: '自分が作成した予約のみ削除できます' };
-    }
-    
+    console.log('イベント削除:', event.getTitle());
     event.deleteEvent();
-    console.log('削除成功');
-    return { success: true };
-  } catch (error) {
-    console.error('削除エラー:', error);
-    return { success: false, error: error.toString() };
-  }
-}
-
-/***** イベント（表示） *****/
-function listEvents(calendarId, isoStart, isoEnd) {
-  _userEmail();
-  var cal = CalendarApp.getCalendarById(calendarId);
-  var start = new Date(isoStart);
-  var end = new Date(isoEnd);
-  var events = cal.getEvents(start, end);
-  
-  var result = [];
-  for (var i = 0; i < events.length; i++) {
-    var ev = events[i];
-    result.push({
-      id: ev.getId(),
-      title: ev.getTitle(),
-      start: ev.getStartTime(),
-      end: ev.getEndTime(),
-      description: ev.getDescription()
-    });
-  }
-  return result;
-}
-
-/***** 放課後スロット（30分刻み：動的） *****/
-function listAfterschoolSlots(calendarId, dateISO) {
-  var rooms = getRooms();
-  var room = null;
-  for (var i = 0; i < rooms.length; i++) {
-    if (rooms[i].calendarId === calendarId) {
-      room = rooms[i];
-      break;
-    }
-  }
-  
-  var openTo = room ? room.openTo : '18:30';
-  var startHHMM = _maxClassEndHHMM();
-  var cur = _hhmmToDate(dateISO, startHHMM);
-  var endLimit = _hhmmToDate(dateISO, openTo);
-
-  var slots = [];
-  var i = 1;
-  while (cur < endLimit) {
-    var next = new Date(cur.getTime() + 30 * 60 * 1000);
-    var slotEnd = next <= endLimit ? next : endLimit;
-    slots.push({
-      label: '放課後' + i + '（' + _dateToHHMM(cur) + '-' + _dateToHHMM(slotEnd) + '）',
-      startHHMM: _dateToHHMM(cur),
-      endHHMM: _dateToHHMM(slotEnd),
-      order: i
-    });
-    cur = slotEnd; 
-    i++;
-  }
-  return slots;
-}
-
-/***** 予約作成（時限＋放課後） *****/
-function createReservationBySegments(payload) {
-  var user = _userEmail();
-  var calendarId = payload.calendarId;
-  var dateISO = payload.dateISO;
-  var classLabels = payload.classLabels || [];
-  var afterschoolSlots = payload.afterschoolSlots || [];
-  var purpose = payload.purpose;
-  var notes = payload.notes;
-  
-  var lock = LockService.getScriptLock(); 
-  lock.waitLock(5000);
-  try {
-    var periods = getPeriods();
-    var pickedClass = [];
-    for (var i = 0; i < periods.length; i++) {
-      for (var j = 0; j < classLabels.length; j++) {
-        if (periods[i].label === classLabels[j]) {
-          pickedClass.push(periods[i]);
-          break;
-        }
-      }
-    }
     
-    for (var k = 0; k < pickedClass.length; k++) {
-      if (pickedClass[k].kind === 'LUNCH') {
-        return { ok: false, reason: '昼休みは予約できません' };
-      }
-    }
+    console.log('イベント削除成功:', eventId);
+    return {
+      success: true,
+      message: '予約が正常に削除されました'
+    };
     
-    var classOnly = [];
-    for (var l = 0; l < pickedClass.length; l++) {
-      if (pickedClass[l].kind === 'CLASS') {
-        classOnly.push(pickedClass[l]);
-      }
-    }
-    
-    var orders = [];
-    for (var m = 0; m < classOnly.length; m++) {
-      orders.push(classOnly[m].order);
-    }
-    orders.sort(function(a, b) { return a - b; });
-    
-    for (var n = 1; n < orders.length; n++) {
-      if (orders[n] !== orders[n-1] + 1) {
-        return { ok: false, reason: '授業は連続する時限のみ選択してください' };
-      }
-    }
-    
-    var segs = [];
-    for (var o = 0; o < pickedClass.length; o++) {
-      segs.push({ start: pickedClass[o].start, end: pickedClass[o].end });
-    }
-    for (var p = 0; p < afterschoolSlots.length; p++) {
-      segs.push({ start: afterschoolSlots[p].startHHMM, end: afterschoolSlots[p].endHHMM });
-    }
-    
-    if (segs.length === 0) {
-      return { ok: false, reason: '時限または放課後を選択してください' };
-    }
-
-    segs.sort(function(a, b) { return a.start.localeCompare(b.start); });
-    var mergedStart = segs[0].start;
-    var mergedEnd = segs[0].end;
-    
-    for (var q = 1; q < segs.length; q++) {
-      if (segs[q].start !== mergedEnd) {
-        return { ok: false, reason: '選択した枠に隙間があります（連続枠のみ可）' };
-      }
-      mergedEnd = segs[q].end;
-    }
-
-    var start = _hhmmToDate(dateISO, mergedStart);
-    var end = _hhmmToDate(dateISO, mergedEnd);
-
-    var cal = CalendarApp.getCalendarById(calendarId);
-    if (cal.getEvents(start, end).length > 0) {
-      return { ok: false, reason: 'その時間帯は既に予約があります（ブラックアウト含む）' };
-    }
-
-    var title = '【予約】' + purpose + '（' + user.split('@')[0] + '）';
-    var desc = 'createdBy=' + user + '\npurpose=' + purpose + '\nnotes=' + (notes || '') + 
-               '\nclass=' + classLabels.join(',') + 
-               '\nafter=' + afterschoolSlots.map(function(s) { return s.startHHMM + '-' + s.endHHMM; }).join(',');
-    var ev = cal.createEvent(title, start, end, { description: desc });
-    try { ev.addGuest(user); } catch(e) {}
-    _appendLog('CREATE', calendarId, ev.getId(), user, start, end, purpose, notes, JSON.stringify(payload));
-    return { ok: true, eventId: ev.getId() };
-  } finally { 
-    lock.releaseLock(); 
+  } catch (e) {
+    console.error('予約削除エラー:', e.toString());
+    return {
+      success: false,
+      error: '予約削除に失敗しました: ' + e.toString()
+    };
   }
-}
-
-/***** 予約取消（締切なし／作成者・ゲストのみ） *****/
-function deleteReservation(calendarId, eventId) {
-  var user = _userEmail();
-  var cal = CalendarApp.getCalendarById(calendarId);
-  var ev = cal.getEventById(eventId);
-  if (!ev) return { ok: true };
-  var desc = ev.getDescription() || '';
-  var isOwner = desc.indexOf('createdBy=' + user) !== -1;
-  var guestList = ev.getGuestList();
-  var isGuest = false;
-  for (var i = 0; i < guestList.length; i++) {
-    if (guestList[i].getEmail() === user) {
-      isGuest = true;
-      break;
-    }
-  }
-  if (!(isOwner || isGuest)) {
-    return { ok: false, reason: 'この予約は取り消せません（作成者ご本人で操作してください）' };
-  }
-  ev.deleteEvent();
-  _appendLog('DELETE', calendarId, eventId, user);
-  return { ok: true };
-}
-
-/***** ブラックアウト（初期は全員可。必要なら制限可） *****/
-function createBlackout(payload) {
-  var user = _userEmail();
-  var calendarId = payload.calendarId;
-  var dateISO = payload.dateISO;
-  var startHHMM = payload.startHHMM;
-  var endHHMM = payload.endHHMM;
-  var reason = payload.reason;
-  
-  var cal = CalendarApp.getCalendarById(calendarId);
-  var start = _hhmmToDate(dateISO, startHHMM);
-  var end = _hhmmToDate(dateISO, endHHMM);
-  var ev = cal.createEvent('【停止】ブラックアウト：' + (reason || ''), start, end,
-    { description: 'blackout=true\nby=' + user + '\nreason=' + (reason || '') });
-  _appendLog('BLACKOUT', calendarId, ev.getId(), user, start, end, reason || '');
-  return { ok: true, eventId: ev.getId() };
-}
-
-/***** CSV 出力（全員利用可） *****/
-function exportLogsCsv(payload) {
-  var user = _userEmail();
-  var fromISO = payload.fromISO;
-  var toISO = payload.toISO;
-  var roomCalendarId = payload.roomCalendarId;
-  
-  var from = new Date(fromISO), to = new Date(toISO);
-  var sh = SpreadsheetApp.getActive().getSheetByName(SHEET_LOGS);
-  var vals = sh.getDataRange().getValues();
-  var head = vals.shift(); 
-  if (!head) throw new Error('Logs シートが空です');
-  
-  var idx = {};
-  for (var i = 0; i < head.length; i++) {
-    idx[String(head[i]).trim()] = i;
-  }
-  
-  var rows = [];
-  for (var j = 0; j < vals.length; j++) {
-    var r = vals[j];
-    var ts = r[idx.timestamp];
-    var calId = r[idx.calendarId];
-    var inRange = (ts instanceof Date) && ts >= from && ts <= to;
-    var matchRoom = !roomCalendarId || calId === roomCalendarId;
-    if (inRange && matchRoom) {
-      rows.push(r);
-    }
-  }
-
-  var csvHead = head.join(',') + '\n';
-  var csvBody = '';
-  for (var k = 0; k < rows.length; k++) {
-    var r = rows[k];
-    var line = '';
-    for (var l = 0; l < r.length; l++) {
-      var cell = r[l];
-      var s = (cell instanceof Date) ? Utilities.formatDate(cell, TZ, 'yyyy-MM-dd HH:mm:ss') : String(cell || '');
-      s = '"' + s.replace(/"/g, '""') + '"';
-      line += (l > 0 ? ',' : '') + s;
-    }
-    csvBody += (k > 0 ? '\n' : '') + line;
-  }
-
-  var blob = Utilities.newBlob(csvHead + csvBody, 'text/csv',
-    'reservations_' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmmss') + '.csv');
-  var file = DriveApp.createFile(blob);
-  _appendLog('EXPORT_CSV', roomCalendarId || '', file.getId(), user, null, null, '', '', 'from=' + fromISO + ',to=' + toISO);
-  return { ok: true, fileId: file.getId(), url: file.getUrl() };
 }

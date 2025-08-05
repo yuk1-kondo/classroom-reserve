@@ -1,0 +1,133 @@
+/* カレンダーコンポーネント用スタイル */
+.calendar-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.calendar-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  color: #333;
+}
+
+.calendar-error {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: #f8f8f8;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* FullCalendar のスタイル調整 */
+.fc {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #333;
+}
+
+.fc-button {
+  background-color: #333;
+  border-color: #333;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: white;
+}
+
+.fc-button:hover {
+  background-color: #555;
+  border-color: #555;
+}
+
+.fc-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+}
+
+.fc-event {
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 11px;
+  line-height: 1.2;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.fc-event:hover {
+  filter: brightness(1.1);
+}
+
+.fc-timegrid-slot-label {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.fc-timegrid-slot {
+  border-color: #e0e0e0;
+}
+
+.fc-col-header-cell {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.fc-daygrid-day-number {
+  color: #333;
+  font-weight: 500;
+}
+
+.fc-today {
+  background-color: #f0f0f0 !important;
+}
+
+.fc-now-indicator {
+  border-color: #333;
+  border-width: 2px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .fc-button {
+    font-size: 0.8em;
+    padding: 4px 8px;
+  }
+  
+  .legend-items {
+    justify-content: center;
+  }
+  
+  .legend-item {
+    font-size: 10px;
+  }
+}

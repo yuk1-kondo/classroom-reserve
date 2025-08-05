@@ -1,0 +1,227 @@
+/* エクセル風日別予約表示テーブル */
+.daily-reservation-table {
+  width: 100%;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ヘッダー */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f6f8fa;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.table-header h4 {
+  margin: 0;
+  color: #24292f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loading-indicator {
+  color: #0969da;
+  font-size: 11px;
+}
+
+.error-message {
+  color: #d1242f;
+  font-size: 11px;
+}
+
+/* エクセル風テーブル */
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: white;
+}
+
+.excel-table thead th {
+  background: #f6f8fa;
+  color: #24292f;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid #d0d7de;
+  border-top: none;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.excel-table tbody td {
+  padding: 6px 12px;
+  border: 1px solid #d0d7de;
+  vertical-align: top;
+  background: white;
+  font-size: 11px;
+}
+
+.excel-table tbody tr:nth-child(even) td {
+  background: #f6f8fa;
+}
+
+.excel-table tbody tr:hover td {
+  background: #ddf4ff !important;
+}
+
+/* 列幅設定 */
+.col-room {
+  width: 80px;
+  min-width: 80px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.col-period {
+  width: 60px;
+  min-width: 60px;
+  text-align: center;
+  font-weight: 500;
+  color: #0969da;
+}
+
+.col-time {
+  width: 100px;
+  min-width: 100px;
+  text-align: center;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  color: #656d76;
+}
+
+.col-title {
+  width: auto;
+  min-width: 120px;
+  color: #24292f;
+}
+
+.col-user {
+  width: 100px;
+  min-width: 100px;
+  color: #656d76;
+}
+
+/* セル内容 */
+.room-name {
+  font-weight: 500;
+  color: #24292f;
+}
+
+.period-badge {
+  background: #ddf4ff;
+  color: #0969da;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.time-range {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  color: #656d76;
+  font-size: 10px;
+}
+
+.reservation-title {
+  color: #24292f;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.reservation-user {
+  color: #656d76;
+  font-size: 10px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .daily-reservation-table {
+    font-size: 10px;
+  }
+  
+  .excel-table {
+    font-size: 10px;
+  }
+  
+  .excel-table thead th {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  
+  .excel-table tbody td {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .col-room {
+    width: 60px;
+    min-width: 60px;
+  }
+  
+  .col-period {
+    width: 45px;
+    min-width: 45px;
+  }
+  
+  .col-time {
+    width: 80px;
+    min-width: 80px;
+  }
+  
+  .col-user {
+    width: 80px;
+    min-width: 80px;
+  }
+  
+  .period-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  
+  .time-range {
+    font-size: 9px;
+  }
+  
+  .reservation-user {
+    font-size: 9px;
+  }
+}
+
+/* 印刷対応 */
+@media print {
+  .daily-reservation-table {
+    box-shadow: none;
+    border: 1px solid #000;
+    font-size: 10px;
+  }
+  
+  .table-header {
+    background: white !important;
+    border-bottom: 1px solid #000;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .excel-table thead th {
+    background: #f0f0f0 !important;
+    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .excel-table tbody td {
+    border: 1px solid #000 !important;
+  }
+  
+  .excel-table tbody tr:nth-child(even) td {
+    background: #f8f8f8 !important;
+    -webkit-print-color-adjust: exact;
+  }
+}

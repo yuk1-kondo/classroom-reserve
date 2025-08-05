@@ -2,15 +2,30 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>教室予約（シンプル版）</title>
+  <title>教室予約システム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
-    .header { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-    .btn { padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: #fff; }
-    .btn:hover { background: #f5f5f5; }
-    #calendar { max-width: 900px; margin: 0 auto; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background-color: #f9f9f9; }
+    .header { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 10px 20px; background-color: #fff; border-bottom: 1px solid #ddd;}
+    h1 { font-size: 1.5em; margin: 0; }
+    .controls { display: flex; gap: 10px; align-items: center; }
+    .btn { padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: #fff; font-size: 0.9em; }
+    .btn:hover { background: #f0f0f0; }
+    #roomSelector { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+    #userInfo { margin-left: auto; font-size: 0.9em; color: #555; }
+    #calendar { max-width: 1100px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    
+    /* 2カラムレイアウト */
+    .main-container { display: flex; gap: 20px; max-width: 1400px; margin: 0 auto; }
+    .calendar-container { flex: 1; }
+    .side-panel { width: 350px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; height: fit-content; }
+    .side-panel h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+    .reservation-list { margin-bottom: 20px; }
+    .reservation-item { padding: 10px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 10px; background: #f9f9f9; }
+    .reservation-item h4 { margin: 0 0 5px 0; color: #333; }
+    .reservation-item p { margin: 0; font-size: 0.9em; color: #666; }
+    .no-reservations { color: #999; font-style: italic; text-align: center; padding: 20px; }
     
     /* モーダル */
     .modal { 
@@ -20,52 +35,119 @@
       left: 0; 
       width: 100%; 
       height: 100%; 
-      background: rgba(0,0,0,0.5); 
+      background: rgba(0,0,0,0.6); 
       z-index: 9999; 
+      justify-content: center;
+      align-items: center;
     }
     .modal-content { 
-      position: absolute; 
-      top: 50%; 
-      left: 50%; 
-      transform: translate(-50%, -50%); 
       background: white; 
-      padding: 20px; 
+      padding: 25px; 
       border-radius: 8px; 
-      width: 400px; 
-      z-index: 10000;
+      width: 90%;
+      max-width: 450px; 
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
-    .form-group { margin: 10px 0; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .modal-content h3 { margin-top: 0; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .modal-buttons { text-align: right; margin-top: 20px; }
   </style>
 </head>
 <body>
-    <div class="header">
-    <h1>教室予約システム（シンプル版）</h1>
-    <button class="btn" onclick="showReservationModal()">新規予約</button>
-    <span id="userInfo" style="margin-left: auto;"></span>
+  <div class="header">
+    <h1>教室予約システム</h1>
+    <div class="controls">
+      <label for="roomSelector">メイン教室:</label>
+      <select id="roomSelector" onchange="onRoomChange()"></select>
+      <button class="btn" onclick="showReservationModal()">新規予約</button>
+    </div>
+    <span id="userInfo"></span>
   </div>
   
-  <div id="calendar"></div>
+  <div class="main-container">
+    <div class="calendar-container">
+      <div id="calendar"></div>
+    </div>
+    
+    <div class="side-panel" id="sidePanel">
+      <h3>予約情報</h3>
+      <div id="selectedDate" style="margin-bottom: 15px; font-weight: bold; color: #555;">日付を選択してください</div>
+      
+      <div class="reservation-list">
+        <h4>この日の予約</h4>
+        <div id="dayReservations">
+          <div class="no-reservations">日付をクリックして予約を表示</div>
+        </div>
+      </div>
+      
+      <div id="quickReservationForm" style="display: none;">
+        <h4>新規予約</h4>
+        <div class="form-group">
+          <label for="sideRoomSelector">教室:</label>
+          <select id="sideRoomSelector"></select>
+        </div>
+        <div class="form-group">
+          <label for="sideReservationName">予約者名:</label>
+          <input type="text" id="sideReservationName" placeholder="山田太郎" required>
+        </div>
+        <div class="form-group">
+          <label for="sidePeriodSelector">時限:</label>
+          <select id="sidePeriodSelector">
+            <option value="1">1限 (08:30-09:20)</option>
+            <option value="2">2限 (09:30-10:20)</option>
+            <option value="3">3限 (10:30-11:20)</option>
+            <option value="4">4限 (11:30-12:20)</option>
+            <option value="5">5限 (13:20-14:10)</option>
+            <option value="6">6限 (14:20-15:10)</option>
+            <option value="7">7限 (15:20-16:10)</option>
+            <option value="after">放課後 (16:20-18:30)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sideTitle">用途:</label>
+          <input type="text" id="sideTitle" placeholder="授業、会議、クラブ活動など" required>
+        </div>
+        <button class="btn" onclick="createQuickReservation()">予約する</button>
+      </div>
+    </div>
+  </div>
   
   <!-- 予約モーダル -->
-  <div id="reservationModal" class="modal">
+  <div id="reservationModal" class="modal" style="display: none;">
     <div class="modal-content">
       <h3>新規予約</h3>
       <div class="form-group">
-        <label>タイトル:</label>
-        <input type="text" id="eventTitle" placeholder="会議名など">
+        <label for="modalRoomSelector">教室:</label>
+        <select id="modalRoomSelector"></select>
       </div>
       <div class="form-group">
-        <label>開始日時:</label>
-        <input type="datetime-local" id="startDateTime">
+        <label for="modalReservationName">予約者名:</label>
+        <input type="text" id="modalReservationName" placeholder="山田太郎" required>
       </div>
       <div class="form-group">
-        <label>終了日時:</label>
-        <input type="datetime-local" id="endDateTime">
+        <label for="eventTitle">用途:</label>
+        <input type="text" id="eventTitle" placeholder="授業、会議、クラブ活動など" required>
       </div>
       <div class="form-group">
+        <label for="modalDate">日付:</label>
+        <input type="date" id="modalDate">
+      </div>
+      <div class="form-group">
+        <label for="modalPeriodSelector">時限:</label>
+        <select id="modalPeriodSelector">
+          <option value="1">1限 (08:30-09:20)</option>
+          <option value="2">2限 (09:30-10:20)</option>
+          <option value="3">3限 (10:30-11:20)</option>
+          <option value="4">4限 (11:30-12:20)</option>
+          <option value="5">5限 (13:20-14:10)</option>
+          <option value="6">6限 (14:20-15:10)</option>
+          <option value="7">7限 (15:20-16:10)</option>
+          <option value="after">放課後 (16:20-18:30)</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
         <button class="btn" onclick="createReservation()">予約する</button>
         <button class="btn" onclick="closeModal()">キャンセル</button>
       </div>
@@ -74,32 +156,237 @@
 
   <script>
     let currentUser = '';
+    let rooms = [];
+    let selectedCalendarId = '';
     let calendar = null;
+
+    // 時限から時刻への変換マップ
+    const periodTimeMap = {
+      '1': { start: '08:30', end: '09:20', name: '1限' },
+      '2': { start: '09:30', end: '10:20', name: '2限' },
+      '3': { start: '10:30', end: '11:20', name: '3限' },
+      '4': { start: '11:30', end: '12:20', name: '4限' },
+      '5': { start: '13:20', end: '14:10', name: '5限' },
+      '6': { start: '14:20', end: '15:10', name: '6限' },
+      '7': { start: '15:20', end: '16:10', name: '7限' },
+      'after': { start: '16:20', end: '18:30', name: '放課後' }
+    };
+
+    // 時限から日時文字列を作成
+    function createDateTimeFromPeriod(dateStr, period) {
+      const times = periodTimeMap[period];
+      if (!times) return null;
+      
+      return {
+        start: dateStr + 'T' + times.start + ':00',
+        end: dateStr + 'T' + times.end + ':00',
+        periodName: times.name
+      };
+    }
 
     // 初期化
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('初期化開始');
-      
       google.script.run
         .withSuccessHandler(function(data) {
-          console.log('初期化成功:', data);
+          console.log('初期データ取得成功:', data);
+          
+          // エラーレスポンスをチェック
+          if (data && data.error) {
+            console.error('サーバーサイドエラー:', data.message);
+            alert('システムの初期化に失敗しました: ' + data.message);
+            return;
+          }
+          
+          console.log('ユーザー:', data.user);
+          console.log('教室データ:', data.rooms);
+          console.log('教室数:', data.rooms ? data.rooms.length : 0);
           currentUser = data.user;
+          rooms = data.rooms;
           
           document.getElementById('userInfo').textContent = 'ログイン: ' + currentUser;
           
-          // カレンダー初期化
-          initCalendar();
+          if (rooms && rooms.length > 0) {
+            setupRoomSelectors();
+            selectedCalendarId = rooms[0].calendarId;
+            initCalendar();
+          } else {
+            document.getElementById('calendar').innerHTML = '<p>予約可能な教室が設定されていません。管理者に連絡してください。</p>';
+          }
         })
         .withFailureHandler(function(error) {
           console.error('初期化失敗:', error);
-          alert('初期化に失敗しました: ' + error);
+          console.error('エラー詳細:', JSON.stringify(error));
+          
+          // より詳細なエラーメッセージを表示
+          var errorMessage = 'システムの初期化に失敗しました。';
+          if (error && error.message) {
+            errorMessage += '\nエラー: ' + error.message;
+          }
+          if (error && error.toString) {
+            errorMessage += '\n詳細: ' + error.toString();
+          }
+          
+          alert(errorMessage);
+          
+          // デバッグ用のフォールバック
+          document.getElementById('calendar').innerHTML = 
+            '<div style="color: red; padding: 20px;">' +
+            '<h3>システム初期化エラー</h3>' +
+            '<p>詳細はブラウザの開発者ツール（F12）のコンソールをご確認ください。</p>' +
+            '<p>エラー: ' + (error ? JSON.stringify(error) : '不明') + '</p>' +
+            '</div>';
         })
         .getInitData();
     });
 
+    // 教室セレクター設定
+    function setupRoomSelectors() {
+      console.log('setupRoomSelectors開始 - 教室数:', rooms.length);
+      const mainSelector = document.getElementById('roomSelector');
+      const modalSelector = document.getElementById('modalRoomSelector');
+      
+      console.log('セレクター要素:', mainSelector, modalSelector);
+      
+      mainSelector.innerHTML = '';
+      modalSelector.innerHTML = '';
+
+      rooms.forEach((room, index) => {
+        console.log(`教室${index}:`, room);
+        const option = document.createElement('option');
+        option.value = room.calendarId;
+        option.textContent = room.name;
+        mainSelector.appendChild(option.cloneNode(true));
+        modalSelector.appendChild(option);
+      });
+      
+      console.log('セレクター設定完了 - main options:', mainSelector.options.length, 'modal options:', modalSelector.options.length);
+    }
+
+    // 右側パネル更新
+    function updateSidePanel(dateStr) {
+      console.log('右側パネル更新:', dateStr);
+      
+      // 日付表示を更新
+      const selectedDateEl = document.getElementById('selectedDate');
+      const date = new Date(dateStr + 'T00:00:00');
+      const formattedDate = date.toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      });
+      selectedDateEl.textContent = formattedDate;
+      
+      // その日の予約を全教室から取得
+      loadDayReservations(dateStr);
+      
+      // 新規予約フォームを表示
+      document.getElementById('quickReservationForm').style.display = 'block';
+      setupSideRoomSelector(dateStr);
+    }
+
+    // その日の予約を全教室から取得
+    function loadDayReservations(dateStr) {
+      const reservationsContainer = document.getElementById('dayReservations');
+      reservationsContainer.innerHTML = '<div style="text-align: center;">読み込み中...</div>';
+      
+      const startDate = dateStr + 'T00:00:00';
+      const endDate = dateStr + 'T23:59:59';
+      
+      // 全教室の予約を取得
+      const promises = rooms.map(room => {
+        return new Promise((resolve) => {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              if (result.success) {
+                resolve({
+                  room: room,
+                  events: result.events
+                });
+              } else {
+                resolve({
+                  room: room,
+                  events: []
+                });
+              }
+            })
+            .withFailureHandler(function() {
+              resolve({
+                room: room,
+                events: []
+              });
+            })
+            .getEvents(room.calendarId, startDate, endDate);
+        });
+      });
+      
+      Promise.all(promises).then(results => {
+        displayDayReservations(results, dateStr);
+      });
+    }
+
+    // その日の予約を表示
+    function displayDayReservations(results, dateStr) {
+      const reservationsContainer = document.getElementById('dayReservations');
+      let hasReservations = false;
+      let html = '';
+      
+      results.forEach(result => {
+        if (result.events.length > 0) {
+          hasReservations = true;
+          result.events.forEach(event => {
+            const startTime = new Date(event.start).toLocaleTimeString('ja-JP', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            const endTime = new Date(event.end).toLocaleTimeString('ja-JP', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            html += `
+              <div class="reservation-item">
+                <h4>${result.room.name}</h4>
+                <p><strong>${startTime} - ${endTime}</strong></p>
+                <p>${event.title}</p>
+              </div>
+            `;
+          });
+        }
+      });
+      
+      if (!hasReservations) {
+        html = '<div class="no-reservations">この日は予約がありません</div>';
+      }
+      
+      reservationsContainer.innerHTML = html;
+      
+      // 選択した日付を保存（予約フォーム用）
+      window.selectedDate = dateStr;
+    }
+
+    // サイドパネルの教室セレクター設定
+    function setupSideRoomSelector(dateStr) {
+      const sideSelector = document.getElementById('sideRoomSelector');
+      sideSelector.innerHTML = '';
+      
+      rooms.forEach(room => {
+        const option = document.createElement('option');
+        option.value = room.calendarId;
+        option.textContent = room.name;
+        sideSelector.appendChild(option);
+      });
+    }
+
+    // 教室変更時の処理
+    function onRoomChange() {
+      selectedCalendarId = document.getElementById('roomSelector').value;
+      console.log('教室変更:', selectedCalendarId);
+      calendar.refetchEvents();
+    }
+
     // カレンダー初期化
     function initCalendar() {
-      console.log('カレンダー初期化開始');
       const calendarEl = document.getElementById('calendar');
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
@@ -107,108 +394,144 @@
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
-          right: 'timeGridWeek,timeGridDay'
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         slotMinTime: '08:00:00',
-        slotMaxTime: '20:00:00',
+        slotMaxTime: '21:00:00',
         businessHours: {
-          daysOfWeek: [1, 2, 3, 4, 5],
-          startTime: '09:00',
-          endTime: '18:00',
+          daysOfWeek: [1, 2, 3, 4, 5], // 月-金
+          startTime: '08:30',
+          endTime: '19:00',
+        },
+        // 日付クリック時の処理
+        dateClick: function(info) {
+          console.log('日付クリック:', info.dateStr);
+          updateSidePanel(info.dateStr);
         },
         events: function(info, successCallback, failureCallback) {
-          console.log('イベント取得開始:', info);
+          console.log('全教室のイベント取得開始:', info);
           
-          // 自分のメインカレンダーを使用
-          const calendarId = currentUser;
+          // 全教室の予約を取得
+          const promises = rooms.map(room => {
+            return new Promise((resolve) => {
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  if (result.success) {
+                    // 教室名を各イベントに追加（カレンダー表示用）
+                    const eventsWithRoom = result.events.map(event => {
+                      return {
+                        ...event,
+                        title: `[${room.name}] ${event.title}`,
+                        calendarId: room.calendarId,
+                        roomName: room.name
+                      };
+                    });
+                    resolve(eventsWithRoom);
+                  } else {
+                    console.warn(`${room.name}のイベント取得失敗:`, result.error);
+                    resolve([]); // エラーでも空配列で継続
+                  }
+                })
+                .withFailureHandler(function() {
+                  resolve([]);
+                })
+                .getEvents(room.calendarId, info.startStr, info.endStr);
+            });
+          });
           
-          google.script.run
-            .withSuccessHandler(function(result) {
-              console.log('イベント取得成功:', result);
-              if (result.success) {
-                successCallback(result.events);
-              } else {
-                console.error('イベント取得エラー:', result.error);
-                failureCallback(result.error);
-              }
-            })
-            .withFailureHandler(function(error) {
-              console.error('イベント取得失敗:', error);
-              failureCallback(error);
-            })
-            .getEvents(calendarId, info.startStr, info.endStr);
+          Promise.all(promises).then(results => {
+            // 全教室のイベントを結合
+            const allEvents = results.flat();
+            console.log('全教室のイベント取得成功:', allEvents.length + '件');
+            successCallback(allEvents);
+          }).catch(error => {
+            console.error('イベント取得エラー:', error);
+            failureCallback(error);
+          });
         },
         eventClick: function(info) {
-          if (confirm('この予約を削除しますか？')) {
-            deleteReservation(info.event.id);
+          if (confirm('この予約を削除しますか？\n\n' + info.event.title)) {
+            // イベントのカレンダーIDを取得（extendedPropsから）
+            const eventCalendarId = info.event.extendedProps.calendarId || selectedCalendarId;
+            deleteReservation(info.event.id, eventCalendarId);
           }
         }
       });
       calendar.render();
-      console.log('カレンダー表示完了');
     }
 
     // 予約モーダル表示
     function showReservationModal() {
-      // デフォルト時間設定（現在時刻の次の時間）
-      const now = new Date();
-      const start = new Date(now);
-      start.setHours(start.getHours() + 1);
-      start.setMinutes(0);
-      start.setSeconds(0);
+      // メインのセレクターで選択されている教室をモーダルにも反映
+      document.getElementById('modalRoomSelector').value = selectedCalendarId;
+
+      // 今日の日付を設定
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      document.getElementById('modalDate').value = todayStr;
       
-      const end = new Date(start);
-      end.setHours(end.getHours() + 1);
+      // フィールドをクリア
+      document.getElementById('eventTitle').value = '';
+      document.getElementById('modalReservationName').value = '';
+      document.getElementById('modalPeriodSelector').value = '1'; // デフォルトは1限
       
-      document.getElementById('startDateTime').value = formatDateTime(start);
-      document.getElementById('endDateTime').value = formatDateTime(end);
-      document.getElementById('reservationModal').style.display = 'block';
+      document.getElementById('reservationModal').style.display = 'flex';
     }
 
     // 予約作成
     function createReservation() {
+      const calendarId = document.getElementById('modalRoomSelector').value;
+      const reservationName = document.getElementById('modalReservationName').value;
       const title = document.getElementById('eventTitle').value;
-      const startDateTime = document.getElementById('startDateTime').value;
-      const endDateTime = document.getElementById('endDateTime').value;
+      const date = document.getElementById('modalDate').value;
+      const period = document.getElementById('modalPeriodSelector').value;
       
-      if (!title || !startDateTime || !endDateTime) {
+      if (!reservationName || !title || !date || !period) {
         alert('すべての項目を入力してください');
         return;
       }
       
-      // 自分のメインカレンダーを使用
-      const calendarId = currentUser;
+      // 時限から日時を変換
+      const dateTime = createDateTimeFromPeriod(date, period);
+      if (!dateTime) {
+        alert('時限の設定にエラーがあります');
+        return;
+      }
       
-      console.log('予約作成開始:', { title, startDateTime, endDateTime });
+      // タイトルに予約者名と時限を含める
+      const fullTitle = `${dateTime.periodName} ${title} (${reservationName})`;
+      
+      console.log('予約作成:', { 
+        calendarId, 
+        title: fullTitle, 
+        startDateTime: dateTime.start, 
+        endDateTime: dateTime.end 
+      });
       
       google.script.run
         .withSuccessHandler(function(result) {
-          console.log('予約作成結果:', result);
           if (result.success) {
             alert('予約しました！');
             closeModal();
+            // カレンダーを再読み込み
             calendar.refetchEvents();
           } else {
             alert('予約に失敗しました: ' + result.error);
           }
         })
         .withFailureHandler(function(error) {
-          console.error('予約作成エラー:', error);
-          alert('エラーが発生しました: ' + error);
+          alert('エラーが発生しました: ' + error.message);
         })
-        .createReservation(calendarId, title, startDateTime, endDateTime);
+        .createReservation(calendarId, fullTitle, dateTime.start, dateTime.end);
     }
 
     // 予約削除
-    function deleteReservation(eventId) {
-      console.log('予約削除開始:', eventId);
-      
-      // 自分のメインカレンダーを使用
-      const calendarId = currentUser;
+    function deleteReservation(eventId, calendarId) {
+      calendarId = calendarId || selectedCalendarId; // fallback
+      console.log('予約削除:', { calendarId: calendarId, eventId });
       
       google.script.run
         .withSuccessHandler(function(result) {
-          console.log('削除結果:', result);
           if (result.success) {
             alert('削除しました');
             calendar.refetchEvents();
@@ -217,8 +540,7 @@
           }
         })
         .withFailureHandler(function(error) {
-          console.error('削除エラー:', error);
-          alert('エラーが発生しました: ' + error);
+          alert('エラーが発生しました: ' + error.message);
         })
         .deleteReservation(calendarId, eventId);
     }
@@ -226,16 +548,64 @@
     // モーダル閉じる
     function closeModal() {
       document.getElementById('reservationModal').style.display = 'none';
-      document.getElementById('eventTitle').value = '';
     }
 
     // 日時フォーマット
     function formatDateTime(date) {
-      return date.getFullYear() + '-' + 
-             String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-             String(date.getDate()).padStart(2, '0') + 'T' +
-             String(date.getHours()).padStart(2, '0') + ':' +
-             String(date.getMinutes()).padStart(2, '0');
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
+    }
+
+    // サイドパネルからの簡易予約作成
+    function createQuickReservation() {
+      const calendarId = document.getElementById('sideRoomSelector').value;
+      const reservationName = document.getElementById('sideReservationName').value;
+      const period = document.getElementById('sidePeriodSelector').value;
+      const title = document.getElementById('sideTitle').value;
+      
+      if (!reservationName || !title || !period) {
+        alert('すべての項目を入力してください');
+        return;
+      }
+      
+      // 時限から日時を変換
+      const dateTime = createDateTimeFromPeriod(window.selectedDate, period);
+      if (!dateTime) {
+        alert('時限の設定にエラーがあります');
+        return;
+      }
+      
+      // タイトルに予約者名と時限を含める
+      const fullTitle = `${dateTime.periodName} ${title} (${reservationName})`;
+      
+      console.log('簡易予約作成:', { 
+        calendarId, 
+        title: fullTitle, 
+        startDateTime: dateTime.start, 
+        endDateTime: dateTime.end 
+      });
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            alert('予約しました！');
+            // フォームリセット
+            document.getElementById('sideTitle').value = '';
+            document.getElementById('sideReservationName').value = '';
+            // 予約一覧を再読み込み
+            loadDayReservations(window.selectedDate);
+            // カレンダーも更新
+            if (calendar) {
+              calendar.refetchEvents();
+            }
+          } else {
+            alert('予約に失敗しました: ' + result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('エラーが発生しました: ' + error.message);
+        })
+        .createReservation(calendarId, fullTitle, dateTime.start, dateTime.end);
     }
   </script>
 </body>
