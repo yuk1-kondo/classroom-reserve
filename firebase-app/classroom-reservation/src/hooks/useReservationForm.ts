@@ -146,8 +146,8 @@ export const useReservationForm = (
     }
 
     // 重複チェックを実行
-    console.log('🔍 重複チェック開始:', { datesToReserve, periodsToReserve, selectedRoom: formData.selectedRoom });
-    const conflictResult = await checkForConflicts(datesToReserve, periodsToReserve, formData.selectedRoom);
+    console.log('🔍 重複チェック開始:', { datesToReserve, periodsToReserve, selectedRoom: formData.selectedRoom, userId: currentUser?.uid });
+    const conflictResult = await checkForConflicts(datesToReserve, periodsToReserve, formData.selectedRoom, currentUser?.uid);
     console.log('🔍 重複チェック結果:', conflictResult);
     
     if (conflictResult.hasConflict) {

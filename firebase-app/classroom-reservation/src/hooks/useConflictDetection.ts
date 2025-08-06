@@ -19,9 +19,10 @@ export const useConflictDetection = () => {
   const checkForConflicts = async (
     targetDates: string[], 
     targetPeriods: string[], 
-    targetRoomId: string
+    targetRoomId: string,
+    currentUserId?: string
   ): Promise<{ hasConflict: boolean; message: string; details: string[] }> => {
-    console.log('🔍 checkForConflicts呼び出し:', { targetDates, targetPeriods, targetRoomId });
+    console.log('🔍 checkForConflicts呼び出し:', { targetDates, targetPeriods, targetRoomId, currentUserId });
     
     if (!targetRoomId || targetDates.length === 0 || targetPeriods.length === 0) {
       console.log('🔍 チェック条件不足で終了');
@@ -81,10 +82,19 @@ export const useConflictDetection = () => {
                 return reservedPeriods.includes(period);
               }
             });
-            const dateStr = new Date(date).toLocaleDateString('ja-JP');
-            const periodName = periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`;
-            conflicts.push(`${dateStr} ${periodName} (${conflictingReservation?.title || '予約済み'})`);
-            console.log(`  ❌ 競合追加: ${dateStr} ${periodName} vs ${conflictingReservation?.periodName}`);
+            
+            // ユーザーIDチェック: 同じユーザーかどうか確認
+            if (conflictingReservation && currentUserId && conflictingReservation.createdBy === currentUserId) {
+              const dateStr = new Date(date).toLocaleDateString('ja-JP');
+              const periodName = periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`;
+              conflicts.push(`${dateStr} ${periodName} - 既に同じ時間帯を予約済みです`);
+              console.log(`  ❌ 同一ユーザー重複検出: ${dateStr} ${periodName} (ユーザー: ${currentUserId})`);
+            } else if (conflictingReservation) {
+              const dateStr = new Date(date).toLocaleDateString('ja-JP');
+              const periodName = periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`;
+              conflicts.push(`${dateStr} ${periodName} (${conflictingReservation?.title || '他のユーザーが予約済み'})`);
+              console.log(`  ❌ 他ユーザー競合: ${dateStr} ${periodName} vs ${conflictingReservation?.periodName}`);
+            }
           } else {
             console.log(`  ✅ 時限${period}は利用可能`);
           }
@@ -95,9 +105,16 @@ export const useConflictDetection = () => {
       if (conflicts.length > 0) {
         console.log('❌ 検出された競合:');
         conflicts.forEach((conflict, index) => console.log(`  ${index + 1}. ${conflict}`));
+        
+        // 同一ユーザー重複と他ユーザー競合を区別
+        const hasSameUserConflict = conflicts.some(c => c.includes('既に同じ時間帯を予約済みです'));
+        const message = hasSameUserConflict 
+          ? '既に同じ時間帯を予約済みです。予約を変更または削除してください。'
+          : '選択した時間帯は他のユーザーにより予約されています。';
+        
         return {
           hasConflict: true,
-          message: `選択した時間帯は既に予約されています`,
+          message,
           details: conflicts
         };
       }
