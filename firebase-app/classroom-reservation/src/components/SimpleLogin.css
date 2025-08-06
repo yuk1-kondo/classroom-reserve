@@ -1,11 +1,12 @@
-/* 簡易ログインコンポーネントのスタイル */
+/* 桜和高校教室予約システム - シンプルログインデザイン */
+
 .simple-login-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -14,245 +15,160 @@
 
 .simple-login-modal {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   width: 90%;
-  max-width: 450px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 400px;
+  position: relative;
 }
 
 .simple-login-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e0e0e0;
+  text-align: center;
+  padding: 2rem 2rem 1rem 2rem;
 }
 
 .simple-login-header h2 {
   margin: 0;
-  color: #2c3e50;
-  font-size: 20px;
+  font-size: 1.5rem;
   font-weight: 600;
+  color: #333;
 }
 
 .close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 1.5rem;
   cursor: pointer;
   color: #666;
-  padding: 4px 8px;
+  padding: 0.5rem;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-button:hover {
-  background-color: #f0f0f0;
+  background: #f5f5f5;
+  color: #333;
 }
 
 .simple-login-body {
-  padding: 24px;
+  padding: 0 2rem 2rem 2rem;
 }
 
-/* Googleログインセクション */
-.google-login-section {
-  margin-bottom: 24px;
+.login-description {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #666;
+  font-size: 1rem;
+}
+
+.login-description p {
+  margin: 0.5rem 0;
+}
+
+.domain-restriction {
+  background: #e8f4fd;
+  border: 1px solid #b3d9f2;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: #1565c0;
+  margin-top: 1rem;
+}
+
+.login-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-method {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+}
+
+.login-method h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
   text-align: center;
 }
 
-.google-login-button {
+.google-login-btn {
   background: #4285f4;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
   width: 100%;
-  margin-bottom: 16px;
+  transition: background-color 0.2s;
 }
 
-.google-login-button:hover:not(:disabled) {
+.google-login-btn:hover:not(:disabled) {
   background: #3367d6;
 }
 
-.google-login-button:disabled {
+.google-login-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
-.divider {
-  color: #666;
-  font-size: 14px;
-  margin: 8px 0;
-  position: relative;
+.admin-login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.divider::before,
-.divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 40%;
-  height: 1px;
-  background: #ddd;
-}
-
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
-}
-
-.login-form {
-  margin-bottom: 24px;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #555;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
+.admin-login input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus {
+  font-size: 1rem;
   outline: none;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
-.login-button {
-  width: 100%;
-  background-color: #4caf50;
+.admin-login input:focus {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.admin-login-btn {
+  background: #dc3545;
   color: white;
   border: none;
-  padding: 12px 20px;
+  padding: 0.75rem 1.5rem;
   border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
   transition: background-color 0.2s;
 }
 
-.login-button:hover {
-  background-color: #388e3c;
+.admin-login-btn:hover:not(:disabled) {
+  background: #c82333;
 }
 
-.login-button:disabled {
-  opacity: 0.5;
+.admin-login-btn:disabled {
+  background: #ccc;
   cursor: not-allowed;
 }
 
-.quick-login-section {
-  border-top: 1px solid #e0e0e0;
-  padding-top: 20px;
-  margin-bottom: 20px;
-}
-
-.quick-login-section h3 {
-  margin: 0 0 12px 0;
-  color: #555;
-  font-size: 16px;
-}
-
-.quick-login-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.quick-login-button {
-  padding: 10px 16px;
-  border: none;
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
   border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.quick-login-button.student {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #2196f3;
-}
-
-.quick-login-button.student:hover {
-  background-color: #bbdefb;
-}
-
-.quick-login-button.teacher {
-  background-color: #fff3e0;
-  color: #f57c00;
-  border: 1px solid #ff9800;
-}
-
-.quick-login-button.teacher:hover {
-  background-color: #ffe0b2;
-}
-
-.quick-login-button.admin {
-  background-color: #fce4ec;
-  color: #c2185b;
-  border: 1px solid #e91e63;
-}
-
-.quick-login-button.admin:hover {
-  background-color: #f8bbd9;
-}
-
-.login-info {
-  border-top: 1px solid #e0e0e0;
-  padding-top: 16px;
-}
-
-.login-info h4 {
-  margin: 0 0 8px 0;
-  color: #555;
-  font-size: 14px;
-}
-
-.login-info ul {
-  margin: 0;
-  padding-left: 20px;
-  color: #666;
-  font-size: 13px;
-}
-
-.login-info li {
-  margin-bottom: 4px;
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 600px) {
-  .simple-login-modal {
-    width: 95%;
-    margin: 10px;
-  }
-  
-  .simple-login-header,
-  .simple-login-body {
-    padding: 16px;
-  }
+  border: 1px solid #f5c6cb;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
 }

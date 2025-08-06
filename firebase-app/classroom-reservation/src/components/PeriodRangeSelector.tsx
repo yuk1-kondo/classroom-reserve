@@ -1,7 +1,7 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { periodTimeMap } from '../firebase/firestore';
+import { periodTimeMap, Reservation } from '../firebase/firestore';
 
 interface PeriodRangeSelectorProps {
   periodRange: PeriodRangeState;
@@ -9,6 +9,9 @@ interface PeriodRangeSelectorProps {
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   loading: boolean;
+  reservations?: Reservation[];
+  selectedRoom?: string;
+  selectedDate?: string;
 }
 
 export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
@@ -16,13 +19,70 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   setPeriodRange,
   selectedPeriod,
   onPeriodChange,
-  loading
+  loading,
+  reservations = [],
+  selectedRoom,
+  selectedDate
 }) => {
   // 時限フォーマット
   const formatPeriod = (period: string): string => {
     const timeInfo = periodTimeMap[period as keyof typeof periodTimeMap];
     if (!timeInfo) return period;
-    return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
+    return `${timeInfo.name} (${timeInfo.start}-${timeInfo.end})`;
+  };
+
+  // 指定時限が予約済みかチェック
+  const isPeriodReserved = (period: string): boolean => {
+    if (!selectedRoom || !selectedDate) {
+      console.log('🔍 isPeriodReserved: selectedRoom または selectedDate が未設定', { selectedRoom, selectedDate });
+      return false;
+    }
+    
+    console.log('🔍 isPeriodReserved チェック開始:', { 
+      period, 
+      selectedRoom, 
+      selectedDate, 
+      reservationsCount: reservations.length 
+    });
+    
+    const isReserved = reservations.some(reservation => {
+      console.log('🔍 予約チェック:', {
+        reservationId: reservation.id,
+        reservationRoomId: reservation.roomId,
+        reservationPeriod: reservation.period,
+        reservationTitle: reservation.title
+      });
+      
+      if (reservation.roomId !== selectedRoom) {
+        console.log('  → 教室が異なる');
+        return false;
+      }
+      
+      // 予約日をチェック
+      const reservationDate = reservation.startTime.toDate().toDateString();
+      const checkDate = new Date(selectedDate).toDateString();
+      console.log('🔍 日付チェック:', { reservationDate, checkDate });
+      
+      if (reservationDate !== checkDate) {
+        console.log('  → 日付が異なる');
+        return false;
+      }
+      
+      // 時限をチェック
+      if (!reservation.period.includes(',')) {
+        const match = reservation.period === period;
+        console.log('🔍 単一時限チェック:', { reservationPeriod: reservation.period, targetPeriod: period, match });
+        return match;
+      } else {
+        const reservedPeriods = reservation.period.split(',').map(p => p.trim());
+        const match = reservedPeriods.includes(period);
+        console.log('🔍 複数時限チェック:', { reservedPeriods, targetPeriod: period, match });
+        return match;
+      }
+    });
+    
+    console.log('🔍 isPeriodReserved 結果:', { period, isReserved });
+    return isReserved;
   };
 
   return (
@@ -60,9 +120,19 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
             aria-label="時限を選択"
           >
             <option value="">時限を選択</option>
-            {Object.entries(periodTimeMap).map(([key, value]) => (
-              <option key={key} value={key}>{formatPeriod(key)}</option>
-            ))}
+            {Object.entries(periodTimeMap).map(([key, value]) => {
+              const isReserved = isPeriodReserved(key);
+              return (
+                <option 
+                  key={key} 
+                  value={key} 
+                  disabled={isReserved}
+                  style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                >
+                  {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
+                </option>
+              );
+            })}
           </select>
         ) : (
           <div className="period-inputs">
@@ -75,9 +145,19 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="開始時限を選択"
               >
                 <option value="">選択</option>
-                {Object.entries(periodTimeMap).map(([key, value]) => (
-                  <option key={key} value={key}>{formatPeriod(key)}</option>
-                ))}
+                {Object.entries(periodTimeMap).map(([key, value]) => {
+                  const isReserved = isPeriodReserved(key);
+                  return (
+                    <option 
+                      key={key} 
+                      value={key}
+                      disabled={isReserved}
+                      style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                    >
+                      {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className="period-input-group">
@@ -89,9 +169,19 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="終了時限を選択"
               >
                 <option value="">選択</option>
-                {Object.entries(periodTimeMap).map(([key, value]) => (
-                  <option key={key} value={key}>{formatPeriod(key)}</option>
-                ))}
+                {Object.entries(periodTimeMap).map(([key, value]) => {
+                  const isReserved = isPeriodReserved(key);
+                  return (
+                    <option 
+                      key={key} 
+                      value={key}
+                      disabled={isReserved}
+                      style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                    >
+                      {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

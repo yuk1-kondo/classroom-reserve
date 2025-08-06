@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
+  <!-- 桜の花のデザイン -->
+  <g transform="translate(256,256)">
+    <!-- 桜の花びら5枚 -->
+    <g stroke="#2E86AB" stroke-width="8" fill="#F5E6D3">
+      <!-- 花びら1 -->
+      <path d="M0,-120 L-40,-60 L-80,-80 L-60,-40 L-120,0 L-60,40 L-80,80 L-40,60 L0,120 L40,60 L80,80 L60,40 L120,0 L60,-40 L80,-80 L40,-60 Z"/>
+    </g>
+    
+    <!-- 花の中心の点 -->
+    <g fill="#2E86AB">
+      <circle cx="0" cy="-80" r="6"/>
+      <circle cx="57" cy="-57" r="6"/>
+      <circle cx="80" cy="0" r="6"/>
+      <circle cx="57" cy="57" r="6"/>
+      <circle cx="0" cy="80" r="6"/>
+      <circle cx="-57" cy="57" r="6"/>
+      <circle cx="-80" cy="0" r="6"/>
+      <circle cx="-57" cy="-57" r="6"/>
+    </g>
+    
+    <!-- 底部の台座 -->
+    <g stroke="#2E86AB" stroke-width="6" fill="none">
+      <path d="M-120,140 Q-80,160 -40,140 Q0,120 40,140 Q80,160 120,140"/>
+      <path d="M-100,160 Q-60,180 -20,160 Q20,140 60,160 Q100,180 140,160"/>
+    </g>
+    
+    <!-- 台座の装飾 -->
+    <ellipse cx="0" cy="180" rx="60" ry="20" fill="#2E86AB"/>
+  </g>
+</svg>

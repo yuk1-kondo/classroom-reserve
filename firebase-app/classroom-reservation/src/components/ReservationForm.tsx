@@ -1,6 +1,6 @@
 // 予約作成フォームコンポーネント
 import React from 'react';
-import { Room } from '../firebase/firestore';
+import { Room, Reservation } from '../firebase/firestore';
 import { FormData, DateRangeState, PeriodRangeState } from '../hooks/useReservationForm';
 import { ConflictCheckState } from '../hooks/useConflictDetection';
 import { DateRangeSelector } from './DateRangeSelector';
@@ -21,6 +21,8 @@ interface ReservationFormProps {
   rooms: Room[];
   conflictCheck: ConflictCheckState;
   onCreateReservation: () => void;
+  reservations?: Reservation[];
+  selectedDate?: string;
 }
 
 export const ReservationForm: React.FC<ReservationFormProps> = ({
@@ -36,7 +38,9 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   setPeriodRange,
   rooms,
   conflictCheck,
-  onCreateReservation
+  onCreateReservation,
+  reservations = [],
+  selectedDate
 }) => {
   if (!showForm) {
     return (
@@ -73,9 +77,35 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
             aria-label="教室を選択"
           >
             <option value="">教室を選択</option>
-            {rooms.map(room => (
-              <option key={room.id} value={room.id}>{room.name}</option>
-            ))}
+            {(() => {
+              // カスタム順序で並び替え
+              const customOrder = [
+                '小演習室1', '小演習室2', '小演習室3', '小演習室4', '小演習室5', '小演習室6',
+                '大演習室1', '大演習室2', '大演習室3', '大演習室4', '大演習室5', '大演習室6',
+                'サテライト', '会議室', '社会科教室', 'グローバル教室①', 'グローバル教室②',
+                'LL教室', 'モノラボ', '視聴覚教室', '多目的室'
+              ];
+              
+              const sortedRooms = [...rooms].sort((a, b) => {
+                const indexA = customOrder.indexOf(a.name);
+                const indexB = customOrder.indexOf(b.name);
+                
+                // 両方が順序リストにある場合
+                if (indexA !== -1 && indexB !== -1) {
+                  return indexA - indexB;
+                }
+                // aのみが順序リストにある場合
+                if (indexA !== -1) return -1;
+                // bのみが順序リストにある場合
+                if (indexB !== -1) return 1;
+                // 両方とも順序リストにない場合はアルファベット順
+                return a.name.localeCompare(b.name);
+              });
+              
+              return sortedRooms.map(room => (
+                <option key={room.id} value={room.id}>{room.name}</option>
+              ));
+            })()}
           </select>
         </div>
 
@@ -86,6 +116,9 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           selectedPeriod={formData.selectedPeriod}
           onPeriodChange={(period) => updateFormData('selectedPeriod', period)}
           loading={loading}
+          reservations={reservations}
+          selectedRoom={formData.selectedRoom}
+          selectedDate={selectedDate}
         />
 
         {/* 重複警告メッセージ */}

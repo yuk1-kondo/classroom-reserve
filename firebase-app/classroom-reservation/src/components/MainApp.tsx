@@ -4,9 +4,11 @@ import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
 import DailyReservationTable from './DailyReservationTable';
+import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
 
 export const MainApp: React.FC = () => {
+  const { currentUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
@@ -16,6 +18,10 @@ export const MainApp: React.FC = () => {
 
   // 日付クリック処理
   const handleDateClick = (dateStr: string) => {
+    if (!currentUser) {
+      alert('予約機能を利用するにはログインが必要です');
+      return;
+    }
     console.log('📅 日付クリック:', dateStr);
     setSelectedDate(dateStr);
     setDailyTableDate(dateStr); // 日別表示テーブルも更新
@@ -51,8 +57,9 @@ export const MainApp: React.FC = () => {
   return (
     <div className="main-app">
       <header className="main-header">
-        <h1>📅 教室予約システム</h1>
+        <h1>🌸 桜和高校教室予約システム</h1>
         <div className="header-info">
+          <div className="system-info">v1.0</div>
           <button 
             className="toggle-panel-button"
             onClick={() => setShowSidePanel(!showSidePanel)}
@@ -95,7 +102,7 @@ export const MainApp: React.FC = () => {
       </main>
 
       <footer className="main-footer">
-        <p>© 2025 OwaClassroomBookingSystem - Developed by YUKI KONDO</p>
+        <p>© 2025 桜和高校教室予約システム (Owa-CBS) - Developed by YUKI KONDO</p>
       </footer>
       
       {/* 予約詳細モーダル */}

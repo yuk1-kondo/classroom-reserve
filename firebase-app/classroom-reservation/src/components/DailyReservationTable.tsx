@@ -125,44 +125,46 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         {error && <div className="error-message">{error}</div>}
       </div>
 
-      <table className="excel-table">
-        <thead>
-          <tr>
-            <th className="col-room">教室</th>
-            <th className="col-period">時限</th>
-            <th className="col-time">時間</th>
-            <th className="col-title">予約タイトル</th>
-            <th className="col-user">予約者</th>
-          </tr>
-        </thead>
-        <tbody>
-          {roomStatuses.map(status => 
-            status.reservations.map((reservation, index) => {
-              const timeStart = formatTime(reservation.startTime);
-              const timeEnd = formatTime(reservation.endTime);
-              return (
-                <tr key={`${status.room.id}-${reservation.id || index}`}>
-                  <td className="col-room">
-                    <div className="room-name">{status.room.name}</div>
-                  </td>
-                  <td className="col-period">
-                    <span className="period-badge">{reservation.periodName}</span>
-                  </td>
-                  <td className="col-time">
-                    <div className="time-range">{timeStart}-{timeEnd}</div>
-                  </td>
-                  <td className="col-title">
-                    <div className="reservation-title">{reservation.title}</div>
-                  </td>
-                  <td className="col-user">
-                    <div className="reservation-user">{reservation.reservationName}</div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <div className="table-scroll-container">
+        <table className="excel-table">
+          <thead>
+            <tr>
+              <th className="col-room">教室</th>
+              <th className="col-period">時限</th>
+              <th className="col-time">時間</th>
+              <th className="col-title">予約タイトル</th>
+              <th className="col-user">予約者</th>
+            </tr>
+          </thead>
+          <tbody>
+            {roomStatuses.map(status => 
+              status.reservations.map((reservation, index) => {
+                const timeStart = formatTime(reservation.startTime);
+                const timeEnd = formatTime(reservation.endTime);
+                return (
+                  <tr key={`${status.room.id}-${reservation.id || index}`}>
+                    <td className="col-room">
+                      <div className="room-name">{status.room.name}</div>
+                    </td>
+                    <td className="col-period">
+                      <span className="period-badge">{reservation.periodName}</span>
+                    </td>
+                    <td className="col-time">
+                      <div className="time-range">{timeStart}-{timeEnd}</div>
+                    </td>
+                    <td className="col-title">
+                      <div className="reservation-title">{reservation.title}</div>
+                    </td>
+                    <td className="col-user">
+                      <div className="reservation-user">{reservation.reservationName}</div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

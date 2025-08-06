@@ -70,16 +70,24 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
   // 期間表示を整形（カレンダー用）
   const formatPeriodForCalendar = (period: string): string => {
-    // 連続時限の場合（例：period1-period6）
-    if (period.includes('-')) {
+    if (period.includes(',')) {
+      // カンマ区切りの場合（例: "0,1,2"）
+      const periods = period.split(',').map(p => p.trim());
+      if (periods.length > 1) {
+        const start = periods[0];
+        const end = periods[periods.length - 1];
+        return `${start}限〜${end}限`;
+      } else {
+        return `${periods[0]}限`;
+      }
+    } else if (period.includes('-')) {
+      // ハイフン区切りの場合
       const [start, end] = period.split('-');
-      const startName = periodTimeMap[start as keyof typeof periodTimeMap]?.name || start;
-      const endName = periodTimeMap[end as keyof typeof periodTimeMap]?.name || end;
-      return `${startName}〜${endName}`;
+      return `${start}限〜${end}限`;
     }
     
-    // 単一時限の場合
-    return periodTimeMap[period as keyof typeof periodTimeMap]?.name || period;
+    // 単一期間の場合
+    return `${period}限`;
   };
 
   // 予約データを取得してカレンダーイベントに変換
@@ -103,7 +111,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         
         return {
           id: reservation.id!,
-          title: `【${formatPeriodForCalendar(reservation.period)}】${reservation.title}`,
+          title: `[${reservation.roomName}] ${formatPeriodForCalendar(reservation.period)} ${reservation.title}`,
           start: startTime.toISOString(),
           end: endTime.toISOString(),
           roomId: reservation.roomId,
@@ -225,6 +233,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         datesSet={handleDatesSet}
         viewDidMount={handleViewChange} // ビュー変更時のハンドラを追加
         eventDisplay="block"
+        displayEventTime={false}
         dayMaxEvents={false}
         eventTextColor="white"
         eventTimeFormat={{

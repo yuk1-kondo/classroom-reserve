@@ -6,10 +6,14 @@ export const useAuth = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // 初期化時に現在のユーザーを取得
+  // 認証状態の変化を監視
   useEffect(() => {
-    const user = authService.getCurrentUserExtended();
-    setCurrentUser(user);
+    const unsubscribe = authService.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+      console.log('認証状態変更:', user);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // ログイン処理

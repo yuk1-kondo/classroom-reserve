@@ -1,3 +1,67 @@
+/* 🌸 桜和高校教室予約システム - マテリアルデザインカラーシステム */
+:root {
+  /* === プライマリーカラー（桜ピンク系） === */
+  --color-primary: #E91E63;          /* Cherry Pink - メインアクション */
+  --color-primary-light: #F8BBD9;    /* Light Pink - ホバー */
+  --color-primary-dark: #AD1457;     /* Deep Pink - アクティブ */
+  --color-primary-50: #FCE4EC;       /* Pink 50 - 背景 */
+  
+  /* === セカンダリーカラー（桜の葉グリーン） === */
+  --color-secondary: #4CAF50;        /* Green 500 */
+  --color-secondary-light: #81C784;  /* Green 300 */
+  --color-secondary-dark: #388E3C;   /* Green 700 */
+  
+  /* === 土日カラー（視認性向上） === */
+  --color-saturday: #2196F3;         /* Blue 500 - 土曜日 */
+  --color-saturday-light: #E3F2FD;   /* Blue 50 */
+  --color-sunday: #F44336;           /* Red 500 - 日曜日 */
+  --color-sunday-light: #FFEBEE;     /* Red 50 */
+  
+  /* === ニュートラルカラー === */
+  --color-surface: #FFFFFF;          /* 白背景 */
+  --color-background: #FAFAFA;       /* Gray 50 - ページ背景 */
+  --color-surface-variant: #F5F5F5;  /* Gray 100 - カード背景 */
+  
+  /* === テキストカラー === */
+  --color-on-surface: #212121;       /* Gray 900 - プライマリテキスト */
+  --color-on-surface-variant: #757575; /* Gray 600 - セカンダリテキスト */
+  --color-on-primary: #FFFFFF;       /* プライマリ上のテキスト */
+  
+  /* === ボーダー・アウトライン === */
+  --color-outline: #E0E0E0;          /* Gray 300 */
+  --color-outline-variant: #EEEEEE;  /* Gray 200 */
+  
+  /* === 状態カラー === */
+  --color-success: #4CAF50;          /* Green 500 */
+  --color-success-light: #E8F5E8;    /* Green 50 */
+  --color-warning: #FF9800;          /* Orange 500 */
+  --color-warning-light: #FFF3E0;    /* Orange 50 */
+  --color-error: #F44336;            /* Red 500 */
+  --color-error-light: #FFEBEE;      /* Red 50 */
+  --color-info: #2196F3;             /* Blue 500 */
+  --color-info-light: #E3F2FD;       /* Blue 50 */
+  
+  /* === シャドウ（マテリアルデザイン） === */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --elevation-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  
+  /* === 角丸（マテリアルデザイン） === */
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-large: 12px;
+  --radius-extra-large: 16px;
+  
+  /* === スペーシング === */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,6 +69,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
 }
 
 code {

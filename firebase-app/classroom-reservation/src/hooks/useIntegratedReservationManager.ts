@@ -1,11 +1,12 @@
-// 予約フォーム状態管理用カスタムフック
-import { useCallback, useState, useMemo, useEffect } from 'react';
-import { reservationsService, Reservation, periodTimeMap, createDateTimeFromPeriod } from '../firebase/firestore';
+// 統合予約管理フック
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { reservationsService, Reservation, Room, periodTimeMap, createDateTimeFromPeriod } from '../firebase/firestore';
 import { AuthUser } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
-import { Room } from '../firebase/firestore';
 import { useConflictDetection } from './useConflictDetection';
+import { DataIntegrityService, MASTER_ROOMS } from '../firebase/dataIntegrity';
 
+// フォームデータ型
 export interface FormData {
   selectedRoom: string;
   selectedPeriod: string;
@@ -13,29 +14,34 @@ export interface FormData {
   reservationName: string;
 }
 
+// 日付範囲型
 export interface DateRangeState {
   startDate: string;
   endDate: string;
   isRangeMode: boolean;
 }
 
+// 時限範囲型
 export interface PeriodRangeState {
   startPeriod: string;
   endPeriod: string;
   isRangeMode: boolean;
 }
 
-export const useReservationForm = (
+// 統合予約管理フック
+export const useIntegratedReservationManager = (
   selectedDate?: string,
   currentUser?: AuthUser | null,
-  rooms: Room[] = [],
   onReservationCreated?: () => void
 ) => {
-  const [showForm, setShowForm] = useState(false);
+  // データ状態
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
-  const { checkForConflicts } = useConflictDetection();
+  const [dataReady, setDataReady] = useState(false);
 
   // フォーム状態
+  const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     selectedRoom: '',
     selectedPeriod: '',
@@ -43,7 +49,7 @@ export const useReservationForm = (
     reservationName: ''
   });
 
-  // 日付範囲選択（ホテル風）
+  // 日付範囲選択
   const [dateRange, setDateRange] = useState<DateRangeState>({
     startDate: selectedDate || '',
     endDate: selectedDate || '',
@@ -57,7 +63,68 @@ export const useReservationForm = (
     isRangeMode: false
   });
 
-  // selectedDateが変更されたときの日付範囲更新
+  // コンフリクト検出
+  const { conflictCheck, performConflictCheck } = useConflictDetection();
+
+  // マスターデータから教室一覧を取得（常に利用可能）
+  const masterRooms = useMemo((): Room[] => 
+    MASTER_ROOMS.map(room => ({
+      id: room.id,
+      name: room.name,
+      capacity: room.capacity,
+      description: room.description
+    })), []
+  );
+
+  // データ整合性チェック・ロード
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // データ整合性チェック・自動復旧
+      const dataService = DataIntegrityService.getInstance();
+      await dataService.checkAndRepairData();
+      
+      // マスターデータを使用（常に利用可能）
+      setRooms(masterRooms);
+      setDataReady(true);
+      
+    } catch (error) {
+      console.error('データロードエラー:', error);
+      // エラーでもマスターデータは使用可能
+      setRooms(masterRooms);
+      setDataReady(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [masterRooms]);
+
+  // 指定日の予約を取得
+  const loadReservationsForDate = useCallback(async (date: string) => {
+    if (!date) return;
+    
+    try {
+      setLoading(true);
+      const startOfDay = new Date(date);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
+      setReservations(reservationsData);
+    } catch (error) {
+      console.error('予約データ取得エラー:', error);
+      setReservations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 初期化
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // 選択日変更時の処理
   useEffect(() => {
     if (selectedDate) {
       setDateRange(prev => ({
@@ -65,10 +132,11 @@ export const useReservationForm = (
         startDate: selectedDate,
         endDate: selectedDate
       }));
+      loadReservationsForDate(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, loadReservationsForDate]);
 
-  // currentUserが変更されたときの予約者名更新
+  // 予約者名の自動設定
   useEffect(() => {
     if (currentUser) {
       setFormData(prev => ({
@@ -88,7 +156,7 @@ export const useReservationForm = (
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // 日付リスト生成関数
+  // 日付リスト生成
   const generateDateList = useCallback((startDate: string, endDate: string): string[] => {
     const dates: string[] = [];
     const current = new Date(startDate);
@@ -102,7 +170,7 @@ export const useReservationForm = (
     return dates;
   }, []);
 
-  // 時限リスト生成関数
+  // 時限リスト生成
   const generatePeriodList = useCallback((startPeriod: string, endPeriod: string): string[] => {
     const periods = ['0', '1', '2', '3', '4', '5', '6', '7', 'after'];
     const startIndex = periods.indexOf(startPeriod);
@@ -130,7 +198,7 @@ export const useReservationForm = (
   }, [periodRange.isRangeMode, periodRange.startPeriod, periodRange.endPeriod, formData.selectedPeriod, generatePeriodList]);
 
   // 予約作成
-  const handleCreateReservation = async (): Promise<void> => {
+  const handleCreateReservation = useCallback(async (): Promise<void> => {
     if (!currentUser) {
       alert('予約を作成するにはログインが必要です');
       return;
@@ -145,20 +213,6 @@ export const useReservationForm = (
       return;
     }
 
-    // 重複チェックを実行
-    console.log('🔍 重複チェック開始:', { datesToReserve, periodsToReserve, selectedRoom: formData.selectedRoom });
-    const conflictResult = await checkForConflicts(datesToReserve, periodsToReserve, formData.selectedRoom);
-    console.log('🔍 重複チェック結果:', conflictResult);
-    
-    if (conflictResult.hasConflict) {
-      const message = `${conflictResult.message}\n\n${conflictResult.details.join('\n')}`;
-      console.log('❌ 重複検出:', message);
-      alert(message);
-      return;
-    }
-    
-    console.log('✅ 重複なし、予約作成続行');
-
     try {
       setLoading(true);
       const room = rooms.find(r => r.id === formData.selectedRoom);
@@ -167,12 +221,12 @@ export const useReservationForm = (
         return;
       }
 
-      // 日付×時限の全組み合わせで予約作成
+      // 予約作成処理
       const reservationPromises: Promise<any>[] = [];
       
       for (const date of datesToReserve) {
         if (periodsToReserve.length === 1) {
-          // 単一時限の場合は従来通り
+          // 単一時限
           const period = periodsToReserve[0];
           const dateTime = createDateTimeFromPeriod(date, period);
           if (!dateTime) {
@@ -192,16 +246,9 @@ export const useReservationForm = (
             createdBy: currentUser.uid
           };
 
-          console.log('📝 単一時限予約作成:', {
-            period: reservation.period,
-            periodName: reservation.periodName,
-            startTime: dateTime.start,
-            endTime: dateTime.end
-          });
-
           reservationPromises.push(reservationsService.addReservation(reservation));
         } else {
-          // 複数時限の場合は連続した一つの予約として作成
+          // 複数時限
           const startPeriod = periodsToReserve[0];
           const endPeriod = periodsToReserve[periodsToReserve.length - 1];
           
@@ -212,7 +259,6 @@ export const useReservationForm = (
             throw new Error(`日時の作成に失敗しました: ${date} ${startPeriod}-${endPeriod}限`);
           }
 
-          // 複数時限の期間名を作成
           const periodName = periodsToReserve.length > 1 
             ? `${periodTimeMap[startPeriod as keyof typeof periodTimeMap]?.name || `${startPeriod}限`} - ${periodTimeMap[endPeriod as keyof typeof periodTimeMap]?.name || `${endPeriod}限`}`
             : periodTimeMap[startPeriod as keyof typeof periodTimeMap]?.name || `${startPeriod}限`;
@@ -223,20 +269,12 @@ export const useReservationForm = (
             title: formData.title.trim(),
             reservationName: formData.reservationName.trim(),
             startTime: Timestamp.fromDate(startDateTime.start),
-            endTime: Timestamp.fromDate(endDateTime.end), // 最後の時限の終了時刻を使用
-            period: periodsToReserve.join(','), // 複数時限をカンマ区切りで保存
+            endTime: Timestamp.fromDate(endDateTime.end),
+            period: periodsToReserve.join(','),
             periodName: periodName,
             createdAt: Timestamp.now(),
             createdBy: currentUser.uid
           };
-
-          console.log('📝 複数時限予約作成:', {
-            period: reservation.period,
-            periodName: reservation.periodName,
-            periodsToReserve,
-            startTime: startDateTime.start,
-            endTime: endDateTime.end
-          });
 
           reservationPromises.push(reservationsService.addReservation(reservation));
         }
@@ -250,71 +288,80 @@ export const useReservationForm = (
       if (onReservationCreated) {
         onReservationCreated();
       }
-      
-      const totalReservations = datesToReserve.length; // 実際に作成される予約件数は日数分
-      if (totalReservations > 1) {
-        if (periodsToReserve.length > 1) {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間 × ${periodsToReserve.length}時限連続）`);
-        } else {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間）`);
-        }
-      } else {
-        if (periodsToReserve.length > 1) {
-          alert(`予約を作成しました（${periodsToReserve.length}時限連続）`);
-        } else {
-          alert('予約を作成しました');
-        }
-      }
+
+      alert('予約を作成しました');
     } catch (error) {
       console.error('予約作成エラー:', error);
       alert('予約の作成に失敗しました');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, formData, dateRange, periodRange, rooms, getReservationDates, getReservationPeriods, onReservationCreated]);
 
   // フォームリセット
   const resetForm = useCallback(() => {
-    setFormData(prev => ({
-      selectedRoom: prev.selectedRoom,
+    setFormData({
+      selectedRoom: '',
       selectedPeriod: '',
       title: '',
-      reservationName: prev.reservationName
-    }));
-    setShowForm(false);
-    
-    // 日付・時限範囲モードをリセット
-    if (selectedDate) {
-      setDateRange({
-        isRangeMode: false,
-        startDate: selectedDate,
-        endDate: selectedDate,
-      });
-    }
-    
+      reservationName: currentUser?.displayName || currentUser?.name || ''
+    });
+    setDateRange({
+      startDate: selectedDate || '',
+      endDate: selectedDate || '',
+      isRangeMode: false
+    });
     setPeriodRange({
-      isRangeMode: false,
       startPeriod: '',
       endPeriod: '',
+      isRangeMode: false
     });
-  }, [selectedDate]);
+    setShowForm(false);
+  }, [currentUser, selectedDate]);
+
+  // コンフリクト検出の自動実行
+  useEffect(() => {
+    if (showForm && dataReady) {
+      const timeoutId = setTimeout(() => {
+        const datesToCheck = getReservationDates();
+        const periodsToCheck = getReservationPeriods();
+        
+        if (datesToCheck.length > 0 && periodsToCheck.length > 0 && formData.selectedRoom) {
+          performConflictCheck(datesToCheck, periodsToCheck, formData.selectedRoom);
+        }
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [showForm, dataReady, formData.selectedRoom, dateRange, periodRange, formData.selectedPeriod, getReservationDates, getReservationPeriods, performConflictCheck]);
 
   return {
+    // データ状態
+    rooms,
+    reservations,
+    loading,
+    dataReady,
+    
+    // フォーム状態
     showForm,
     setShowForm,
-    loading,
     formData,
-    setFormData,
     updateFormData,
+    
+    // 範囲選択状態
     dateRange,
     setDateRange,
     periodRange,
     setPeriodRange,
+    
+    // コンフリクト検出
+    conflictCheck,
+    
+    // アクション
     handleCreateReservation,
+    loadReservationsForDate,
     resetForm,
     getReservationDates,
-    getReservationPeriods,
-    generateDateList,
-    generatePeriodList
+    getReservationPeriods
   };
 };

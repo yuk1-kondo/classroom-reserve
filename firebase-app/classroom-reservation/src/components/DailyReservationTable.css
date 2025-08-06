@@ -8,6 +8,17 @@
   font-size: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* レスポンシブ対応のため最小幅を設定 */
+  min-width: 0;
+}
+
+/* テーブル横スクロール対応のコンテナ */
+.table-scroll-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  /* モバイルでのスムーズスクロール */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ヘッダー */
@@ -40,6 +51,7 @@
 /* エクセル風テーブル */
 .excel-table {
   width: 100%;
+  min-width: 500px; /* 最小幅を設定してモバイルでの横スクロールを有効化 */
   border-collapse: collapse;
   font-size: 11px;
   background: white;
@@ -50,7 +62,7 @@
   color: #24292f;
   font-weight: 600;
   padding: 8px 12px;
-  text-align: left;
+  text-align: center; /* 中央揃え */
   border: 1px solid #d0d7de;
   border-top: none;
   font-size: 11px;
@@ -60,7 +72,8 @@
 .excel-table tbody td {
   padding: 6px 12px;
   border: 1px solid #d0d7de;
-  vertical-align: top;
+  vertical-align: middle; /* 中央揃え */
+  text-align: center; /* 中央揃え */
   background: white;
   font-size: 11px;
 }
@@ -146,45 +159,56 @@
 @media (max-width: 768px) {
   .daily-reservation-table {
     font-size: 10px;
+    margin: 0;
+    border-radius: 4px;
+  }
+  
+  .table-header {
+    padding: 6px 10px;
+  }
+  
+  .table-header h4 {
+    font-size: 12px;
   }
   
   .excel-table {
     font-size: 10px;
+    min-width: 480px; /* モバイルでの横スクロール対応 */
   }
   
   .excel-table thead th {
-    padding: 6px 8px;
+    padding: 6px 4px;
     font-size: 10px;
   }
   
   .excel-table tbody td {
-    padding: 4px 8px;
+    padding: 4px 4px;
     font-size: 10px;
   }
   
   .col-room {
-    width: 60px;
-    min-width: 60px;
+    width: 50px;
+    min-width: 50px;
   }
   
   .col-period {
-    width: 45px;
-    min-width: 45px;
+    width: 40px;
+    min-width: 40px;
   }
   
   .col-time {
-    width: 80px;
-    min-width: 80px;
+    width: 70px;
+    min-width: 70px;
   }
   
   .col-user {
-    width: 80px;
-    min-width: 80px;
+    width: 70px;
+    min-width: 70px;
   }
   
   .period-badge {
     font-size: 9px;
-    padding: 1px 4px;
+    padding: 1px 3px;
   }
   
   .time-range {
@@ -193,6 +217,69 @@
   
   .reservation-user {
     font-size: 9px;
+  }
+}
+
+/* 小画面スマートフォン対応 */
+@media (max-width: 480px) {
+  .daily-reservation-table {
+    border-radius: 2px;
+  }
+  
+  .table-header {
+    padding: 4px 8px;
+  }
+  
+  .table-header h4 {
+    font-size: 11px;
+  }
+  
+  .excel-table {
+    font-size: 9px;
+    min-width: 420px; /* 小画面での最小幅 */
+  }
+  
+  .excel-table thead th {
+    padding: 4px 2px;
+    font-size: 9px;
+  }
+  
+  .excel-table tbody td {
+    padding: 3px 2px;
+    font-size: 9px;
+  }
+  
+  .col-room {
+    width: 45px;
+    min-width: 45px;
+  }
+  
+  .col-period {
+    width: 35px;
+    min-width: 35px;
+  }
+  
+  .col-time {
+    width: 60px;
+    min-width: 60px;
+  }
+  
+  .col-user {
+    width: 60px;
+    min-width: 60px;
+  }
+  
+  .period-badge {
+    font-size: 8px;
+    padding: 1px 2px;
+  }
+  
+  .time-range {
+    font-size: 8px;
+  }
+  
+  .reservation-user {
+    font-size: 8px;
   }
 }
 

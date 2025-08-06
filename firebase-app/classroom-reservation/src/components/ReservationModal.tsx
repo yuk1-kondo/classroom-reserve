@@ -53,20 +53,24 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   // 期間表示を整形
   const formatPeriodDisplay = (period: string): string => {
-    if (period.includes('-')) {
+    if (period.includes(',')) {
+      // カンマ区切りの場合（例: "0,1,2"）
+      const periods = period.split(',').map(p => p.trim());
+      if (periods.length > 1) {
+        const start = periods[0];
+        const end = periods[periods.length - 1];
+        return `${start}限〜${end}限`;
+      } else {
+        return `${periods[0]}限`;
+      }
+    } else if (period.includes('-')) {
+      // ハイフン区切りの場合
       const [start, end] = period.split('-');
-      const startName = periodTimeMap[start as keyof typeof periodTimeMap]?.name || start;
-      const endName = periodTimeMap[end as keyof typeof periodTimeMap]?.name || end;
-      const startTime = periodTimeMap[start as keyof typeof periodTimeMap]?.start || '';
-      const endTime = periodTimeMap[end as keyof typeof periodTimeMap]?.end || '';
-      return `${startName}〜${endName} (${startTime} - ${endTime})`;
+      return `${start}限〜${end}限`;
     }
     
-    const periodInfo = periodTimeMap[period as keyof typeof periodTimeMap];
-    if (periodInfo) {
-      return `${periodInfo.name} (${periodInfo.start} - ${periodInfo.end})`;
-    }
-    return period;
+    // 単一期間の場合
+    return `${period}限`;
   };
 
   // 日付フォーマット
@@ -113,7 +117,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     <div className="reservation-modal-overlay">
       <div className="reservation-modal">
         <div className="reservation-modal-header">
-          <h2>� 予約詳細</h2>
+          <h2>予約詳細</h2>
           <button 
             className="close-button"
             onClick={onClose}

@@ -9,6 +9,10 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 
+// 許可されたドメイン設定
+const ALLOWED_DOMAIN = 'e.osakamanabi.jp';
+const DOMAIN_ERROR_MESSAGE = `${ALLOWED_DOMAIN}ドメインのアカウントのみご利用いただけます`;
+
 export interface AuthUser {
   uid: string;
   email: string | null;
@@ -30,7 +34,23 @@ export const authService = {
       provider.addScope('profile');
       
       const result = await signInWithPopup(auth, provider);
-      console.log('✅ Googleログイン成功:', result.user);
+      const user = result.user;
+      
+      // ドメイン制限チェック（一時的に無効化）
+      if (!user.email) {
+        console.error('❌ メールアドレスが取得できません');
+        await signOut(auth);
+        throw new Error('メールアドレスが取得できませんでした');
+      }
+      
+      // 一時的にドメイン制限をコメントアウト
+      // if (!user.email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+      //   console.error('❌ 許可されていないドメイン:', user.email);
+      //   await signOut(auth);
+      //   throw new Error(DOMAIN_ERROR_MESSAGE);
+      // }
+      
+      console.log('✅ Googleログイン成功:', user.email);
       return result;
     } catch (error) {
       console.error('❌ Googleログインエラー:', error);
@@ -79,8 +99,16 @@ export const authService = {
       return () => {}; // 空のunsubscribe関数
     }
 
-    return onAuthStateChanged(auth, (user: User | null) => {
+    return onAuthStateChanged(auth, async (user: User | null) => {
       if (user) {
+        // ドメイン制限チェック（一時的に無効化）
+        // if (user.email && !this.isAllowedDomain(user.email)) {
+        //   console.error('❌ 許可されていないドメインでログイン:', user.email);
+        //   await signOut(auth);
+        //   callback(null);
+        //   return;
+        // }
+
         callback({
           uid: user.uid,
           email: user.email,
@@ -151,5 +179,20 @@ export const authService = {
   // 予約削除権限チェック
   canDeleteReservation(reservationCreatedBy?: string): boolean {
     return this.canEditReservation(reservationCreatedBy);
+  },
+
+  // ドメイン制限チェック（ユーティリティ）
+  isAllowedDomain(email: string): boolean {
+    return email.endsWith(`@${ALLOWED_DOMAIN}`);
+  },
+
+  // 許可ドメインの取得
+  getAllowedDomain(): string {
+    return ALLOWED_DOMAIN;
+  },
+
+  // ドメイン制限のエラーメッセージ
+  getDomainErrorMessage(): string {
+    return DOMAIN_ERROR_MESSAGE;
   }
 };

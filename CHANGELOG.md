@@ -1,9 +1,50 @@
 # CHANGELOG
 
+## [2.0.0] - 2025-08-06 🌸
+
+### 🎯 桜和高校教室予約システム (Owa-CBS) Firebase版リリース
+React + TypeScript + Firebaseによる本格的な教室予約システムが完成
+
+### ✨ 新機能
+- 🌸 桜和高校ブランディング（カスタム桜ファビコン）
+- React TypeScriptアーキテクチャ
+- Firebase Authentication (Google OAuth)
+- Firestore リアルタイムデータベース
+- Firebase Hosting
+- レスポンシブデザイン
+- FullCalendar.js v6統合
+- 管理者・教師ロール管理
+- CSVエクスポート/インポート機能
+- 予約の一括管理機能
+
+### 🔧 技術仕様
+- React 18 + TypeScript
+- Firebase v9 SDK
+- Material-UI コンポーネント
+- モジュラーアーキテクチャ
+- PWA対応（manifest.json）
+
+### 📁 ファイル構成
+```
+firebase-app/classroom-reservation/
+├── public/
+│   ├── index.html (タイトル: Owa-CBS)
+│   ├── manifest.json (桜和高校教室予約システム)
+│   └── favicon.svg (桜デザイン)
+├── src/
+│   ├── components/ (React コンポーネント)
+│   ├── firebase/ (Firebase設定)
+│   ├── hooks/ (カスタムフック)
+│   └── utils/ (ユーティリティ)
+└── firebase.json (Hosting設定)
+```
+
+---
+
 ## [1.0.0] - 2025-07-30
 
-### 🎯 シンプル版リリース
-Google Apps Scriptベースの教室予約システムのシンプル版を完成
+### 🎯 シンプル版リリース (廃止)
+Google Apps Scriptベースの教室予約システム（v2.0.0により置換）
 
 ### ✨ 追加機能
 - FullCalendar.js v6.1.15によるカレンダー表示
