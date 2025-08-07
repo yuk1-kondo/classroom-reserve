@@ -3,7 +3,7 @@
   width: 100%;
   background: white;
   border: 1px solid #d0d7de;
-  border-radius: 6px;
+  border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-size: 12px;
   overflow: hidden;
@@ -15,10 +15,22 @@
 /* テーブル横スクロール対応のコンテナ */
 .table-scroll-container {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   width: 100%;
+  /* ヘッダー固定のため高さ制限を解除 */
+  max-height: none;
   /* モバイルでのスムーズスクロール */
   -webkit-overflow-scrolling: touch;
+  border: 1px solid #d0d7de;
+  border-radius: var(--radius-medium);
+  background: white;
+}
+
+/* ヘッダー固定用のテーブルラッパー */
+.table-wrapper {
+  position: relative;
+  max-height: 192px; /* ヘッダー(32px) + 5行分(160px) */
+  overflow-y: auto;
 }
 
 /* ヘッダー */
@@ -67,6 +79,10 @@
   border-top: none;
   font-size: 11px;
   white-space: nowrap;
+  /* ヘッダー固定 */
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .excel-table tbody td {

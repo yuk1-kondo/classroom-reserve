@@ -25,6 +25,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
+  const [sortedReservations, setSortedReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -67,6 +68,37 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         // 教室ごとの予約状況を整理（予約がある教室のみ）
         const statuses: RoomReservationStatus[] = [];
         
+        // 全ての予約を1つの配列にまとめて時限順にソート
+        const allReservationsWithRoom = allReservations.map(reservation => {
+          const room = rooms.find(r => r.id === reservation.roomId);
+          
+          // 時限の並び順を数値化
+          let periodOrder = 0;
+          if (reservation.period === 'lunch') {
+            periodOrder = 4.5; // 4限と5限の間
+          } else if (reservation.period === 'after') {
+            periodOrder = 999; // 最後
+          } else {
+            periodOrder = parseInt(reservation.period) || 0;
+          }
+          
+          return {
+            ...reservation,
+            roomName: room?.name || '不明',
+            periodOrder
+          };
+        });
+
+        // 時限順でソート
+        allReservationsWithRoom.sort((a, b) => {
+          if (a.periodOrder !== b.periodOrder) {
+            return a.periodOrder - b.periodOrder;
+          }
+          // 同じ時限の場合は教室名でソート
+          return a.roomName.localeCompare(b.roomName);
+        });
+
+        // RoomReservationStatus形式は維持するが、予約一覧として使用
         rooms.forEach(room => {
           const roomReservations = allReservations.filter(res => res.roomId === room.id);
           if (roomReservations.length > 0) {
@@ -82,6 +114,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         statuses.sort((a, b) => a.room.name.localeCompare(b.room.name));
 
         setRoomStatuses(statuses);
+        // 時限順ソート済みの予約リストも保存
+        setSortedReservations(allReservationsWithRoom);
       } catch (error) {
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
@@ -126,25 +160,25 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       </div>
 
       <div className="table-scroll-container">
-        <table className="excel-table">
-          <thead>
-            <tr>
-              <th className="col-room">教室</th>
-              <th className="col-period">時限</th>
-              <th className="col-time">時間</th>
-              <th className="col-title">予約タイトル</th>
-              <th className="col-user">予約者</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roomStatuses.map(status => 
-              status.reservations.map((reservation, index) => {
+        <div className="table-wrapper">
+          <table className="excel-table">
+            <thead>
+              <tr>
+                <th className="col-room">教室</th>
+                <th className="col-period">時限</th>
+                <th className="col-time">時間</th>
+                <th className="col-title">予約タイトル</th>
+                <th className="col-user">予約者</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedReservations.map((reservation, index) => {
                 const timeStart = formatTime(reservation.startTime);
                 const timeEnd = formatTime(reservation.endTime);
                 return (
-                  <tr key={`${status.room.id}-${reservation.id || index}`}>
+                  <tr key={`${reservation.roomId}-${reservation.id || index}`}>
                     <td className="col-room">
-                      <div className="room-name">{status.room.name}</div>
+                      <div className="room-name">{reservation.roomName}</div>
                     </td>
                     <td className="col-period">
                       <span className="period-badge">{reservation.periodName}</span>
@@ -160,10 +194,10 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

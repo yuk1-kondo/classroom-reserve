@@ -111,11 +111,16 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         
         return {
           id: reservation.id!,
-          title: `[${reservation.roomName}] ${formatPeriodForCalendar(reservation.period)} ${reservation.title}`,
+          title: `${reservation.roomName} ${formatPeriodForCalendar(reservation.period)}`,
           start: startTime.toISOString(),
           end: endTime.toISOString(),
           roomId: reservation.roomId,
-          roomName: reservation.roomName
+          roomName: reservation.roomName,
+          extendedProps: {
+            originalTitle: reservation.title,
+            period: reservation.period,
+            periodName: reservation.periodName
+          }
         };
       });
       
@@ -234,7 +239,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         viewDidMount={handleViewChange} // ビュー変更時のハンドラを追加
         eventDisplay="block"
         displayEventTime={false}
-        dayMaxEvents={false}
+        dayMaxEvents={3}
+        moreLinkClick="popover"
         eventTextColor="white"
         eventTimeFormat={{
           hour: '2-digit',

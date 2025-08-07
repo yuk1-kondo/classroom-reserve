@@ -110,7 +110,6 @@
 
 .daily-table-container {
   margin-top: 20px;
-  margin-right: 20px; /* サイドパネルとの間隔を確保 */
   /* レスポンシブ対応のため最小幅を設定 */
   min-width: 0;
   overflow-x: auto;

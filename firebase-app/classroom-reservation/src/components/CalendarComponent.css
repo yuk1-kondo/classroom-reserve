@@ -50,6 +50,31 @@
   color: var(--color-on-surface);
 }
 
+/* ツールバーのボタン間隔調整 */
+.fc-toolbar {
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-lg);
+}
+
+.fc-toolbar-chunk {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* ナビゲーションボタンの間隔を調整 */
+.fc-button-group .fc-button {
+  margin: 0 var(--spacing-xs);
+}
+
+.fc-button-group .fc-button:first-child {
+  margin-left: 0;
+}
+
+.fc-button-group .fc-button:last-child {
+  margin-right: 0;
+}
+
 .fc-button {
   background-color: var(--color-primary);
   border-color: var(--color-primary);

@@ -28,7 +28,16 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   const formatPeriod = (period: string): string => {
     const timeInfo = periodTimeMap[period as keyof typeof periodTimeMap];
     if (!timeInfo) return period;
-    return `${timeInfo.name} (${timeInfo.start}-${timeInfo.end})`;
+    
+    // 特別な表記
+    if (period === '0') {
+      return `${timeInfo.name} (- ${timeInfo.end})`;
+    }
+    if (period === 'after') {
+      return `${timeInfo.name} (${timeInfo.start} -)`;
+    }
+    
+    return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
   };
 
   // 指定時限が予約済みかチェック

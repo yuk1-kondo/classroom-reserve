@@ -246,9 +246,10 @@ export const periodTimeMap = {
   '2': { start: '09:50', end: '10:40', name: '2限' },
   '3': { start: '10:50', end: '11:40', name: '3限' },
   '4': { start: '11:50', end: '12:40', name: '4限' },
+  'lunch': { start: '12:40', end: '13:25', name: 'お昼休み' },
   '5': { start: '13:25', end: '14:15', name: '5限' },
-  '6': { start: '14:25', end: '15:16', name: '6限' },
-  '7': { start: '15:25', end: '16:16', name: '7限' },
+  '6': { start: '14:25', end: '15:15', name: '6限' },
+  '7': { start: '15:25', end: '16:15', name: '7限' },
   'after': { start: '16:25', end: '18:00', name: '放課後' }
 };
 
