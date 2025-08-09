@@ -26,6 +26,12 @@
   animation: modalSlideIn 0.3s ease-out;
 }
 
+/* 追加: コンパクトモード */
+.reservation-modal.compact {
+  max-width: 460px;
+  padding-bottom: 4px;
+}
+
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -42,7 +48,7 @@
   justify-content: center;
   align-items: center;
   padding: 16px 20px;
-  background: #333;
+  background: var(--color-primary);
   color: white;
   position: relative;
 }
@@ -60,7 +66,7 @@
   position: absolute;
   top: 16px;
   right: 20px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   border: none;
   font-size: 18px;
   cursor: pointer;
@@ -72,7 +78,7 @@
 }
 
 .close-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.28);
   transform: scale(1.05);
 }
 
@@ -87,193 +93,114 @@
   overflow-y: auto;
 }
 
-.loading-message {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
-  font-size: 16px;
-}
+/* ラベルと値を1行密度上げる */
+.compact-row { padding: 8px 12px; }
+.compact-chip { font-size: 13px; padding: 2px 8px; }
 
-.error-message {
-  background: #f5f5f5;
-  color: #333;
-  padding: 16px;
-  margin: 20px 0;
-  border-radius: 12px;
-  border-left: 5px solid #999;
-  font-weight: 500;
-}
+.reservation-actions.confirm-mode { margin-top: 4px; }
 
-.reservation-details {
-  padding: 16px 0;
-}
-
-.detail-section {
-  margin: 0;
-  padding: 0;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.detail-row {
+/* インライン削除確認 */
+.delete-inline {
   display: flex;
-  padding: 12px 16px;
   align-items: center;
-  min-height: 40px;
-  justify-content: space-between;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-row label {
-  font-weight: 600;
-  color: #424242;
-  min-width: 70px;
-  margin-right: 16px;
-  font-size: 14px;
-  flex-shrink: 0;
-  text-align: left;
-}
-
-.detail-row span {
-  flex: 1;
-  color: #212529;
-  line-height: 1.4;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.detail-row .highlight {
-  font-weight: 600;
-  color: #333;
-  background: #f0f0f0;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.detail-row .date-display {
-  font-weight: 600;
-  color: #333;
-  background: #f0f0f0;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.detail-row .period-display {
-  font-weight: 600;
-  color: #333;
-  background: #f0f0f0;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.reservation-actions {
-  display: flex;
   gap: 12px;
-  flex-wrap: wrap;
-  margin: 16px 20px;
-  padding-top: 12px;
-}
-
-.delete-button {
-  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
+  background: #fff5f2;
+  border: 1px solid var(--color-error);
   border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  justify-content: space-between;
+  animation: fadeIn 0.18s ease;
+}
+.confirm-text { color: #c62828; font-weight: 600; font-size: 13px; }
+.inline-buttons { display: flex; gap: 8px; }
+.confirm-delete-btn {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+}
+.cancel-delete-btn {
+  background: #eceff1;
+  color: #37474f;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+  cursor: pointer;
 }
+.confirm-delete-btn:hover:not(:disabled) { background: #b91c1c; }
+.cancel-delete-btn:hover:not(:disabled) { background: #e0e3e5; }
 
-.delete-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px);} to { opacity: 1; transform: translateY(0);} }
+
+/* 新レイアウト */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding: 20px 28px 8px 28px;
 }
-
-.delete-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.confirm-dialog {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border: 2px solid #ff9800;
-  border-radius: 12px;
-  padding: 20px;
-  margin: 16px 20px;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
-}
-
-.confirm-dialog p {
-  margin: 0 0 16px 0;
-  color: #e65100;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.confirm-buttons {
+.details-grid .detail-item {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
 }
-
-.confirm-button {
-  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
+.details-grid .item-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: .5px;
+}
+.details-grid .item-value {
+  background: #f7f9fa;
+  border: 1px solid #e2e7ea;
   border-radius: 8px;
-  cursor: pointer;
+  padding: 8px 10px;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s;
+  color: #222;
+  line-height: 1.2;
+  box-shadow: inset 0 0 0 1px #fff;
+}
+.details-grid .item-value.long {
+  grid-column: span 2;
+}
+.details-grid .detail-item.span-2 { grid-column: span 2; }
+
+@media (max-width: 640px) {
+  .details-grid { 
+    grid-template-columns: 1fr 1fr; 
+    padding: 16px 18px 4px 18px; 
+    gap: 10px 14px;
+  }
+  /* span-2 は引き続き全幅利用 */
+  .details-grid .detail-item.span-2 { grid-column: span 2; }
+  .details-grid .item-value.long { grid-column: span 2; }
+  /* 長い日付の可読性確保 */
+  .details-grid .item-value { 
+    font-size: 12px; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: clip; 
+  }
+  /* 削除確認をPCと同じ横並びに */
+  .delete-inline.improved { 
+    flex-direction: row; 
+    align-items: center; 
+    padding: 12px 14px; 
+  }
+  .inline-buttons { justify-content: flex-end; }
+  /* 余白微調整でブロックをやや上に */
+  .reservation-actions { margin: 0 18px 18px 18px; }
 }
 
-.confirm-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
-}
-
-.confirm-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.cancel-button {
-  background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.cancel-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(158, 158, 158, 0.3);
-}
-
-.cancel-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* レスポンシブ対応 */
+/* モバイル最適化 */
 @media (max-width: 768px) {
   .reservation-modal {
     width: 95%;
@@ -281,29 +208,64 @@
     max-height: 90vh;
     max-width: none;
   }
-  
+
+  .reservation-modal.compact { max-height: 80vh; }
+
   .reservation-modal-header {
     padding: 20px 16px 16px;
   }
-  
+
   .reservation-modal-header h2 {
     font-size: 18px;
   }
-  
+
   .detail-row {
     flex-direction: column;
     gap: 8px;
     padding: 12px 16px;
   }
-  
+
   .detail-row label {
     min-width: auto;
     margin-right: 0;
     margin-bottom: 4px;
   }
-  
+
   .reservation-actions {
     flex-direction: column;
     margin: 20px 12px 16px;
   }
+
+  .reservation-modal-body { max-height: calc(80vh - 110px); }
+  .detail-row label { font-size: 12px; }
+  .compact-chip { font-size: 12px; }
+  .delete-button { padding: 10px 18px; font-size: 13px; }
+  .delete-inline { padding: 8px 10px; }
+}
+
+/* 削除関連 */
+.reservation-actions { margin: 4px 26px 22px 26px; }
+.delete-inline.improved {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d32f2f;
+  background: #fff6f6;
+  border-radius: 12px;
+  width: auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.delete-inline.improved .confirm-left { margin: 0; }
+.delete-inline.improved .inline-buttons { display: flex; gap: 10px; }
+.confirm-left { display: flex; flex-direction: column; gap: 2px; }
+.confirm-text-strong { color: #c62828; font-weight: 700; font-size: 14px; }
+.confirm-sub { color: #b71c1c; font-size: 11px; font-weight: 500; }
+.inline-buttons { display: flex; gap: 8px; align-items: center; }
+
+@media (max-width: 640px) {
+  .reservation-actions { margin: 4px 18px 20px 18px; }
+  .delete-inline.improved { flex-direction: column; align-items: stretch; }
+  .inline-buttons { justify-content: flex-end; }
 }
