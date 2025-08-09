@@ -1,5 +1,5 @@
 // 予約フォーム状態管理用カスタムフック
-import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { reservationsService, Reservation, periodTimeMap, createDateTimeFromPeriod } from '../firebase/firestore';
 import { AuthUser } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
@@ -146,18 +146,18 @@ export const useReservationForm = (
     }
 
     // 重複チェックを実行
-    console.log('🔍 重複チェック開始:', { datesToReserve, periodsToReserve, selectedRoom: formData.selectedRoom, userId: currentUser?.uid });
+    debug('🔍 重複チェック開始:', { datesToReserve, periodsToReserve, selectedRoom: formData.selectedRoom, userId: currentUser?.uid });
     const conflictResult = await checkForConflicts(datesToReserve, periodsToReserve, formData.selectedRoom, currentUser?.uid);
-    console.log('🔍 重複チェック結果:', conflictResult);
+    debug('🔍 重複チェック結果:', conflictResult);
     
     if (conflictResult.hasConflict) {
       const message = `${conflictResult.message}\n\n${conflictResult.details.join('\n')}`;
-      console.log('❌ 重複検出:', message);
+      debug('❌ 重複検出:', message);
       alert(message);
       return;
     }
     
-    console.log('✅ 重複なし、予約作成続行');
+    debug('✅ 重複なし、予約作成続行');
 
     try {
       setLoading(true);
@@ -192,7 +192,7 @@ export const useReservationForm = (
             createdBy: currentUser.uid
           };
 
-          console.log('📝 単一時限予約作成:', {
+          debug('📝 単一時限予約作成:', {
             period: reservation.period,
             periodName: reservation.periodName,
             startTime: dateTime.start,
@@ -230,7 +230,7 @@ export const useReservationForm = (
             createdBy: currentUser.uid
           };
 
-          console.log('📝 複数時限予約作成:', {
+          debug('📝 複数時限予約作成:', {
             period: reservation.period,
             periodName: reservation.periodName,
             periodsToReserve,
@@ -318,3 +318,5 @@ export const useReservationForm = (
     generatePeriodList
   };
 };
+
+const debug = (...args: any[]) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };

@@ -311,12 +311,14 @@
     background: white !important;
     border-bottom: 1px solid #000;
     -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   
   .excel-table thead th {
     background: #f0f0f0 !important;
     border: 1px solid #000 !important;
     -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   
   .excel-table tbody td {
@@ -326,5 +328,18 @@
   .excel-table tbody tr:nth-child(even) td {
     background: #f8f8f8 !important;
     -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
+}
+
+.reservation-sheet .excel-table {
+  width: 100% !important;
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.reservation-sheet .excel-table thead th,
+.reservation-sheet .excel-table tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -19,11 +19,10 @@ const SimpleLogin: React.FC<SimpleLoginProps> = ({ onAuthStateChange }) => {
       onAuthStateChange();
     } catch (error: any) {
       console.error('Googleログインエラー:', error);
-      // ドメイン制限エラーメッセージを優先表示
       if (error.message && error.message.includes(authService.getAllowedDomain())) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Googleログインに失敗しました');
+        setErrorMessage(`このシステムは ${authService.getAllowedDomain()} ドメインのGoogleアカウントのみ利用できます`);
       }
     } finally {
       setIsLoading(false);
@@ -72,7 +71,7 @@ const SimpleLogin: React.FC<SimpleLoginProps> = ({ onAuthStateChange }) => {
           <div className="login-description">
             <p>ログインしてください</p>
             <p className="domain-restriction">
-              📧 すべてのGoogleアカウントでご利用いただけます
+              📧 {authService.getAllowedDomain()} ドメインの<br />Googleアカウントのみ利用可能です
             </p>
           </div>
 
@@ -85,11 +84,11 @@ const SimpleLogin: React.FC<SimpleLoginProps> = ({ onAuthStateChange }) => {
           <div className="login-methods">
             {/* Googleログイン */}
             <div className="login-method">
-              <h3>教師ログイン</h3>
+              <h3>通常ログイン</h3>
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="google-login-btn"
+                className="google-login-btn primary-red"
               >
                 {isLoading ? 'ログイン中...' : 'Googleアカウントでログイン'}
               </button>

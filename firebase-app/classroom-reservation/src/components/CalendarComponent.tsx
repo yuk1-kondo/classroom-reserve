@@ -1,15 +1,12 @@
 // カレンダーコンポーネント
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { 
   roomsService, 
-  reservationsService, 
-  Room,
-  Reservation,
-  periodTimeMap
+  reservationsService
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
@@ -30,18 +27,33 @@ interface CalendarEvent {
   roomName: string;
 }
 
-export const CalendarComponent: React.FC<CalendarComponentProps> = ({
-  onDateClick,
-  onEventClick,
-  refreshTrigger,
-  selectedDate
-}) => {
-  const [rooms, setRooms] = useState<Room[]>([]);
+export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClick, onEventClick, refreshTrigger, selectedDate }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [lastSelectedDate, setLastSelectedDate] = useState<string>(''); // 最後に選択された日付を保持
   const calendarRef = useRef<FullCalendar>(null);
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const isMobile = windowWidth < 600;
+  const [initialView, setInitialView] = useState<string>('timeGridWeek');
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const target = isMobile ? 'dayGridMonth' : 'timeGridWeek';
+    setInitialView(target);
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (api.view.type !== target) {
+        api.changeView(target);
+      }
+    }
+  }, [isMobile]);
 
   // 教室データを取得
   useEffect(() => {
@@ -50,7 +62,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         console.log('📚 CalendarComponent: 教室データ取得開始...');
         setError('');
         const roomsData = await roomsService.getAllRooms();
-        setRooms(roomsData);
         console.log('📚 CalendarComponent: 教室データ取得成功:', roomsData.length + '件', roomsData);
         
         if (roomsData.length === 0) {
@@ -91,7 +102,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   };
 
   // 予約データを取得してカレンダーイベントに変換
-  const loadEvents = async (startDate: Date, endDate: Date) => {
+  const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
     try {
       setLoading(true);
       console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
@@ -121,7 +132,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             period: reservation.period,
             periodName: reservation.periodName
           }
-        };
+        } as any;
       });
       
       setEvents(calendarEvents);
@@ -132,7 +143,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // 日付クリック処理
   const handleDateClick = (dateClickInfo: any) => {
@@ -171,21 +182,21 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   };
 
   // カレンダーを再読み込み
-  const refetchEvents = () => {
+  const refetchEvents = useCallback(() => {
     if (calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
       const currentRange = calendarApi.view.currentStart;
       const endRange = calendarApi.view.currentEnd;
       loadEvents(currentRange, endRange);
     }
-  };
+  }, [loadEvents, calendarRef]);
 
   // refreshTriggerが変更されたときにイベントを再読み込み
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
       refetchEvents();
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, refetchEvents]);
 
   // selectedDateが変更されたときに対象日付に移動
   useEffect(() => {
@@ -201,7 +212,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   // useImperativeHandle は削除（不要）
 
   return (
-    <div className="calendar-container">
+    <div className={`calendar-container ${isMobile ? 'is-mobile-cal' : ''}`}>
       {loading && (
         <div className="calendar-loading">
           📅 カレンダー読み込み中...
@@ -217,14 +228,19 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="timeGridWeek"
+        initialView={initialView}
         locale="ja"
-        headerToolbar={{
+        headerToolbar={isMobile ? {
           left: 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          right: 'dayGridMonth,timeGridWeek'
+        } : {
+          left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
-        height="auto"
+        height={isMobile ? 'auto' : 'auto'}
+        expandRows={!isMobile}
         slotMinTime="08:00:00"
         slotMaxTime="19:00:00"
         businessHours={{

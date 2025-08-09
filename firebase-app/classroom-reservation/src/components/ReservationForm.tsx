@@ -6,6 +6,7 @@ import { ConflictCheckState } from '../hooks/useConflictDetection';
 import { DateRangeSelector } from './DateRangeSelector';
 import { PeriodRangeSelector } from './PeriodRangeSelector';
 import { ConflictWarning } from './ConflictWarning';
+import './ReservationForm.css';
 
 interface ReservationFormProps {
   showForm: boolean;

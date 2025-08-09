@@ -36,19 +36,18 @@ export const authService = {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // ドメイン制限チェック（一時的に無効化）
       if (!user.email) {
         console.error('❌ メールアドレスが取得できません');
         await signOut(auth);
         throw new Error('メールアドレスが取得できませんでした');
       }
       
-      // 一時的にドメイン制限をコメントアウト
-      // if (!user.email.endsWith(`@${ALLOWED_DOMAIN}`)) {
-      //   console.error('❌ 許可されていないドメイン:', user.email);
-      //   await signOut(auth);
-      //   throw new Error(DOMAIN_ERROR_MESSAGE);
-      // }
+      // ドメイン制限を有効化
+      if (!user.email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+        console.error('❌ 許可されていないドメイン:', user.email);
+        await signOut(auth);
+        throw new Error(DOMAIN_ERROR_MESSAGE);
+      }
       
       console.log('✅ Googleログイン成功:', user.email);
       return result;
@@ -101,13 +100,12 @@ export const authService = {
 
     return onAuthStateChanged(auth, async (user: User | null) => {
       if (user) {
-        // ドメイン制限チェック（一時的に無効化）
-        // if (user.email && !this.isAllowedDomain(user.email)) {
-        //   console.error('❌ 許可されていないドメインでログイン:', user.email);
-        //   await signOut(auth);
-        //   callback(null);
-        //   return;
-        // }
+        if (user.email && !this.isAllowedDomain(user.email)) {
+          console.error('❌ 許可されていないドメインでログイン:', user.email);
+          await signOut(auth);
+          callback(null);
+          return;
+        }
 
         callback({
           uid: user.uid,
@@ -132,6 +130,10 @@ export const authService = {
     // Firebaseユーザーをチェック
     const user = auth.currentUser;
     if (user) {
+      // ドメイン制限（念のため二重チェック）
+      if (user.email && !this.isAllowedDomain(user.email)) {
+        return null;
+      }
       return {
         uid: user.uid,
         email: user.email,

@@ -4,6 +4,7 @@ import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
 import DailyReservationTable from './DailyReservationTable';
+import ReservationSheet from './ReservationSheet';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
 
@@ -15,6 +16,7 @@ export const MainApp: React.FC = () => {
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
+  const [showSheet, setShowSheet] = useState(false);
 
   // 日付クリック処理
   const handleDateClick = (dateStr: string) => {
@@ -24,9 +26,13 @@ export const MainApp: React.FC = () => {
     }
     console.log('📅 日付クリック:', dateStr);
     setSelectedDate(dateStr);
-    setDailyTableDate(dateStr); // 日別表示テーブルも更新
+    setDailyTableDate(dateStr);
     setSelectedEventId('');
-    setShowSidePanel(true);
+    if (window.innerWidth >= 600) {
+      setShowSidePanel(true);
+    } else {
+      setShowSheet(true);
+    }
   };
 
   // イベントクリック処理
@@ -81,16 +87,23 @@ export const MainApp: React.FC = () => {
           
           {/* 日別予約一覧テーブル */}
           {dailyTableDate && (
-            <div className="daily-table-container">
+            <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
               <DailyReservationTable 
                 selectedDate={dailyTableDate}
+                showWhenEmpty={true}
               />
+              {window.innerWidth < 600 && !showSidePanel && (
+                <div className="open-reserve-panel-wrapper">
+                  <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {showSidePanel && (
           <aside className="side-panel-section">
+            <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
             <SidePanel
               selectedDate={selectedDate}
               selectedEventId={selectedEventId}
@@ -114,6 +127,14 @@ export const MainApp: React.FC = () => {
           setSelectedEventId('');
         }}
         onReservationUpdated={handleReservationCreated}
+      />
+
+      {/* 予約シート（モバイル用） */}
+      <ReservationSheet
+        date={dailyTableDate}
+        open={showSheet}
+        onClose={()=>setShowSheet(false)}
+        onOpenSidePanel={()=>{ setShowSheet(false); setShowSidePanel(true); }}
       />
     </div>
   );

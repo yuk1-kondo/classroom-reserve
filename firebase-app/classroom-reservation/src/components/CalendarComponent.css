@@ -78,17 +78,11 @@
 .fc-button {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--color-on-primary);
-  border-radius: var(--radius-small) !important;
-  font-weight: 500;
-  font-size: 0.9em;
-  transition: all 0.2s ease;
 }
 
 .fc-button:hover {
   background-color: var(--color-primary-dark);
   border-color: var(--color-primary-dark);
-  transform: translateY(-1px);
 }
 
 .fc-button:focus {
@@ -122,29 +116,23 @@
 /* === 土日のヘッダーカラー（視認性向上） === */
 .fc-col-header-cell {
   background-color: var(--color-surface-variant);
-  font-weight: 600;
   color: var(--color-on-surface);
-  border-color: var(--color-outline);
 }
 
-/* 土曜日のヘッダー（ブルー） */
 .fc-col-header-cell:nth-child(7) {
   background-color: var(--color-saturday-light);
   color: var(--color-saturday);
 }
 
-/* 日曜日のヘッダー（レッド） */
 .fc-col-header-cell:nth-child(1) {
   background-color: var(--color-sunday-light);
   color: var(--color-sunday);
 }
 
-/* 土曜日の日付セル */
 .fc-day-sat {
   background-color: var(--color-saturday-light);
 }
 
-/* 日曜日の日付セル */
 .fc-day-sun {
   background-color: var(--color-sunday-light);
 }
@@ -161,6 +149,25 @@
 .fc-now-indicator {
   border-color: var(--color-primary);
   border-width: 2px;
+}
+
+/* モバイル表示調整 */
+.is-mobile-cal .fc-col-header-cell-cushion {
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.is-mobile-cal .fc-daygrid-day-number {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.is-mobile-cal .fc-toolbar-title {
+  font-size: 1.1em;
+}
+
+.is-mobile-cal .fc-daygrid-day-frame {
+  min-height: 58px;
 }
 
 /* レスポンシブ対応 */

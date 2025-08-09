@@ -8,7 +8,7 @@
 }
 
 .main-header {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: var(--color-on-primary);
   padding: var(--spacing-lg) var(--spacing-xl);
   box-shadow: var(--elevation-2);
@@ -42,7 +42,7 @@
 .toggle-panel-button {
   background: var(--color-surface);
   color: var(--color-primary);
-  border: 2px solid var(--color-primary);
+  border: 1px solid var(--color-primary);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-medium);
   cursor: pointer;
@@ -54,8 +54,6 @@
 .toggle-panel-button:hover {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--elevation-2);
 }
 
 .main-content {
@@ -81,12 +79,12 @@
 }
 
 .main-footer {
-  background: #2c3e50;
-  color: #ecf0f1;
+  background: var(--color-primary-dark);
+  color: var(--color-on-primary);
   text-align: center;
   padding: 15px;
   font-size: 0.9em;
-  border-top: 2px solid #34495e;
+  border-top: 2px solid var(--color-primary);
 }
 
 .main-footer p {
@@ -174,6 +172,39 @@
   }
 }
 
+@media (max-width: 600px) {
+  .side-panel-section {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    border-left: none;
+    border-top: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.25);
+    background: var(--color-surface);
+    z-index: 120;
+    animation: slideUp 0.28s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(8%); opacity:0;} to { transform: translateY(0); opacity:1;} }
+  .main-content { overflow: visible; }
+  
+  .mobile-close-panel {
+    display: block;
+    width: 100%;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    padding: 12px 16px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+  .mobile-close-panel:active { opacity: 0.85; }
+}
+
 @media (max-width: 480px) {
   .main-header {
     padding: 12px 15px;
@@ -234,4 +265,24 @@
     background: #1a1a1a;
     color: #b0b0b0;
   }
+}
+
+.open-reserve-panel-btn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-medium);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.open-reserve-panel-btn:active {
+  opacity: 0.85;
+}
+
+.open-reserve-panel-wrapper {
+  margin-top: 12px;
+  text-align: center;
 }

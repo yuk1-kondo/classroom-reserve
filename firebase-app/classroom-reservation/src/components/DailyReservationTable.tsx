@@ -4,14 +4,14 @@ import {
   roomsService, 
   reservationsService, 
   Room, 
-  Reservation,
-  periodTimeMap 
+  Reservation
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
+  showWhenEmpty?: boolean; // 追加: 空でも表示
 }
 
 interface RoomReservationStatus {
@@ -21,7 +21,8 @@ interface RoomReservationStatus {
 }
 
 export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
-  selectedDate
+  selectedDate,
+  showWhenEmpty = false
 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
@@ -147,8 +148,11 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     });
   };
 
-  if (!selectedDate || roomStatuses.length === 0) {
-    return null; // 予約がない場合は何も表示しない
+  if (!selectedDate) {
+    return null;
+  }
+  if (roomStatuses.length === 0 && !showWhenEmpty) {
+    return null; // 従来挙動
   }
 
   return (
@@ -157,6 +161,9 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         <h4>📋 {formatDate(selectedDate)} の予約状況</h4>
         {loading && <div className="loading-indicator">読み込み中...</div>}
         {error && <div className="error-message">{error}</div>}
+        {!loading && !error && roomStatuses.length === 0 && (
+          <div className="no-reservations-message">予約はありません</div>
+        )}
       </div>
 
       <div className="table-scroll-container">

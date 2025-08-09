@@ -15,8 +15,8 @@
 
 .simple-login-modal {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-large);
+  box-shadow: var(--elevation-3);
   width: 90%;
   max-width: 400px;
   position: relative;
@@ -31,7 +31,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--color-on-surface);
 }
 
 .close-button {
@@ -53,8 +53,8 @@
 }
 
 .close-button:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface);
 }
 
 .simple-login-body {
@@ -73,12 +73,12 @@
 }
 
 .domain-restriction {
-  background: #e8f4fd;
-  border: 1px solid #b3d9f2;
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
+  color: var(--color-on-surface);
   border-radius: 6px;
   padding: 0.75rem;
   font-size: 0.875rem;
-  color: #1565c0;
   margin-top: 1rem;
 }
 
@@ -89,10 +89,10 @@
 }
 
 .login-method {
-  background: #fafafa;
+  background: var(--color-surface-variant);
   border-radius: 8px;
   padding: 1.5rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-outline);
 }
 
 .login-method h3 {
@@ -104,7 +104,7 @@
 }
 
 .google-login-btn {
-  background: #4285f4;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -116,7 +116,7 @@
 }
 
 .google-login-btn:hover:not(:disabled) {
-  background: #3367d6;
+  background: var(--color-primary-dark);
 }
 
 .google-login-btn:disabled {
@@ -139,12 +139,12 @@
 }
 
 .admin-login input:focus {
-  border-color: #4285f4;
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .admin-login-btn {
-  background: #dc3545;
+  background: var(--color-error);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -155,7 +155,7 @@
 }
 
 .admin-login-btn:hover:not(:disabled) {
-  background: #c82333;
+  background: #b91c1c;
 }
 
 .admin-login-btn:disabled {
@@ -171,4 +171,15 @@
   border: 1px solid #f5c6cb;
   margin-bottom: 1rem;
   font-size: 0.875rem;
+}
+
+/* 追加: Googleログインボタンを赤テーマにするオプション */
+.primary-red {
+  background: var(--color-error);
+}
+.primary-red:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.primary-red:disabled {
+  background: #ccc;
 }

@@ -33,7 +33,7 @@ export const MASTER_PERIODS = [
   { id: '2', name: '2限', startTime: '09:50', endTime: '10:40', order: 2 },
   { id: '3', name: '3限', startTime: '10:50', endTime: '11:40', order: 3 },
   { id: '4', name: '4限', startTime: '11:50', endTime: '12:40', order: 4 },
-  { id: 'lunch', name: 'お昼休み', startTime: '12:40', endTime: '13:25', order: 4.5 },
+  { id: 'lunch', name: '昼休み', startTime: '12:40', endTime: '13:25', order: 4.5 },
   { id: '5', name: '5限', startTime: '13:25', endTime: '14:15', order: 5 },
   { id: '6', name: '6限', startTime: '14:25', endTime: '15:15', order: 6 },
   { id: '7', name: '7限', startTime: '15:25', endTime: '16:15', order: 7 },

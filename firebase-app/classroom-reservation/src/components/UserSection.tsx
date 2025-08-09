@@ -17,23 +17,15 @@ export const UserSection: React.FC<UserSectionProps> = ({
     <div className="user-info-section">
       {currentUser ? (
         <div className="current-user-info">
-          <div className="user-avatar">
-            {currentUser.role === 'admin' ? '👩‍💼' : 
-             currentUser.role === 'teacher' ? '👨‍🏫' : '👨‍🎓'}
-          </div>
           <div className="user-details">
-            <div className="user-name">{currentUser.displayName || currentUser.name}</div>
-            <div className="user-role">
-              {currentUser.role === 'admin' ? '管理者' : 
-               currentUser.role === 'teacher' ? '教師' : '学生'}
-            </div>
+            <div className="user-name">ログインしているユーザー：{currentUser.displayName || currentUser.name}</div>
           </div>
           <button 
             className="logout-button"
             onClick={onLogout}
             title="ログアウト"
           >
-            🚪
+            ログアウト
           </button>
         </div>
       ) : (
@@ -43,7 +35,7 @@ export const UserSection: React.FC<UserSectionProps> = ({
             className="login-button"
             onClick={onLogin}
           >
-            👤 ログイン
+            ログイン
           </button>
         </div>
       )}

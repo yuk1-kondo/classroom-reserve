@@ -30,6 +30,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const formHook = useReservationForm(selectedDate, currentUser, rooms, onReservationCreated);
   const { conflictCheck, performConflictCheck } = useConflictDetection();
   
+  // 必要な値/関数だけ分解（useEffect依存の安定化）
+  const { showForm, formData, getReservationDates, getReservationPeriods } = formHook;
+  const { selectedRoom } = formData;
+  
   // 管理者機能の表示状態
   const [csvExporting, setCsvExporting] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
@@ -230,28 +234,31 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   // 重複チェックを実行するためのエフェクト
   useEffect(() => {
-    if (formHook.showForm) {
+    if (showForm) {
       const timeoutId = setTimeout(() => {
-        const datesToCheck = formHook.getReservationDates();
-        const periodsToCheck = formHook.getReservationPeriods();
+        const datesToCheck = getReservationDates();
+        const periodsToCheck = getReservationPeriods();
         
-        if (datesToCheck.length > 0 && periodsToCheck.length > 0 && formHook.formData.selectedRoom) {
-          performConflictCheck(datesToCheck, periodsToCheck, formHook.formData.selectedRoom);
+        if (datesToCheck.length > 0 && periodsToCheck.length > 0 && selectedRoom) {
+          performConflictCheck(datesToCheck, periodsToCheck, selectedRoom);
         }
       }, 300); // デバウンス: 300ms待ってからチェック実行
       
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    formHook.showForm,
-    formHook.formData.selectedRoom,
-    formHook.dateRange,
-    formHook.periodRange,
-    formHook.formData.selectedPeriod,
-    performConflictCheck,
-    formHook.getReservationDates,
-    formHook.getReservationPeriods
-  ]);
+  }, [showForm, selectedRoom, getReservationDates, getReservationPeriods, performConflictCheck]);
+
+  // ログインモーダル: ESCで閉じる
+  useEffect(() => {
+    if (!showLoginModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowLoginModal(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showLoginModal, setShowLoginModal]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
@@ -266,6 +273,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   return (
     <div className="side-panel">
+      <div className="only-mobile mobile-inline-close-wrapper">
+        <button onClick={onClose} aria-label="閉じる" className="mobile-inline-close-btn">✕ 閉じる</button>
+      </div>
       {/* ユーザー情報セクション */}
       <UserSection
         currentUser={currentUser}

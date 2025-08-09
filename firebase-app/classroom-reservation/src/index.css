@@ -1,65 +1,77 @@
-/* 🌸 桜和高校教室予約システム - マテリアルデザインカラーシステム */
+/* 🌸 桜和高校教室予約システム - スクールブランドテーマ */
 :root {
-  /* === プライマリーカラー（桜ピンク系） === */
-  --color-primary: #E91E63;          /* Cherry Pink - メインアクション */
-  --color-primary-light: #F8BBD9;    /* Light Pink - ホバー */
-  --color-primary-dark: #AD1457;     /* Deep Pink - アクティブ */
-  --color-primary-50: #FCE4EC;       /* Pink 50 - 背景 */
+  /* === 初期ベースカラー (Material系ブルーに回帰) === */
+  --color-primary: #1976d2;          /* Primary */
+  --color-primary-light: #63a4ff;    /* Light */
+  --color-primary-dark: #004ba0;     /* Dark */
+  --color-primary-50: #e3f2fd;       /* Very light */
+
+  /* === セカンダリー (グレー) === */
+  --color-secondary: #607d8b;
+  --color-secondary-light: #cfd8dc;
+  --color-secondary-dark: #455a64;
   
-  /* === セカンダリーカラー（桜の葉グリーン） === */
-  --color-secondary: #4CAF50;        /* Green 500 */
-  --color-secondary-light: #81C784;  /* Green 300 */
-  --color-secondary-dark: #388E3C;   /* Green 700 */
+  /* === 土日カラー (従来: 土=ブルー系薄, 日=レッド系) === */
+  --color-saturday: #1976d2;
+  --color-saturday-light: #e3f2fd;
+  --color-sunday: #d32f2f;
+  --color-sunday-light: #ffebee;
   
-  /* === 土日カラー（視認性向上） === */
-  --color-saturday: #2196F3;         /* Blue 500 - 土曜日 */
-  --color-saturday-light: #E3F2FD;   /* Blue 50 */
-  --color-sunday: #F44336;           /* Red 500 - 日曜日 */
-  --color-sunday-light: #FFEBEE;     /* Red 50 */
-  
-  /* === ニュートラルカラー === */
-  --color-surface: #FFFFFF;          /* 白背景 */
-  --color-background: #FAFAFA;       /* Gray 50 - ページ背景 */
-  --color-surface-variant: #F5F5F5;  /* Gray 100 - カード背景 */
-  
-  /* === テキストカラー === */
-  --color-on-surface: #212121;       /* Gray 900 - プライマリテキスト */
-  --color-on-surface-variant: #757575; /* Gray 600 - セカンダリテキスト */
-  --color-on-primary: #FFFFFF;       /* プライマリ上のテキスト */
-  
-  /* === ボーダー・アウトライン === */
-  --color-outline: #E0E0E0;          /* Gray 300 */
-  --color-outline-variant: #EEEEEE;  /* Gray 200 */
-  
-  /* === 状態カラー === */
-  --color-success: #4CAF50;          /* Green 500 */
-  --color-success-light: #E8F5E8;    /* Green 50 */
-  --color-warning: #FF9800;          /* Orange 500 */
-  --color-warning-light: #FFF3E0;    /* Orange 50 */
-  --color-error: #F44336;            /* Red 500 */
-  --color-error-light: #FFEBEE;      /* Red 50 */
-  --color-info: #2196F3;             /* Blue 500 */
-  --color-info-light: #E3F2FD;       /* Blue 50 */
-  
-  /* === シャドウ（マテリアルデザイン） === */
-  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --elevation-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-  --elevation-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
-  --elevation-4: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
-  
-  /* === 角丸（マテリアルデザイン） === */
-  --radius-small: 4px;
-  --radius-medium: 8px;
-  --radius-large: 12px;
-  --radius-extra-large: 16px;
-  
-  /* === スペーシング === */
+  /* === ニュートラル === */
+  --color-surface: #ffffff;
+  --color-background: #f5f5f5;
+  --color-surface-variant: #fafafa;
+
+  /* === テキスト === */
+  --color-on-surface: #212121;
+  --color-on-surface-variant: #616161;
+  --color-on-primary: #ffffff;
+
+  /* === ボーダー === */
+  --color-outline: #e0e0e0;
+  --color-outline-variant: #bdbdbd;
+
+  /* === 状態色 (Material基調) === */
+  --color-success: #2e7d32;
+  --color-success-light: #e8f5e9;
+  --color-warning: #ed6c02;
+  --color-warning-light: #fff3e0;
+  --color-error: #d32f2f;
+  --color-error-light: #ffebee;
+  --color-info: #0288d1;
+  --color-info-light: #e1f5fe;
+
+  /* === シャドウ (現状維持) === */
+  --elevation-1: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.06);
+  --elevation-2: 0 4px 8px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08);
+  --elevation-3: 0 10px 20px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.10);
+  --elevation-4: 0 14px 28px rgba(0,0,0,0.16), 0 10px 10px rgba(0,0,0,0.10);
+
+  /* === 角丸 / スペーシング (現状維持) === */
+  --radius-small: 6px;
+  --radius-medium: 10px;
+  --radius-large: 14px;
+  --radius-extra-large: 18px;
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
+
+  /* === Breakpoints === */
+  --bp-mobile: 600px;
+  --bp-tablet: 900px;
+  --bp-desktop: 1200px;
+}
+
+/* モバイル専用ヘルパー (JS不要で簡易非表示制御) */
+.only-desktop { display: block; }
+.only-mobile { display: none; }
+
+@media (max-width: 599px) {
+  .only-desktop { display: none !important; }
+  .only-mobile { display: block !important; }
 }
 
 body {

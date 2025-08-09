@@ -1,7 +1,7 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { periodTimeMap, Reservation } from '../firebase/firestore';
+import { periodTimeMap, Reservation, PERIOD_ORDER } from '../firebase/firestore';
 
 interface PeriodRangeSelectorProps {
   periodRange: PeriodRangeState;
@@ -28,15 +28,12 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   const formatPeriod = (period: string): string => {
     const timeInfo = periodTimeMap[period as keyof typeof periodTimeMap];
     if (!timeInfo) return period;
-    
-    // 特別な表記
     if (period === '0') {
       return `${timeInfo.name} (- ${timeInfo.end})`;
     }
     if (period === 'after') {
       return `${timeInfo.name} (${timeInfo.start} -)`;
     }
-    
     return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
   };
 
@@ -97,7 +94,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   return (
     <div className="form-group">
       <label>時限:</label>
-      
+      {/* 4限の後に昼休みを固定順序で表示 */}
       {/* 時限範囲選択 */}
       <div className="period-range-selector">
         <div className="period-toggle">
@@ -129,14 +126,15 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
             aria-label="時限を選択"
           >
             <option value="">時限を選択</option>
-            {Object.entries(periodTimeMap).map(([key, value]) => {
+            {PERIOD_ORDER.map(key => {
               const isReserved = isPeriodReserved(key);
+              const optionClass = isReserved ? 'period-option reserved' : 'period-option';
               return (
                 <option 
                   key={key} 
                   value={key} 
                   disabled={isReserved}
-                  style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                  className={optionClass}
                 >
                   {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
                 </option>
@@ -154,14 +152,15 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="開始時限を選択"
               >
                 <option value="">選択</option>
-                {Object.entries(periodTimeMap).map(([key, value]) => {
+                {PERIOD_ORDER.map(key => {
                   const isReserved = isPeriodReserved(key);
+                  const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (
                     <option 
                       key={key} 
                       value={key}
                       disabled={isReserved}
-                      style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                      className={optionClass}
                     >
                       {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
                     </option>
@@ -178,14 +177,15 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="終了時限を選択"
               >
                 <option value="">選択</option>
-                {Object.entries(periodTimeMap).map(([key, value]) => {
+                {PERIOD_ORDER.map(key => {
                   const isReserved = isPeriodReserved(key);
+                  const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (
                     <option 
                       key={key} 
                       value={key}
                       disabled={isReserved}
-                      style={isReserved ? { color: '#999', backgroundColor: '#f5f5f5' } : {}}
+                      className={optionClass}
                     >
                       {formatPeriod(key)}{isReserved ? ' (予約済み)' : ''}
                     </option>
