@@ -1,0 +1,153 @@
+/* モバイル用ボトムシート */
+
+body.no-scroll {
+  overflow: hidden;
+  touch-action: none;
+}
+
+.reservation-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1100; /* サイドパネルより上 */
+  pointer-events: auto; /* 全体でイベント受ける */
+}
+
+.reservation-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.25); /* ブラー除去して視認性確保 */
+  pointer-events: auto;
+  animation: sheet-fade-in 160ms ease;
+  z-index: 1;
+}
+
+.reservation-sheet {
+  --sheet-max-height: 75vh;
+  width: 100%;
+  max-width: 100%;
+  background: var(--color-surface);
+  border-top-left-radius: var(--radius-large);
+  border-top-right-radius: var(--radius-large);
+  box-shadow: var(--elevation-3);
+  pointer-events: auto;
+  transform: translateY(4px);
+  animation: sheet-slide-up 180ms cubic-bezier(.4,0,.2,1);
+  display: flex;
+  flex-direction: column;
+  max-height: var(--sheet-max-height);
+  position: relative;
+  z-index: 2; /* バックドロップより前面 */
+  height: var(--sheet-height, auto);
+}
+
+@media (max-width: 600px) {
+  .reservation-sheet {
+    max-width: none;
+    width: 100vw; /* ビューポート幅ぴったり */
+    box-sizing: border-box;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+  }
+  .reservation-sheet .daily-reservation-table {
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    overflow: visible;
+  }
+  .reservation-sheet .table-scroll-container {
+    overflow-x: hidden; /* 横スクロール排除 */
+    border: none;
+  }
+  .reservation-sheet .excel-table {
+    min-width: 100% !important;
+    table-layout: fixed; /* 幅固定 */
+    width: 100% !important;
+  }
+  .reservation-sheet .excel-table thead th,
+  .reservation-sheet .excel-table tbody td {
+    padding: 3px 4px; /* さらに圧縮 */
+  }
+  /* 列幅を全体幅<=100%に収めるよう再計算 */
+  .reservation-sheet .col-room { width: 50px !important; min-width: 50px !important; }
+  .reservation-sheet .col-period { width: 42px !important; min-width: 42px !important; }
+  .reservation-sheet .col-time { width: 80px !important; min-width: 80px !important; }
+  .reservation-sheet .col-title { width: 90px !important; min-width: 90px !important; }
+  .reservation-sheet .col-user { width: 60px !important; min-width: 60px !important; }
+  .reservation-sheet .reservation-title { max-width: 100%; }
+}
+/* モバイル安全域対応 */
+@supports(padding:max(0px)) {
+  .reservation-sheet { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+}
+
+@media (min-width: 600px) {
+  .reservation-sheet-overlay { display: none; }
+}
+
+.sheet-handle {
+  width: 44px;
+  height: 5px;
+  background: var(--color-outline-variant);
+  border-radius: 3px;
+  margin: 8px auto 4px;
+  opacity: .7;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 8px;
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.sheet-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--color-on-surface-variant);
+}
+.sheet-close-btn:hover { color: var(--color-on-surface); }
+.sheet-close-btn:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.sheet-content {
+  overflow-y: auto;
+  padding: 8px 8px 12px;
+  flex: 1 1 auto;
+}
+
+.sheet-footer {
+  padding: 12px;
+  border-top: 1px solid var(--color-outline);
+  background: var(--color-surface-variant);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sheet-action-btn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  padding: 10px 18px;
+  font-size: 14px;
+  border-radius: var(--radius-medium);
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: var(--elevation-1);
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.sheet-action-btn:hover { background: var(--color-primary-dark); box-shadow: var(--elevation-2); }
+.sheet-action-btn:active { transform: translateY(1px); }
+.sheet-action-btn:focus { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+
+@keyframes sheet-slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes sheet-fade-in { from { opacity: 0; } to { opacity: 1; } }
