@@ -1,6 +1,6 @@
 // 予約詳細・編集モーダルコンポーネント
-import React, { useState, useEffect } from 'react';
-import { reservationsService, Reservation, periodTimeMap } from '../firebase/firestore';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { reservationsService, Reservation } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
@@ -22,15 +22,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const confirmDeleteBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  // 予約データを取得
-  useEffect(() => {
-    if (isOpen && reservationId) {
-      loadReservation();
-    }
-  }, [isOpen, reservationId]);
-
-  const loadReservation = async () => {
+  const loadReservation = useCallback(async () => {
     if (!reservationId) return;
 
     setLoading(true);
@@ -49,7 +43,14 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [reservationId]);
+
+  // 予約データを取得
+  useEffect(() => {
+    if (isOpen && reservationId) {
+      loadReservation();
+    }
+  }, [isOpen, reservationId, loadReservation]);
 
   // 期間表示を整形
   const formatPeriodDisplay = (period: string): string => {
@@ -107,15 +108,19 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     }
   };
 
-  const currentUser = authService.getCurrentUserExtended();
-  const canEdit = authService.canEditReservation(reservation?.createdBy);
   const canDelete = authService.canDeleteReservation(reservation?.createdBy);
+
+  useEffect(() => {
+    if (showDeleteConfirm && confirmDeleteBtnRef.current) {
+      confirmDeleteBtnRef.current.focus();
+    }
+  }, [showDeleteConfirm]);
 
   if (!isOpen) return null;
 
   return (
     <div className="reservation-modal-overlay">
-      <div className="reservation-modal">
+      <div className="reservation-modal compact">
         <div className="reservation-modal-header">
           <h2>予約詳細</h2>
           <button 
@@ -142,35 +147,35 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           )}
 
           {reservation && (
-            <div className="reservation-details">
-              <div className="detail-section">
-                <div className="detail-row">
-                  <label>教室名:</label>
-                  <span className="highlight">{reservation.roomName}</span>
-                </div>
-                <div className="detail-row">
-                  <label>予約名:</label>
-                  <span className="highlight">{reservation.title}</span>
-                </div>
-                <div className="detail-row">
-                  <label>予約者:</label>
-                  <span className="highlight">{reservation.reservationName}</span>
-                </div>
-                <div className="detail-row">
-                  <label>日付:</label>
-                  <span className="date-display">{formatDate(reservation.startTime)}</span>
-                </div>
-                <div className="detail-row">
-                  <label>時限:</label>
-                  <span className="period-display">{formatPeriodDisplay(reservation.period)}</span>
-                </div>
+            <div className="reservation-details details-grid">
+              {/* 1行目: 日付 / 時限 */}
+              <div className="detail-item">
+                <div className="item-label">日付</div>
+                <div className="item-value">{formatDate(reservation.startTime)}</div>
+              </div>
+              <div className="detail-item">
+                <div className="item-label">時限</div>
+                <div className="item-value">{formatPeriodDisplay(reservation.period)}</div>
+              </div>
+              {/* 2行目: 教室 / 予約者 */}
+              <div className="detail-item">
+                <div className="item-label">教室</div>
+                <div className="item-value">{reservation.roomName}</div>
+              </div>
+              <div className="detail-item">
+                <div className="item-label">予約者</div>
+                <div className="item-value">{reservation.reservationName}</div>
+              </div>
+              {/* 3行目: 予約名（全幅） */}
+              <div className="detail-item span-2">
+                <div className="item-label">予約名</div>
+                <div className="item-value">{reservation.title}</div>
               </div>
             </div>
           )}
 
-          {/* 権限に応じたアクションボタン */}
-          <div className="reservation-actions">
-            {canDelete && (
+          <div className={`reservation-actions ${showDeleteConfirm ? 'confirm-mode' : ''}`}>
+            {canDelete && !showDeleteConfirm && (
               <button 
                 className="delete-button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -179,30 +184,33 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 🗑️ 予約を削除
               </button>
             )}
-          </div>
 
-          {/* 削除確認ダイアログ */}
-          {showDeleteConfirm && (
-            <div className="confirm-dialog">
-              <p>この予約を削除しますか？</p>
-              <div className="confirm-buttons">
-                <button 
-                  className="confirm-button"
-                  onClick={handleDelete}
-                  disabled={loading}
-                >
-                  削除
-                </button>
-                <button 
-                  className="cancel-button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={loading}
-                >
-                  キャンセル
-                </button>
+            {canDelete && showDeleteConfirm && (
+              <div className="delete-inline improved" role="alertdialog" aria-label="削除確認">
+                <div className="confirm-left">
+                  <span className="confirm-text-strong">削除しますか？</span>
+                  <span className="confirm-sub">取り消しはできません</span>
+                </div>
+                <div className="inline-buttons">
+                  <button 
+                    ref={confirmDeleteBtnRef}
+                    className="confirm-delete-btn"
+                    onClick={handleDelete}
+                    disabled={loading}
+                  >
+                    確定
+                  </button>
+                  <button 
+                    className="cancel-delete-btn"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={loading}
+                  >
+                    キャンセル
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
