@@ -151,6 +151,41 @@
   border-width: 2px;
 }
 
+/* 週末スタイル再定義: 土曜=青系強調, 日曜=赤系強調 */
+:root {
+  --sat-bg: #e3f2ff;
+  --sat-text: #0d60c7;
+  --sun-bg: #ffe4e6;
+  --sun-text: #d3002f;
+}
+
+/* FullCalendar内部構造: dayGrid/timeGrid の列順 → 日=1, 月=2 ... 土=7 */
+.fc-col-header-cell:nth-child(1) { /* Sunday */
+  background: var(--sun-bg) !important;
+  color: var(--sun-text) !important;
+  font-weight: 600;
+}
+.fc-col-header-cell:nth-child(7) { /* Saturday */
+  background: var(--sat-bg) !important;
+  color: var(--sat-text) !important;
+  font-weight: 600;
+}
+
+/* 日付セル本体背景 (dayGrid) */
+.fc-day-sun { background: var(--sun-bg) !important; }
+.fc-day-sat { background: var(--sat-bg) !important; }
+
+/* 日曜数字を赤 / 土曜数字を青 */
+.fc-day-sun .fc-daygrid-day-number { color: var(--sun-text) !important; }
+.fc-day-sat .fc-daygrid-day-number { color: var(--sat-text) !important; }
+
+/* timeGrid (週/日) の列背景 */
+.fc-timegrid-col.fc-day-sun { background: var(--sun-bg) !important; }
+.fc-timegrid-col.fc-day-sat { background: var(--sat-bg) !important; }
+
+/* today ハイライトが週末に乗った時の視認性確保 */
+.fc-day-sun.fc-day-today, .fc-day-sat.fc-day-today { box-shadow: inset 0 0 0 2px #ff9800; }
+
 /* モバイル表示調整 */
 .is-mobile-cal .fc-col-header-cell-cushion {
   font-size: 11px;
