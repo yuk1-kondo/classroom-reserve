@@ -171,6 +171,14 @@
   font-weight: 600;
 }
 
+/* === Weekend header override (fix timeGrid axis column offset) === */
+.fc-col-header-cell.fc-day-sun { background: var(--sun-bg) !important; color: var(--sun-text) !important; font-weight: 600; }
+.fc-col-header-cell.fc-day-sat { background: var(--sat-bg) !important; color: var(--sat-text) !important; font-weight: 600; }
+.fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
+.fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion { color: inherit !important; }
+/* Ensure day view (single column) also applies */
+.fc-timegrid-col.fc-day-sun, .fc-timegrid-col.fc-day-sat { background: inherit; }
+
 /* 日付セル本体背景 (dayGrid) */
 .fc-day-sun { background: var(--sun-bg) !important; }
 .fc-day-sat { background: var(--sat-bg) !important; }
