@@ -2,12 +2,12 @@
 .daily-reservation-table {
   width: 100%;
   background: #ffffff; /* 既に白 */
-  border: 1px solid #d0d7de;
+  border: 1px solid #d9e1e9; /* やや淡い単線 */
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-size: 12px;
   overflow: hidden; /* 横スクロール抑止 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06); /* 影わずかに弱め */
   /* レスポンシブ対応のため最小幅を設定 */
   min-width: 0;
   box-sizing: border-box;
@@ -72,6 +72,7 @@
   font-size: 11px;
   background: white;
   table-layout: fixed; /* 列幅固定して折返し */
+  border: none;
 }
 
 .excel-table thead th {
@@ -80,8 +81,8 @@
   font-weight: 600;
   padding: 8px 12px;
   text-align: center; /* 中央揃え */
-  border: 1px solid #d0d7de;
-  border-top: none; /* 上側の線を除去して二重線解消 */
+  border: 1px solid #d9e1e9;
+  border-top: none; /* 上はヘッダーdivのボーダー */
   font-size: 11px;
   white-space: nowrap;
   /* ヘッダー固定 */
@@ -92,7 +93,7 @@
 
 .excel-table tbody td {
   padding: 6px 12px;
-  border: 1px solid #d0d7de;
+  border: 1px solid #d9e1e9;
   vertical-align: middle; /* 中央揃え */
   text-align: center; /* 中央揃え */
   background: white;
