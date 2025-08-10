@@ -22,11 +22,18 @@
   font-size: 1.8em;
   font-weight: 600;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
 }
 
-.main-header h1 svg {
+.main-header .header-logo {
   margin-right: 8px;
   vertical-align: middle;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px; /* optional subtle rounding */
+  box-shadow: 0 0 0 0 rgba(0,0,0,0); /* placeholder for future */
 }
 
 .header-info {

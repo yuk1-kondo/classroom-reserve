@@ -7,7 +7,6 @@ import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
-import SakuraIcon from './SakuraIcon';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
@@ -64,7 +63,16 @@ export const MainApp: React.FC = () => {
   return (
     <div className="main-app">
       <header className="main-header">
-        <h1><SakuraIcon size={32} /> 桜和高校教室予約システム</h1>
+        <h1>
+          <img
+            src={process.env.PUBLIC_URL + '/logo_clear.png'}
+            alt="校章"
+            className="header-logo"
+            width={32}
+            height={32}
+          />{' '}
+          桜和高校教室予約システム
+        </h1>
         <div className="header-info">
           <div className="system-info">v1.0</div>
           <button 
