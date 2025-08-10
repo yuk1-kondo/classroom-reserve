@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [2.0.2] - 2025-08-10
+### 🎨 UI / 表示
+- Favicon / PWA アイコン更新: manifest.json を `logo192.png`, `logo512.png`, `favicon.svg` に統一し cache-bust 付き参照へ修正
+- 旧 `owa.png` / 不要バックアップアイコンの参照除去
+- 日別予約テーブル(DailyReservationTable) 横スクロール除去: `table-layout:fixed` + 列パーセンテージ化 / min-width 撤廃
+
+### ⚙️ 機能 / 挙動
+- 競合リセット方式: Option B (日付 / 教室変更時のみリセット) に確定
+- 時限ラベルユーティリティ `periodLabel.ts` を src/utils に新規配置（multi-period 正規化継続）
+
+### 🧹 クリーンアップ
+- manifest / index.html 内の不要 favicon リンク整理
+- 不要 backup アイコンファイル削除
+
+### 🚀 デプロイ
+- Firebase Hosting へ反映 (favicon & テーブル修正)
+
+---
+
 ## [2.0.1] - 2025-08-09
 ### 🛠 改善 / UI 仕上げ
 - 予約詳細モーダル: PC/モバイル統一 2カラムレイアウト確立
