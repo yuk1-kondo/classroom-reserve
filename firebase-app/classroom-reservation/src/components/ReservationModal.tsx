@@ -4,6 +4,7 @@ import { reservationsService, Reservation } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
+import { formatPeriodDisplay } from '../utils/periodLabel';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -52,26 +53,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     }
   }, [isOpen, reservationId, loadReservation]);
 
-  // 期間表示を整形
-  const formatPeriodDisplay = (period: string): string => {
-    if (period.includes(',')) {
-      // カンマ区切りの場合（例: "0,1,2"）
-      const periods = period.split(',').map(p => p.trim());
-      if (periods.length > 1) {
-        const start = periods[0];
-        const end = periods[periods.length - 1];
-        return `${start}限〜${end}限`;
-      } else {
-        return `${periods[0]}限`;
-      }
-    } else if (period.includes('-')) {
-      // ハイフン区切りの場合
-      const [start, end] = period.split('-');
-      return `${start}限〜${end}限`;
-    }
-    
-    // 単一期間の場合
-    return `${period}限`;
+  // 表示は period から再構築（periodName は参考のみ）
+  const periodDisplay = (r: Reservation): string => {
+    return formatPeriodDisplay(r.period, r.periodName);
   };
 
   // 日付フォーマット
@@ -155,7 +139,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               </div>
               <div className="detail-item">
                 <div className="item-label">時限</div>
-                <div className="item-value">{formatPeriodDisplay(reservation.period)}</div>
+                <div className="item-value">{periodDisplay(reservation)}</div>
               </div>
               {/* 2行目: 教室 / 予約者 */}
               <div className="detail-item">
@@ -166,9 +150,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <div className="item-label">予約者</div>
                 <div className="item-value">{reservation.reservationName}</div>
               </div>
-              {/* 3行目: 予約名（全幅） */}
+              {/* 3行目: 予約内容（全幅） */}
               <div className="detail-item span-2">
-                <div className="item-label">予約名</div>
+                <div className="item-label">予約内容</div>
                 <div className="item-value">{reservation.title}</div>
               </div>
             </div>

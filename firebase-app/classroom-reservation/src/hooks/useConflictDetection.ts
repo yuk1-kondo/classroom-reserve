@@ -1,6 +1,7 @@
 // 重複チェック用カスタムフック
 import { useState, useCallback, useRef } from 'react';
-import { reservationsService, periodTimeMap } from '../firebase/firestore';
+import { reservationsService } from '../firebase/firestore';
+import { displayLabel } from '../utils/periodLabel';
 
 const debug = (...args: any[]) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
 
@@ -91,12 +92,12 @@ export const useConflictDetection = () => {
             // ユーザーIDチェック: 同じユーザーかどうか確認
             if (conflictingReservation && currentUserId && conflictingReservation.createdBy === currentUserId) {
               const dateStr = new Date(date).toLocaleDateString('ja-JP');
-              const periodName = periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`;
+              const periodName = displayLabel(period);
               conflicts.push(`${dateStr} ${periodName} - 既に同じ時間帯を予約済みです`);
               debug(`  ❌ 同一ユーザー重複検出: ${dateStr} ${periodName} (ユーザー: ${currentUserId})`);
             } else if (conflictingReservation) {
               const dateStr = new Date(date).toLocaleDateString('ja-JP');
-              const periodName = periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`;
+              const periodName = displayLabel(period);
               conflicts.push(`${dateStr} ${periodName} (${conflictingReservation?.title || '他のユーザーが予約済み'})`);
               debug(`  ❌ 他ユーザー競合: ${dateStr} ${periodName} vs ${conflictingReservation?.periodName}`);
             }
@@ -159,9 +160,15 @@ export const useConflictDetection = () => {
     }, 300); // 300ms debounce
   }, [checkForConflicts]);
 
+  // 競合状態リセット用
+  const resetConflict = useCallback(() => {
+    setConflictCheck({ hasConflict: false, conflictMessage: '', conflictDetails: [] });
+  }, []);
+
   return {
     conflictCheck,
     performConflictCheck,
-    checkForConflicts
+    checkForConflicts,
+    resetConflict
   };
 };

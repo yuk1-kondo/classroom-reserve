@@ -8,6 +8,7 @@ import {
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
+import { formatPeriodDisplay } from '../utils/periodLabel'; // 追加
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -96,7 +97,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
             return a.periodOrder - b.periodOrder;
           }
           // 同じ時限の場合は教室名でソート
-          return a.roomName.localeCompare(b.roomName);
+            return a.roomName.localeCompare(b.roomName);
         });
 
         // RoomReservationStatus形式は維持するが、予約一覧として使用
@@ -174,7 +175,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 <th className="col-room">教室</th>
                 <th className="col-period">時限</th>
                 <th className="col-time">時間</th>
-                <th className="col-title">予約タイトル</th>
+                <th className="col-title">予約内容</th> {/* 予約タイトル -> 予約内容 */}
                 <th className="col-user">予約者</th>
               </tr>
             </thead>
@@ -188,13 +189,13 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                       <div className="room-name">{reservation.roomName}</div>
                     </td>
                     <td className="col-period">
-                      <span className="period-badge">{reservation.periodName}</span>
+                      <span className="period-badge">{formatPeriodDisplay(reservation.period, reservation.periodName)}</span>
                     </td>
                     <td className="col-time">
                       <div className="time-range">{timeStart}-{timeEnd}</div>
                     </td>
                     <td className="col-title">
-                      <div className="reservation-title">{reservation.title}</div>
+                      <div className="reservation-title">{reservation.title}</div> {/* 表示そのまま */}
                     </td>
                     <td className="col-user">
                       <div className="reservation-user">{reservation.reservationName}</div>

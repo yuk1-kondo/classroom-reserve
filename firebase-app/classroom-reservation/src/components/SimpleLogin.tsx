@@ -88,7 +88,7 @@ const SimpleLogin: React.FC<SimpleLoginProps> = ({ onAuthStateChange }) => {
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="google-login-btn primary-red"
+                className="google-login-btn"
               >
                 {isLoading ? 'ログイン中...' : 'Googleアカウントでログイン'}
               </button>

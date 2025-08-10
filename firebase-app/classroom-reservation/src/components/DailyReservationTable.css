@@ -6,24 +6,27 @@
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-size: 12px;
-  overflow: hidden;
+  overflow: hidden; /* 横スクロール抑止 */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   /* レスポンシブ対応のため最小幅を設定 */
   min-width: 0;
+  box-sizing: border-box;
+}
+
+.daily-reservation-table * {
+  box-sizing: border-box;
 }
 
 /* テーブル横スクロール対応のコンテナ */
 .table-scroll-container {
-  overflow-x: auto;
+  overflow-x: hidden; /* 横スクロール無効化 */
   overflow-y: hidden;
   width: 100%;
   /* ヘッダー固定のため高さ制限を解除 */
   max-height: none;
   /* モバイルでのスムーズスクロール */
   -webkit-overflow-scrolling: touch;
-  border: 1px solid #d0d7de;
-  border-radius: var(--radius-medium);
-  background: white;
+  border: none; /* 二重ボーダー回避で幅超過防止 */
 }
 
 /* ヘッダー固定用のテーブルラッパー */
@@ -31,6 +34,7 @@
   position: relative;
   max-height: 192px; /* ヘッダー(32px) + 5行分(160px) */
   overflow-y: auto;
+  overflow-x: hidden !important; /* 念のため */
 }
 
 /* ヘッダー */
@@ -62,11 +66,12 @@
 
 /* エクセル風テーブル */
 .excel-table {
-  width: 100%;
-  min-width: 500px; /* 最小幅を設定してモバイルでの横スクロールを有効化 */
+  width: 100% !important;
+  min-width: 0 !important; /* 強制固定 */
   border-collapse: collapse;
   font-size: 11px;
   background: white;
+  table-layout: fixed; /* 列幅固定して折返し */
 }
 
 .excel-table thead th {
@@ -92,6 +97,8 @@
   text-align: center; /* 中央揃え */
   background: white;
   font-size: 11px;
+  white-space: normal; /* 折り返し許可 */
+  word-break: break-word;
 }
 
 .excel-table tbody tr:nth-child(even) td {
@@ -104,37 +111,37 @@
 
 /* 列幅設定 */
 .col-room {
-  width: 80px;
-  min-width: 80px;
+  width: 12%;
+  min-width: 0;
   font-weight: 500;
   color: #24292f;
 }
 
 .col-period {
-  width: 60px;
-  min-width: 60px;
+  width: 10%;
+  min-width: 0;
   text-align: center;
   font-weight: 500;
   color: #0969da;
 }
 
 .col-time {
-  width: 100px;
-  min-width: 100px;
+  width: 18%;
+  min-width: 0;
   text-align: center;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   color: #656d76;
 }
 
 .col-title {
-  width: auto;
-  min-width: 120px;
+  width: 46%;
+  min-width: 0;
   color: #24292f;
 }
 
 .col-user {
-  width: 100px;
-  min-width: 100px;
+  width: 14%;
+  min-width: 0;
   color: #656d76;
 }
 
@@ -189,7 +196,8 @@
   
   .excel-table {
     font-size: 10px;
-    min-width: 480px; /* モバイルでの横スクロール対応 */
+    min-width: 0 !important;
+    width: 100% !important; /* モバイルでの横スクロール対応 */
   }
   
   .excel-table thead th {
@@ -203,23 +211,23 @@
   }
   
   .col-room {
-    width: 50px;
-    min-width: 50px;
+    width: 14%;
   }
   
   .col-period {
-    width: 40px;
-    min-width: 40px;
+    width: 12%;
   }
   
   .col-time {
-    width: 70px;
-    min-width: 70px;
+    width: 20%;
   }
   
   .col-user {
-    width: 70px;
-    min-width: 70px;
+    width: 16%;
+  }
+  
+  .col-title {
+    width: 38%;
   }
   
   .period-badge {
@@ -236,7 +244,6 @@
   }
 }
 
-/* 小画面スマートフォン対応 */
 @media (max-width: 480px) {
   .daily-reservation-table {
     border-radius: 2px;
@@ -252,7 +259,8 @@
   
   .excel-table {
     font-size: 9px;
-    min-width: 420px; /* 小画面での最小幅 */
+    min-width: 0 !important;
+    width: 100% !important; /* 小画面での最小幅 */
   }
   
   .excel-table thead th {
@@ -266,23 +274,23 @@
   }
   
   .col-room {
-    width: 45px;
-    min-width: 45px;
+    width: 16%;
   }
   
   .col-period {
-    width: 35px;
-    min-width: 35px;
+    width: 14%;
   }
   
   .col-time {
-    width: 60px;
-    min-width: 60px;
+    width: 22%;
   }
   
   .col-user {
-    width: 60px;
-    min-width: 60px;
+    width: 18%;
+  }
+  
+  .col-title {
+    width: 30%;
   }
   
   .period-badge {

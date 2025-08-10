@@ -79,18 +79,20 @@
 }
 
 .main-footer {
-  background: var(--color-primary-dark);
-  color: var(--color-on-primary);
+  background: var(--color-surface); /* 明るい面カラー */
+  color: var(--color-on-surface-variant);
   text-align: center;
-  padding: 15px;
-  font-size: 0.9em;
-  border-top: 2px solid var(--color-primary);
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  border-top: none; /* 青ライン完全除去 */
+  box-shadow: none; /* フラット化 */
 }
 
 .main-footer p {
   margin: 0;
-  opacity: 0.9;
+  opacity: 0.85;
   font-weight: 500;
+  color: inherit; /* テキストカラー継承 */
 }
 
 /* カレンダーコンテナの調整 */
@@ -245,26 +247,22 @@
   }
 }
 
-/* ダークモード対応 */
+/* ダークモード対応 (無効化: 常にライトトーンを維持) */
+/*
 @media (prefers-color-scheme: dark) {
-  .main-app {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
+  .main-app { background-color: #1a1a1a; color: #e0e0e0; }
+  .main-header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
+  .side-panel-section { background: #2c2c2c; border-left-color: #404040; }
+  .main-footer { background: var(--color-surface) !important; color: var(--color-on-surface-variant) !important; }
+}
+*/
+/* 代替: ダークモードでもライト配色固定 */
+@media (prefers-color-scheme: dark) {
+  .main-app, .side-panel-section, .main-footer, .calendar-section .fc { 
+    background: var(--color-background) !important; 
+    color: var(--color-on-surface) !important; 
   }
-  
-  .main-header {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  }
-  
-  .side-panel-section {
-    background: #2c2c2c;
-    border-left-color: #404040;
-  }
-  
-  .main-footer {
-    background: #1a1a1a;
-    color: #b0b0b0;
-  }
+  .main-header { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%) !important; }
 }
 
 .open-reserve-panel-btn {

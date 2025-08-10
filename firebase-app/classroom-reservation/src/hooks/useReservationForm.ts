@@ -1,10 +1,11 @@
 // 予約フォーム状態管理用カスタムフック
 import { useCallback, useState, useEffect } from 'react';
-import { reservationsService, Reservation, periodTimeMap, createDateTimeFromPeriod } from '../firebase/firestore';
+import { reservationsService, Reservation, createDateTimeFromPeriod } from '../firebase/firestore';
 import { AuthUser } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 import { Room } from '../firebase/firestore';
 import { useConflictDetection } from './useConflictDetection';
+import { displayLabel } from '../utils/periodLabel';
 
 export interface FormData {
   selectedRoom: string;
@@ -104,15 +105,12 @@ export const useReservationForm = (
 
   // 時限リスト生成関数
   const generatePeriodList = useCallback((startPeriod: string, endPeriod: string): string[] => {
-    const periods = ['0', '1', '2', '3', '4', '5', '6', '7', 'after'];
-    const startIndex = periods.indexOf(startPeriod);
-    const endIndex = periods.indexOf(endPeriod);
-    
-    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
-      return [];
-    }
-    
-    return periods.slice(startIndex, endIndex + 1);
+    // PERIOD_ORDER を利用し lunch/after を含めた正しい順序で範囲抽出
+    const PERIOD_ORDER_FULL = ['0','1','2','3','4','lunch','5','6','7','after'];
+    const startIndex = PERIOD_ORDER_FULL.indexOf(startPeriod);
+    const endIndex = PERIOD_ORDER_FULL.indexOf(endPeriod);
+    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) return [];
+    return PERIOD_ORDER_FULL.slice(startIndex, endIndex + 1);
   }, []);
 
   // 予約に使用する日付配列を取得
@@ -176,7 +174,7 @@ export const useReservationForm = (
           const period = periodsToReserve[0];
           const dateTime = createDateTimeFromPeriod(date, period);
           if (!dateTime) {
-            throw new Error(`日時の作成に失敗しました: ${date} ${period}限`);
+            throw new Error(`日時の作成に失敗しました: ${date} ${period}`);
           }
 
           const reservation: Omit<Reservation, 'id'> = {
@@ -187,7 +185,7 @@ export const useReservationForm = (
             startTime: Timestamp.fromDate(dateTime.start),
             endTime: Timestamp.fromDate(dateTime.end),
             period: period,
-            periodName: periodTimeMap[period as keyof typeof periodTimeMap]?.name || `${period}限`,
+            periodName: displayLabel(period),
             createdAt: Timestamp.now(),
             createdBy: currentUser.uid
           };
@@ -209,13 +207,13 @@ export const useReservationForm = (
           const endDateTime = createDateTimeFromPeriod(date, endPeriod);
           
           if (!startDateTime || !endDateTime) {
-            throw new Error(`日時の作成に失敗しました: ${date} ${startPeriod}-${endPeriod}限`);
+            throw new Error(`日時の作成に失敗しました: ${date} ${startPeriod}-${endPeriod}`);
           }
 
-          // 複数時限の期間名を作成
+          // 複数時限の期間名を作成 (開始と終了のみ簡潔表示)
           const periodName = periodsToReserve.length > 1 
-            ? `${periodTimeMap[startPeriod as keyof typeof periodTimeMap]?.name || `${startPeriod}限`} - ${periodTimeMap[endPeriod as keyof typeof periodTimeMap]?.name || `${endPeriod}限`}`
-            : periodTimeMap[startPeriod as keyof typeof periodTimeMap]?.name || `${startPeriod}限`;
+            ? `${displayLabel(startPeriod)}〜${displayLabel(endPeriod)}`
+            : displayLabel(startPeriod);
 
           const reservation: Omit<Reservation, 'id'> = {
             roomId: formData.selectedRoom,

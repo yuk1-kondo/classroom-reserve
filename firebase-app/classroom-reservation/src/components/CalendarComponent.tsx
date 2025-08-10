@@ -10,6 +10,7 @@ import {
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
+import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
 
 interface CalendarComponentProps {
   onDateClick?: (dateStr: string) => void;
@@ -36,6 +37,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const isMobile = windowWidth < 600;
   const [initialView, setInitialView] = useState<string>('timeGridWeek');
+  // 直近取得した日付範囲（無限再取得防止）
+  const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -54,6 +57,50 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       }
     }
   }, [isMobile]);
+
+  // 予約データを取得してカレンダーイベントに変換
+  const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
+    try {
+      setLoading(true);
+      console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
+      const reservations = await reservationsService.getReservations(startDate, endDate);
+      console.log('📅 予約データ取得成功:', reservations.length + '件');
+      const calendarEvents: CalendarEvent[] = reservations.map(reservation => {
+         const startTime = reservation.startTime instanceof Timestamp 
+           ? reservation.startTime.toDate() 
+           : new Date(reservation.startTime);
+         const endTime = reservation.endTime instanceof Timestamp 
+           ? reservation.endTime.toDate() 
+           : new Date(reservation.endTime);
+        // 複数時限(カンマ/ハイフン)は範囲表示に整形
+        const periodLabel = reservation.period.includes(',') || reservation.period.includes('-')
+          ? formatPeriodDisplay(reservation.period, reservation.periodName)
+          : displayLabel(reservation.period);
+         return {
+           id: reservation.id!,
+           title: `${reservation.roomName} ${periodLabel}`,
+           start: startTime.toISOString(),
+           end: endTime.toISOString(),
+           roomId: reservation.roomId,
+           roomName: reservation.roomName,
+           extendedProps: {
+             originalTitle: reservation.title,
+             period: reservation.period,
+             // UI は periodName を使用しないが互換保持
+            periodName: periodLabel,
+            periodDisplay: periodLabel
+           }
+         } as any;
+       });
+      setEvents(calendarEvents);
+      console.log('📅 カレンダーイベント変換完了:', calendarEvents.length + '件');
+    } catch (error) {
+      console.error('❌ 予約データ取得エラー:', error);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // 教室データを取得
   useEffect(() => {
@@ -77,72 +124,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     };
     
     loadRooms();
-  }, []);
-
-  // 期間表示を整形（カレンダー用）
-  const formatPeriodForCalendar = (period: string): string => {
-    if (period.includes(',')) {
-      // カンマ区切りの場合（例: "0,1,2"）
-      const periods = period.split(',').map(p => p.trim());
-      if (periods.length > 1) {
-        const start = periods[0];
-        const end = periods[periods.length - 1];
-        return `${start}限〜${end}限`;
-      } else {
-        return `${periods[0]}限`;
-      }
-    } else if (period.includes('-')) {
-      // ハイフン区切りの場合
-      const [start, end] = period.split('-');
-      return `${start}限〜${end}限`;
-    }
-    
-    // 単一期間の場合
-    return `${period}限`;
-  };
-
-  // 予約データを取得してカレンダーイベントに変換
-  const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
-    try {
-      setLoading(true);
-      console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
-      
-      const reservations = await reservationsService.getReservations(startDate, endDate);
-      console.log('📅 予約データ取得成功:', reservations.length + '件');
-      
-      // 予約データをカレンダーイベントに変換
-      const calendarEvents: CalendarEvent[] = reservations.map(reservation => {
-        // Timestampを Date に変換
-        const startTime = reservation.startTime instanceof Timestamp 
-          ? reservation.startTime.toDate() 
-          : new Date(reservation.startTime);
-        const endTime = reservation.endTime instanceof Timestamp 
-          ? reservation.endTime.toDate() 
-          : new Date(reservation.endTime);
-        
-        return {
-          id: reservation.id!,
-          title: `${reservation.roomName} ${formatPeriodForCalendar(reservation.period)}`,
-          start: startTime.toISOString(),
-          end: endTime.toISOString(),
-          roomId: reservation.roomId,
-          roomName: reservation.roomName,
-          extendedProps: {
-            originalTitle: reservation.title,
-            period: reservation.period,
-            periodName: reservation.periodName
-          }
-        } as any;
-      });
-      
-      setEvents(calendarEvents);
-      console.log('📅 カレンダーイベント変換完了:', calendarEvents.length + '件');
-    } catch (error) {
-      console.error('❌ 予約データ取得エラー:', error);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
   // 日付クリック処理
@@ -178,6 +159,15 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   // カレンダーの日付範囲変更時
   const handleDatesSet = (dateInfo: any) => {
     console.log('📅 カレンダー日付範囲変更:', dateInfo.start, 'から', dateInfo.end);
+    const startMs = dateInfo.start.getTime();
+    const endMs = dateInfo.end.getTime();
+    const prev = lastFetchedRangeRef.current;
+    if (prev && prev.start === startMs && prev.end === endMs) {
+      console.log('⏭️ 同一日付範囲のため再取得スキップ');
+      return;
+    }
+    lastFetchedRangeRef.current = { start: startMs, end: endMs };
+    // 実際の取得
     loadEvents(dateInfo.start, dateInfo.end);
   };
 

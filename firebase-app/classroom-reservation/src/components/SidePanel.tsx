@@ -10,6 +10,8 @@ import { useConflictDetection } from '../hooks/useConflictDetection';
 import { reservationsService } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './SidePanel.css';
+import { labelForCsv, displayLabel } from '../utils/periodLabel';
+import { formatPeriodDisplay } from '../utils/periodLabel';
 
 interface SidePanelProps {
   selectedDate?: string;
@@ -26,9 +28,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout } = useAuth();
-  const { rooms, reservations } = useReservationData(currentUser, selectedDate);
+  const { rooms, reservations, loadReservationsForDate } = useReservationData(currentUser, selectedDate);
   const formHook = useReservationForm(selectedDate, currentUser, rooms, onReservationCreated);
-  const { conflictCheck, performConflictCheck } = useConflictDetection();
+  const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   
   // 必要な値/関数だけ分解（useEffect依存の安定化）
   const { showForm, formData, getReservationDates, getReservationPeriods } = formHook;
@@ -39,6 +41,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [csvImporting, setCsvImporting] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [csvMessage, setCsvMessage] = useState('');
+  const [debugMode, setDebugMode] = useState(false);
   
   // 管理者権限チェック
   const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin;
@@ -64,13 +67,14 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       }
       
       // 簡単なCSV形式でエクスポート
-      const csvHeaders = ['日付', '時間', '教室', '予約名', '予約者'];
+      const csvHeaders = ['日付', '時間', '教室', '予約内容', '予約者', '予約者ID']; // 予約者ID 追加
       const csvData = reservations.map(reservation => [
         reservation.startTime.toDate().toLocaleDateString('ja-JP'),
-        reservation.periodName || reservation.period,
+        labelForCsv(reservation.period, reservation.periodName),
         reservation.roomName || reservation.roomId,
-        reservation.reservationName || reservation.title,
-        reservation.createdBy || '不明'
+        reservation.title,
+        reservation.reservationName,
+        reservation.createdBy || '' // 予約作成者UID
       ]);
       
       const csvContent = [csvHeaders, ...csvData]
@@ -132,25 +136,25 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       for (const line of dataLines) {
         try {
           const columns = line.split(',').map(col => col.replace(/"/g, '').trim());
-          
           if (columns.length < 5) continue;
-
-          const [dateStr, timeStr, roomId, reservationName, createdBy] = columns;
-          
-          // 日付解析
+          const [dateStr, timeStrRaw, roomId, reservationName, createdBy] = columns; // 4列目は予約内容
+          const timeStr = timeStrRaw;
           const dateParts = dateStr.split('/');
           if (dateParts.length !== 3) continue;
-          
           const year = parseInt(dateParts[0]);
-          const month = parseInt(dateParts[1]) - 1;
-          const day = parseInt(dateParts[2]);
-          
-          // 時間解析（"1時間目" -> "1"）
-          const period = timeStr.replace(/時間目/, '');
-          
-          const startDate = new Date(year, month, day, 9 + parseInt(period) - 1, 0);
-          const endDate = new Date(year, month, day, 10 + parseInt(period) - 1, 0);
-
+            const month = parseInt(dateParts[1]) - 1;
+            const day = parseInt(dateParts[2]);
+          // ラベル→period キー正規化
+          let period: string | undefined;
+          if (/昼/.test(timeStr)) period = 'lunch';
+          else if (/放課/.test(timeStr)) period = 'after';
+          else {
+            const m = timeStr.match(/^(\d+)/);
+            if (m) period = m[1];
+          }
+          if (!period) continue; // 不明ラベルはスキップ
+          const startDate = new Date(year, month, day, 9, 0); // 仮: 既存ロジック簡略 (必要なら periodTimeMap 使用)
+          const endDate = new Date(year, month, day, 10, 0);
           const reservation = {
             roomId: roomId,
             roomName: roomId,
@@ -159,10 +163,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             startTime: Timestamp.fromDate(startDate),
             endTime: Timestamp.fromDate(endDate),
             period: period,
-            periodName: `${period}時間目`,
+            periodName: displayLabel(period),
             createdBy: createdBy || 'CSV import'
           };
-
           await reservationsService.addReservation(reservation);
           successCount++;
         } catch (error) {
@@ -198,38 +201,62 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     setCsvMessage('予約データを取得中...');
 
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setFullYear(startDate.getFullYear() - 10);
-      
-      const reservations = await reservationsService.getReservations(startDate, endDate);
-      
-      if (reservations.length === 0) {
-        setCsvMessage('削除する予約データがありません');
-        setTimeout(() => setCsvMessage(''), 3000);
-        return;
-      }
+      console.time('[DELETE] bulkDelete');
+      // 削除前ID取得
+      const beforeIds = await reservationsService.listAllReservationIds();
+      console.log('[DELETE] 削除前件数', beforeIds.length);
+      const deleted = await reservationsService.deleteAllReservationsBatch();
+      setCsvMessage(`✅ ${deleted}件の予約データを削除しました`);
+      console.timeEnd('[DELETE] bulkDelete');
 
-      setCsvMessage(`${reservations.length}件の予約データを削除中...`);
-      
-      let deletedCount = 0;
-      for (const reservation of reservations) {
-        if (reservation.id) {
-          await reservationsService.deleteReservation(reservation.id);
-          deletedCount++;
+      // 削除後ID再取得
+      const afterIds = await reservationsService.listAllReservationIds();
+      console.log('[DELETE] 削除後件数', afterIds.length);
+      if (afterIds.length > 0) {
+        console.warn('[DELETE] 残存データ検知。WideRange fallback を実行します');
+        const wide = await reservationsService.deleteAllReservationsWideRange();
+        console.log('[DELETE] WideRange fallback 削除件数', wide);
+        const finalIds = await reservationsService.listAllReservationIds();
+        console.log('[DELETE] 最終残存件数', finalIds.length);
+        if (finalIds.length === 0) {
+          setCsvMessage(prev => prev + ' (WideRangeで完全削除)');
+        } else {
+          setCsvMessage(prev => prev + ` (残り${finalIds.length}件)`);
         }
       }
-
-      setCsvMessage(`✅ ${deletedCount}件の予約データを削除しました`);
-      setTimeout(() => setCsvMessage(''), 5000);
-
-    } catch (error) {
-      console.error('Bulk delete error:', error);
-      setCsvMessage('❌ 一括削除に失敗しました');
-      setTimeout(() => setCsvMessage(''), 3000);
+      // UIリフレッシュ: 選択日があれば再取得
+      if (selectedDate) {
+        console.log('[DELETE] 予約再取得実行');
+        await loadReservationsForDate(selectedDate);
+      }
+      setTimeout(() => setCsvMessage(''), 7000);
+    } catch (error: any) {
+      console.error('[DELETE] Bulk delete error:', error);
+      setCsvMessage(`❌ 一括削除に失敗: ${error?.message || '不明なエラー'}`);
+      setTimeout(() => setCsvMessage(''), 7000);
     } finally {
       setBulkDeleting(false);
     }
+  };
+
+  const handleWideRangeDelete = async () => {
+    if (!isAdmin) return;
+    setBulkDeleting(true);
+    setCsvMessage('WideRange削除実行中...');
+    try {
+      const num = await reservationsService.deleteAllReservationsWideRange();
+      setCsvMessage(`✅ WideRange削除: ${num}件`);
+      setTimeout(()=>setCsvMessage(''),5000);
+    } catch(e:any) {
+      setCsvMessage(`❌ WideRange失敗 ${e?.message||''}`);
+      setTimeout(()=>setCsvMessage(''),5000);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+  const handleListIds = async () => {
+    const ids = await reservationsService.listAllReservationIds();
+    alert(`コンソールにID一覧(${ids.length}件)を出力しました`);
   };
 
   // 重複チェックを実行するためのエフェクト
@@ -247,6 +274,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       return () => clearTimeout(timeoutId);
     }
   }, [showForm, selectedRoom, getReservationDates, getReservationPeriods, performConflictCheck]);
+
+  // 日付・教室変更で前回の重複結果をクリア
+  useEffect(() => {
+    resetConflict();
+  }, [selectedDate, selectedRoom, resetConflict]);
 
   // ログインモーダル: ESCで閉じる
   useEffect(() => {
@@ -269,6 +301,40 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       day: 'numeric',
       weekday: 'long'
     });
+  };
+
+  // 予約ラベル正規化（既存データ再書込み）
+  const handleNormalizeExisting = async () => {
+    if (!isAdmin) return;
+    if (!window.confirm('既存予約のperiod/ラベルを正規化しますか？')) return;
+    try {
+      setCsvMessage('正規化実行中...');
+      const end = new Date();
+      const start = new Date();
+      start.setFullYear(start.getFullYear() - 5);
+      const list = await reservationsService.getReservations(start, end);
+      let updated = 0;
+      for (const r of list) {
+        // 目標ラベル: 単一は displayLabel, 複数は formatPeriodDisplay
+        const desired = (r.period && (r.period.includes(',') || r.period.includes('-')))
+          ? formatPeriodDisplay(r.period, r.periodName)
+          : displayLabel(r.period);
+        // 英語+限 残骸を事前正規化
+        const current = (r.periodName || '').replace(/lunch限/gi,'昼休み').replace(/after限/gi,'放課後');
+        if (current !== desired) {
+          if (r.id) {
+            await reservationsService.updateReservation(r.id, { periodName: desired });
+            updated++;
+          }
+        }
+      }
+      setCsvMessage(`✅ 正規化完了: ${updated}件更新`);
+      setTimeout(()=>setCsvMessage(''),4000);
+    } catch (e) {
+      console.error(e);
+      setCsvMessage('❌ 正規化失敗');
+      setTimeout(()=>setCsvMessage(''),4000);
+    }
   };
 
   return (
@@ -329,7 +395,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 >
                   📄 {csvExporting ? 'エクスポート中...' : 'CSV出力'}
                 </button>
-                
                 <label className="admin-btn import-btn">
                   📥 {csvImporting ? 'インポート中...' : 'CSV入力'}
                   <input
@@ -340,7 +405,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                     className="hidden-file-input"
                   />
                 </label>
-                
                 <button 
                   onClick={handleBulkDelete}
                   disabled={csvExporting || csvImporting || bulkDeleting}
@@ -348,13 +412,38 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                 >
                   🗑️ {bulkDeleting ? '削除中...' : '一括削除'}
                 </button>
+                <button
+                  onClick={handleNormalizeExisting}
+                  disabled={csvExporting || csvImporting || bulkDeleting}
+                  className="admin-btn normalize-btn"
+                >
+                  ♻️ 正規化
+                </button>
+                {debugMode && (
+                  <>
+                    <button
+                      onClick={handleWideRangeDelete}
+                      disabled={bulkDeleting}
+                      className="admin-btn delete-btn"
+                    >🔍 WideRange削除</button>
+                    <button
+                      onClick={handleListIds}
+                      disabled={bulkDeleting}
+                      className="admin-btn"
+                    >🧾 ID一覧(件数計測)</button>
+                  </>
+                )}
+                <button
+                  onClick={()=>setDebugMode(d=>!d)}
+                  className="admin-btn"
+                >{debugMode? '🐞 Debug OFF':'🐞 Debug ON'}</button>
               </div>
             </div>
           )}
 
           {/* 実用的な運用案内メッセージ */}
           <div className="info-message">
-            <p>⚠️ 教室予約済みの場合は先生間で相談して変更して下さい</p>
+            <p>⚠️ 教室予約済みの場合は先生間で相談し変更して下さい</p>
           </div>
         </div>
       ) : (

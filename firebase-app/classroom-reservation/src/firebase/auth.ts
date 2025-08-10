@@ -5,7 +5,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   User,
-  UserCredential
+  UserCredential,
+  signInAnonymously // 追加: 匿名認証
 } from 'firebase/auth';
 import { auth } from './config';
 
@@ -59,22 +60,36 @@ export const authService = {
 
   // 管理者ログイン
   async signInAsAdmin(password: string): Promise<boolean> {
-    if (password === this.adminPassword) {
-      // 管理者として仮想ユーザーを作成
+    if (password !== this.adminPassword) {
+      console.log('❌ 管理者ログイン失敗');
+      return false;
+    }
+    try {
+      // 既に Firebase 認証済みでなければ匿名認証で request.auth を確保
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+        console.log('ℹ️ 匿名認証で Firebase に接続 (管理者モード)');
+      }
+      const base = auth.currentUser; // 匿名 or 既存ユーザー
+      if (!base) {
+        console.error('❌ Firebaseユーザー生成に失敗');
+        return false;
+      }
       const adminUser: AuthUser = {
-        uid: 'admin',
-        email: 'admin@owa-classroom.local',
-        displayName: '管理者',
-        name: '管理者',
+        uid: base.uid, // Firebase の uid を使用
+        email: base.email || 'admin@local',
+        displayName: base.displayName || '管理者',
+        name: base.displayName || '管理者',
         role: 'admin',
         isAdmin: true
       };
       localStorage.setItem('adminUser', JSON.stringify(adminUser));
-      console.log('✅ 管理者ログイン成功');
+      console.log('✅ 管理者ログイン成功 uid=', adminUser.uid);
       return true;
+    } catch (e) {
+      console.error('❌ 管理者ログイン処理エラー', e);
+      return false;
     }
-    console.log('❌ 管理者ログイン失敗');
-    return false;
   },
 
   // サインアウト
@@ -169,18 +184,19 @@ export const authService = {
   // 予約の編集・削除権限チェック
   canEditReservation(reservationCreatedBy?: string): boolean {
     const user = this.getCurrentUser();
-    if (!user || !reservationCreatedBy) return false;
-    
-    // 管理者は全ての予約を編集可能
-    if (this.isAdmin()) return true;
-    
-    // 作成者本人のみ編集可能
+    if (!user) return false;
+    if (this.isAdmin()) return true; // 管理者無条件
+    if (!reservationCreatedBy) return false;
     return user.uid === reservationCreatedBy;
   },
 
   // 予約削除権限チェック
   canDeleteReservation(reservationCreatedBy?: string): boolean {
-    return this.canEditReservation(reservationCreatedBy);
+    if (this.isAdmin()) return true; // 最優先
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    if (!reservationCreatedBy) return false;
+    return user.uid === reservationCreatedBy;
   },
 
   // ドメイン制限チェック（ユーティリティ）

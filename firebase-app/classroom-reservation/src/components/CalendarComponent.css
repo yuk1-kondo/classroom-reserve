@@ -119,16 +119,7 @@
   color: var(--color-on-surface);
 }
 
-.fc-col-header-cell:nth-child(7) {
-  background-color: var(--color-saturday-light);
-  color: var(--color-saturday);
-}
-
-.fc-col-header-cell:nth-child(1) {
-  background-color: var(--color-sunday-light);
-  color: var(--color-sunday);
-}
-
+/* 既存の day クラス指定は残す */
 .fc-day-sat {
   background-color: var(--color-saturday-light);
 }
@@ -159,19 +150,20 @@
   --sun-text: #d3002f;
 }
 
-/* FullCalendar内部構造: dayGrid/timeGrid の列順 → 日=1, 月=2 ... 土=7 */
-.fc-col-header-cell:nth-child(1) { /* Sunday */
+/* ▼ 不要になった nth-child ベースの再定義は削除（timeGrid で列ずれを起こすため）
+.fc-col-header-cell:nth-child(1) { 
   background: var(--sun-bg) !important;
   color: var(--sun-text) !important;
   font-weight: 600;
 }
-.fc-col-header-cell:nth-child(7) { /* Saturday */
+.fc-col-header-cell:nth-child(7) { 
   background: var(--sat-bg) !important;
   color: var(--sat-text) !important;
   font-weight: 600;
 }
+*/
 
-/* === Weekend header override (fix timeGrid axis column offset) === */
+/* === Weekend header override (class based) === */
 .fc-col-header-cell.fc-day-sun { background: var(--sun-bg) !important; color: var(--sun-text) !important; font-weight: 600; }
 .fc-col-header-cell.fc-day-sat { background: var(--sat-bg) !important; color: var(--sat-text) !important; font-weight: 600; }
 .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
@@ -191,8 +183,41 @@
 .fc-timegrid-col.fc-day-sun { background: var(--sun-bg) !important; }
 .fc-timegrid-col.fc-day-sat { background: var(--sat-bg) !important; }
 
-/* today ハイライトが週末に乗った時の視認性確保 */
+/* 旧: 週末の今日強調 (inset box-shadow) -> レイアウトずれのため置換
 .fc-day-sun.fc-day-today, .fc-day-sat.fc-day-today { box-shadow: inset 0 0 0 2px #ff9800; }
+*/
+
+/* === 今日ハイライト再調整 (Week の欠け解消) === */
+/* 直前で導入した border 方式を撤回し擬似要素方式に戻す */
+.fc-col-header-cell.fc-day-today,
+.fc-timegrid-col.fc-day-today { position: relative; }
+
+/* ヘッダー: 下方向へ 2px オーバーラップ */
+.fc-col-header-cell.fc-day-today::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: -2px; /* 下へ延長 */
+  border: 2px solid #ff9800;
+  border-bottom: 0; /* 下はボディ側が描く */
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 2px 2px 0 0;
+  z-index: 5;
+}
+/* ボディ列: 上方向へ 2px オーバーラップ */
+.fc-timegrid-col.fc-day-today::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -2px; bottom: 0; /* 上へ延長 */
+  border: 2px solid #ff9800;
+  border-top: 0; /* 上はヘッダー側が描く */
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 0 0 2px 2px;
+  z-index: 4;
+}
+/* dayGrid (月) は一枚セルなので outline 維持 */
+.fc-daygrid-day.fc-day-today { outline:2px solid #ff9800; outline-offset:-2px; }
 
 /* モバイル表示調整 */
 .is-mobile-cal .fc-col-header-cell-cushion {
