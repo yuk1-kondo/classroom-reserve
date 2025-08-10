@@ -1,9 +1,9 @@
 /* 🌸 桜和高校教室予約システム - スクールブランドテーマ */
 :root {
   /* === 初期ベースカラー (Material系ブルーに回帰) === */
-  --color-primary: #1976d2;          /* Primary */
-  --color-primary-light: #63a4ff;    /* Light */
-  --color-primary-dark: #004ba0;     /* Dark */
+  --color-primary: #386395;          /* Primary (desaturated blue) */
+  --color-primary-light: #84a9d4;    /* Light (adjusted to match new base) */
+  --color-primary-dark: #234b72;     /* Dark */
   --color-primary-50: #e3f2fd;       /* Very light */
 
   /* === セカンダリー (グレー) === */
