@@ -24,6 +24,11 @@
   letter-spacing: 0.5px;
 }
 
+.main-header h1 svg {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
 .header-info {
   display: flex;
   align-items: center;
