@@ -44,7 +44,7 @@
   align-items: center;
   padding: 8px 12px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
-  border-bottom: 1px solid #dfe3e8; /* 少し淡い境界線 */
+  border-bottom: none; /* 太く見える二重線を解消 */
 }
 
 .table-header h4 {
@@ -81,7 +81,7 @@
   padding: 8px 12px;
   text-align: center; /* 中央揃え */
   border: 1px solid #d0d7de;
-  border-top: none;
+  border-top: 1px solid #d9e1e9; /* 単一ラインとして表示 */
   font-size: 11px;
   white-space: nowrap;
   /* ヘッダー固定 */
