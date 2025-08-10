@@ -9,11 +9,11 @@
 
 .main-header {
   /* 以前: グラデーション背景 → ロゴと色が被るためホワイトフラットに */
-  background: #ffffff;
-  color: #234b72; /* 視認性の高い濃紺テキスト */
+  background: #ffffff; /* フラット */
+  color: var(--color-brand-text);
   padding: var(--spacing-lg) var(--spacing-xl);
-  box-shadow: none;
-  border-bottom: 1px solid #e2e8f2; /* 控えめな区切り線 */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  border-bottom: 1px solid var(--color-outline);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -47,19 +47,19 @@
 
 /* 調整: 白背景上でボタンの視認性を少し改善 */
 .toggle-panel-button {
-  background: #f7f9fc;
-  color: var(--color-primary);
-  border: 1px solid #c5d4e4;
+  background: var(--color-surface-alt);
+  color: var(--color-accent);
+  border: 1px solid var(--color-outline-variant);
 }
 .toggle-panel-button:hover {
-  background: var(--color-primary);
+  background: var(--color-accent);
   color: var(--color-on-primary);
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .system-info {
-  background: #e8f1fa; /* 旧ライトブルーより淡く */
-  color: #234b72;
+  background: var(--color-primary-light);
+  color: var(--color-accent);
 }
 
 .toggle-panel-button {
