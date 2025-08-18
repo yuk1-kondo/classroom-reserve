@@ -38,31 +38,44 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
             期間予約
           </label>
         </div>
-
-        {dateRange.isRangeMode && (
-          <div className="date-inputs">
+        <div className="date-inputs">
+          {/* 単日予約でも日付を明示的に選べるようにする */}
+          {!dateRange.isRangeMode ? (
             <div className="date-input-group">
-              <label>開始日:</label>
+              <label>日付:</label>
               <input
                 type="date"
                 value={dateRange.startDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value, endDate: e.target.value }))}
                 disabled={loading}
-                aria-label="開始日を選択"
+                aria-label="日付を選択"
               />
             </div>
-            <div className="date-input-group">
-              <label>終了日:</label>
-              <input
-                type="date"
-                value={dateRange.endDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                disabled={loading}
-                aria-label="終了日を選択"
-              />
-            </div>
-          </div>
-        )}
+          ) : (
+            <>
+              <div className="date-input-group">
+                <label>開始日:</label>
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  disabled={loading}
+                  aria-label="開始日を選択"
+                />
+              </div>
+              <div className="date-input-group">
+                <label>終了日:</label>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  disabled={loading}
+                  aria-label="終了日を選択"
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -78,7 +78,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
           : displayLabel(reservation.period);
          return {
            id: reservation.id!,
-           title: `${reservation.roomName} ${periodLabel}`,
+           title: `${periodLabel} ${reservation.roomName}`, // 表記順を『時限 教室名』へ変更
            start: startTime.toISOString(),
            end: endTime.toISOString(),
            roomId: reservation.roomId,

@@ -29,7 +29,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout } = useAuth();
   const { rooms, reservations, loadReservationsForDate } = useReservationData(currentUser, selectedDate);
-  const formHook = useReservationForm(selectedDate, currentUser, rooms, onReservationCreated);
+  // 予約作成後に重複警告をクリアするため、コールバックをラップ
+  const wrappedOnReservationCreated = () => {
+    try { resetConflict(); } catch {}
+    try { onReservationCreated && onReservationCreated(); } catch {}
+  };
+  const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   
   // 必要な値/関数だけ分解（useEffect依存の安定化）
@@ -267,7 +272,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         const periodsToCheck = getReservationPeriods();
         
         if (datesToCheck.length > 0 && periodsToCheck.length > 0 && selectedRoom) {
-          performConflictCheck(datesToCheck, periodsToCheck, selectedRoom);
+          // 現在ユーザーIDを渡し、自己予約は「他ユーザー」扱いにならないようにする
+          performConflictCheck(datesToCheck, periodsToCheck, selectedRoom, currentUser?.uid);
         }
       }, 300); // デバウンス: 300ms待ってからチェック実行
       

@@ -2,21 +2,24 @@
 .main-app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* 画面高固定をやめ、必要に応じて縦スクロール可能に */
+  min-height: 100vh;
+  height: auto;
   background-color: var(--color-background);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .main-header {
-  /* 以前: グラデーション背景 → ロゴと色が被るためホワイトフラットに */
-  background: #ffffff; /* フラット */
-  color: var(--color-brand-text);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-  border-bottom: 1px solid var(--color-outline);
+  /* 修正: レイアウト崩れ対策でflex設定/パディング復帰 */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  /* 以前: グラデーション背景 → ロゴと色が被るためホワイトフラットに */
+  background: var(--color-header-bg);
+  border-bottom: 1px solid var(--color-header-border);
+  color: var(--color-header-text);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 .main-header h1 {
@@ -26,7 +29,7 @@
   letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  color: inherit;
+  color: var(--color-header-text);
 }
 
 .main-header .header-logo {
@@ -39,7 +42,28 @@
   box-shadow: 0 0 0 0 rgba(0,0,0,0); /* placeholder for future */
 }
 
+/* 統一: ボタンスタイル (旧二重定義除去) */
+.toggle-panel-button {
+  background: #ffffff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-outline-variant);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.18s ease;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.toggle-panel-button:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
 .header-info {
+  /* 再確認: flex維持 */
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
@@ -47,19 +71,25 @@
 
 /* 調整: 白背景上でボタンの視認性を少し改善 */
 .toggle-panel-button {
-  background: var(--color-surface-alt);
-  color: var(--color-accent);
-  border: 1px solid var(--color-outline-variant);
+  background: rgba(255,255,255,0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.35);
 }
 .toggle-panel-button:hover {
-  background: var(--color-accent);
-  color: var(--color-on-primary);
-  border-color: var(--color-accent);
+  background: #ffffff;
+  color: var(--color-header-bg);
+  border-color: #ffffff;
 }
 
+/* 旧: 水色背景バッジ → シンプルなテキストのみへ */
 .system-info {
-  background: var(--color-primary-light);
-  color: var(--color-accent);
+  background: none !important; /* バックグラウンド除去 */
+  color: var(--color-on-surface-variant); /* ピンク上でコントラスト最適化 */
+  opacity: 0.9;
+  padding: 0 !important; /* 余白消して行高で揃える */
+  font-weight: 600;
+  border: none;
+  box-shadow: none;
 }
 
 .toggle-panel-button {
@@ -82,13 +112,15 @@
 .main-content {
   flex: 1;
   display: flex;
-  overflow: hidden;
+  /* カレンダーが隠れないように縦スクロールを許可 */
+  overflow: auto;
 }
 
 .calendar-section {
   flex: 1;
   padding: var(--spacing-lg);
-  overflow: hidden;
+  /* 内部のFullCalendarや日別テーブルがはみ出す場合にスクロール可 */
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
@@ -102,12 +134,12 @@
 }
 
 .main-footer {
-  background: var(--color-surface); /* 明るい面カラー */
+  background: var(--color-footer-bg);
+  border-top: 1px solid var(--color-footer-border);
   color: var(--color-on-surface-variant);
   text-align: center;
   padding: 14px 16px;
   font-size: 0.85rem;
-  border-top: none; /* 青ライン完全除去 */
   box-shadow: none; /* フラット化 */
 }
 
@@ -162,9 +194,10 @@
     flex-direction: column;
   }
   
+  /* 高さ固定を撤回し、自動で必要な高さを確保（ページ全体スクロールに任せる） */
   .calendar-section {
-    height: 60vh;
-    min-height: 400px;
+    height: auto;
+    min-height: 320px;
   }
   
   .daily-table-container {
@@ -250,7 +283,7 @@
   
   .system-info {
     font-size: 0.8em;
-    padding: 4px 8px;
+    padding: 0 !important;
   }
 }
 

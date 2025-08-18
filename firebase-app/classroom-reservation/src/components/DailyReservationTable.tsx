@@ -172,8 +172,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           <table className="excel-table">
             <thead>
               <tr>
-                <th className="col-room">教室</th>
                 <th className="col-period">時限</th>
+                <th className="col-room">教室</th>
                 <th className="col-time">時間</th>
                 <th className="col-title">予約内容</th> {/* 予約タイトル -> 予約内容 */}
                 <th className="col-user">予約者</th>
@@ -185,11 +185,11 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 const timeEnd = formatTime(reservation.endTime);
                 return (
                   <tr key={`${reservation.roomId}-${reservation.id || index}`}>
-                    <td className="col-room">
-                      <div className="room-name">{reservation.roomName}</div>
-                    </td>
                     <td className="col-period">
                       <span className="period-badge">{formatPeriodDisplay(reservation.period, reservation.periodName)}</span>
+                    </td>
+                    <td className="col-room">
+                      <div className="room-name">{reservation.roomName}</div>
                     </td>
                     <td className="col-time">
                       <div className="time-range">{timeStart}-{timeEnd}</div>

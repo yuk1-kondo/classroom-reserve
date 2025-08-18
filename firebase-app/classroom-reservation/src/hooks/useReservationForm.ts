@@ -115,9 +115,14 @@ export const useReservationForm = (
 
   // 予約に使用する日付配列を取得
   const getReservationDates = useCallback((): string[] => {
-    return dateRange.isRangeMode
-      ? generateDateList(dateRange.startDate, dateRange.endDate)
-      : selectedDate ? [selectedDate] : [];
+    if (dateRange.isRangeMode) {
+      return generateDateList(dateRange.startDate, dateRange.endDate);
+    }
+    // 単日モード: UIで選んだ startDate を優先。未設定時のみ selectedDate をフォールバック
+    if (dateRange.startDate) {
+      return [dateRange.startDate];
+    }
+    return selectedDate ? [selectedDate] : [];
   }, [dateRange.isRangeMode, dateRange.startDate, dateRange.endDate, selectedDate, generateDateList]);
 
   // 予約に使用する時限配列を取得

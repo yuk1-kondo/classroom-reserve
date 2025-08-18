@@ -64,6 +64,13 @@
   --bp-mobile: 600px;
   --bp-tablet: 900px;
   --bp-desktop: 1200px;
+
+  /* === ヘッダー/フッター背景色 (Navy Scheme) === */
+  --color-header-bg: #eef3f8; /* 薄い紺トーン (明度UP) */
+  --color-header-border: #d3dee7; /* 淡境界 */
+  --color-header-text: #1f3047; /* ダークテキスト */
+  --color-footer-bg: #e9f0f6; /* フッターやや濃いめ */
+  --color-footer-border: #c9d6e0;
 }
 
 /* モバイル専用ヘルパー (JS不要で簡易非表示制御) */

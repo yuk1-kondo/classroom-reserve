@@ -2,7 +2,9 @@
 .calendar-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  /* 親の高さに依存しないようautoにしてページ全体でスクロール */
+  height: auto;
+  min-height: 0;
 }
 
 .calendar-loading {
@@ -41,7 +43,8 @@
   background: var(--color-surface);
   border-radius: var(--radius-medium);
   box-shadow: var(--elevation-1);
-  overflow: hidden;
+  /* 小さい画面で内容が切り取られないようにする */
+  overflow: visible;
 }
 
 .fc-toolbar-title {
@@ -262,4 +265,17 @@
   .legend-item {
     font-size: 10px;
   }
+}
+
+/* 画面高さが低い端末向けの調整 */
+@media (max-height: 800px) {
+  .fc-toolbar { padding: 8px 12px; }
+  .fc-toolbar-title { font-size: 1.2em; }
+  .is-mobile-cal .fc-daygrid-day-frame { min-height: 50px; }
+}
+
+@media (max-height: 700px) {
+  .fc-toolbar { padding: 6px 10px; }
+  .fc-toolbar-title { font-size: 1.05em; }
+  .fc-button { font-size: 0.8em; padding: 3px 8px; }
 }

@@ -2,7 +2,7 @@
 .daily-reservation-table {
   width: 100%;
   background: #ffffff; /* 既に白 */
-  border: 1px solid #d9e1e9; /* やや淡い単線 */
+  border: 1px solid #d4dbe2; /* 統一ライン色 */
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-size: 12px;
@@ -44,7 +44,7 @@
   align-items: center;
   padding: 8px 12px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
-  border-bottom: 1px solid #d0d7de; /* 単線に戻す */
+  border-bottom: 1px solid #d0d7de; /* 外枠と同色 */
 }
 
 .table-header h4 {
@@ -68,7 +68,8 @@
 .excel-table {
   width: 100% !important;
   min-width: 0 !important; /* 強制固定 */
-  border-collapse: collapse;
+  border-collapse: separate; /* collapse を使わず重複回避 */
+  border-spacing: 0; /* 余白なし */
   font-size: 11px;
   background: white;
   table-layout: fixed; /* 列幅固定して折返し */
@@ -81,8 +82,9 @@
   font-weight: 600;
   padding: 8px 12px;
   text-align: center; /* 中央揃え */
-  border: 1px solid #d9e1e9;
-  border-top: none; /* 上はヘッダーdivのボーダー */
+  border: none; /* 既存クリア */
+  border-right: 1px solid #d4dbe2;
+  border-bottom: 1px solid #d4dbe2;
   font-size: 11px;
   white-space: nowrap;
   /* ヘッダー固定 */
@@ -93,7 +95,9 @@
 
 .excel-table tbody td {
   padding: 6px 12px;
-  border: 1px solid #d9e1e9;
+  border: none; /* 既存クリア */
+  border-right: 1px solid #d4dbe2;
+  border-bottom: 1px solid #d4dbe2;
   vertical-align: middle; /* 中央揃え */
   text-align: center; /* 中央揃え */
   background: white;
@@ -109,6 +113,17 @@
 .excel-table tbody tr:hover td {
   background: #ddf4ff !important;
 }
+
+/* 余分な二重線除去 */
+.excel-table tbody tr:first-child td { border-top: none; }
+.excel-table tbody td:first-child { border-left: none; }
+
+/* 最終列は右線なし (外枠が担当) */
+.excel-table thead th:last-child,
+.excel-table tbody td:last-child { border-right: none; }
+
+/* 最終行は下線なし (外枠が担当) */
+.excel-table tbody tr:last-child td { border-bottom: none; }
 
 /* 列幅設定 */
 .col-room {
@@ -323,22 +338,14 @@
     print-color-adjust: exact;
   }
   
-  .excel-table thead th {
-    background: #f0f0f0 !important;
-    border: 1px solid #000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
+  .excel-table thead th,
   .excel-table tbody td {
-    border: 1px solid #000 !important;
+    border-right: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
   }
-  
-  .excel-table tbody tr:nth-child(even) td {
-    background: #f8f8f8 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+  .excel-table thead th:last-child,
+  .excel-table tbody td:last-child { border-right: none !important; }
+  .excel-table tbody tr:last-child td { border-bottom: none !important; }
 }
 
 .reservation-sheet .excel-table {
