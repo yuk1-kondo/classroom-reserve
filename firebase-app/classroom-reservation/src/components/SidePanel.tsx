@@ -1,5 +1,5 @@
 // リファクタリング版サイドパネルコンポーネント - 予約作成・表示用
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
@@ -29,8 +29,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout } = useAuth();
   const { rooms, reservations, loadReservationsForDate } = useReservationData(currentUser, selectedDate);
+  // 直後の重複チェックを抑止するためのクールダウン時刻
+  const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
   const wrappedOnReservationCreated = () => {
+    // 予約直後は一時的に重複チェックをスキップ（反映待ちの誤検知対策）
+    skipCheckUntilRef.current = Date.now() + 2000; // 約2.0秒
     try { resetConflict(); } catch {}
     try { onReservationCreated && onReservationCreated(); } catch {}
   };
@@ -267,6 +271,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // 重複チェックを実行するためのエフェクト
   useEffect(() => {
     if (showForm) {
+      // クールダウン中はチェックしない
+      if (Date.now() < skipCheckUntilRef.current) {
+        return;
+      }
       const timeoutId = setTimeout(() => {
         const datesToCheck = getReservationDates();
         const periodsToCheck = getReservationPeriods();
@@ -279,7 +287,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       
       return () => clearTimeout(timeoutId);
     }
-  }, [showForm, selectedRoom, getReservationDates, getReservationPeriods, performConflictCheck]);
+  }, [showForm, selectedRoom, getReservationDates, getReservationPeriods, performConflictCheck, currentUser?.uid]);
 
   // 日付・教室変更で前回の重複結果をクリア
   useEffect(() => {

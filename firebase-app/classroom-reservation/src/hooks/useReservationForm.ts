@@ -279,7 +279,7 @@ export const useReservationForm = (
   // フォームリセット
   const resetForm = useCallback(() => {
     setFormData(prev => ({
-      selectedRoom: prev.selectedRoom,
+  selectedRoom: '',
       selectedPeriod: '',
       title: '',
       reservationName: prev.reservationName

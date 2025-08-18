@@ -21,8 +21,8 @@ export const useConflictDetection = () => {
   // debounce 用タイマー
   const timerRef = useRef<any>(null);
 
-  // 重複チェック関数
-  const checkForConflicts = async (
+  // 重複チェック関数（安定化のため useCallback 化）
+  const checkForConflicts = useCallback(async (
     targetDates: string[], 
     targetPeriods: string[], 
     targetRoomId: string,
@@ -131,7 +131,7 @@ export const useConflictDetection = () => {
       console.error('重複チェックエラー:', error);
       return { hasConflict: false, message: '', details: [] };
     }
-  };
+  }, []);
 
   // 重複チェック実行（debounceあり）
   const performConflictCheck = useCallback(async (

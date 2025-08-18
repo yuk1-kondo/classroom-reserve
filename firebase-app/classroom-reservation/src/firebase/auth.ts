@@ -13,6 +13,8 @@ import { auth } from './config';
 // 許可されたドメイン設定
 const ALLOWED_DOMAIN = 'e.osakamanabi.jp';
 const DOMAIN_ERROR_MESSAGE = `${ALLOWED_DOMAIN}ドメインのアカウントのみご利用いただけます`;
+// 管理者メール一覧（必要に応じて拡張）
+const ADMIN_EMAILS = ['212-schooladmin@e.osakamanabi.jp'];
 
 export interface AuthUser {
   uid: string;
@@ -122,11 +124,13 @@ export const authService = {
           return;
         }
 
+        const isAdmin = !!(user.email && ADMIN_EMAILS.includes(user.email));
         callback({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
-          role: 'teacher'
+          role: isAdmin ? 'admin' : 'teacher',
+          isAdmin
         });
       } else {
         callback(null);
@@ -149,11 +153,13 @@ export const authService = {
       if (user.email && !this.isAllowedDomain(user.email)) {
         return null;
       }
+      const isAdmin = !!(user.email && ADMIN_EMAILS.includes(user.email));
       return {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
-        role: 'teacher'
+        role: isAdmin ? 'admin' : 'teacher',
+        isAdmin
       };
     }
     return null;
@@ -171,8 +177,10 @@ export const authService = {
 
   // 管理者権限チェック
   isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === 'admin' || user?.isAdmin === true;
+  const user = this.getCurrentUser();
+  // メールでの管理者指定を優先
+  if (user?.email && ADMIN_EMAILS.includes(user.email)) return true;
+  return user?.role === 'admin' || user?.isAdmin === true;
   },
 
   // 教師権限チェック

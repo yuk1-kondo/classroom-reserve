@@ -1,6 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 管理者メールの許可リスト（必要に応じて編集）
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email in [
+        '212-schooladmin@e.osakamanabi.jp'
+      ];
+    }
+
     // 教室と時限データは誰でも読み取り可能
     match /rooms/{roomId} {
       allow read: if true;
@@ -14,6 +21,20 @@ service cloud.firestore {
     // 予約情報は誰でも読み取り可能、書き込みは認証済みユーザーのみ
     match /reservations/{reservationId} {
       allow read: if true;
+      // 作成は認証済みであれば許可（createdBy はクライアントで設定）
+      allow create: if request.auth != null;
+      // 更新は作成者のみ
+      allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      // 削除は作成者 または 管理者
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.createdBy || isAdmin()
+      );
+    }
+
+    // 予約スロット用コレクション（同時予約防止のための占有情報）
+    match /reservation_slots/{slotId} {
+      allow read: if true;
+      // 認証済みのみ作成/削除を許可（実利用では Cloud Functions 側管理が理想）
       allow write: if request.auth != null;
     }
   }

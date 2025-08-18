@@ -11,7 +11,8 @@ import {
   where, 
   orderBy, 
   Timestamp,
-  writeBatch // 追加
+  writeBatch, // 追加
+  runTransaction
 } from 'firebase/firestore';
 import { db } from './config';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
@@ -43,6 +44,7 @@ export interface Reservation {
 // コレクション名
 const ROOMS_COLLECTION = 'rooms';
 const RESERVATIONS_COLLECTION = 'reservations';
+const RESERVATION_SLOTS_COLLECTION = 'reservation_slots';
 
 // periodName 正規化（取得/追加両方で利用）
 function normalizePeriodName(period: string, periodName: string): string {
@@ -91,6 +93,19 @@ export const roomsService = {
 
 // 予約関連の操作
 export const reservationsService = {
+  // 内部ユーティリティ: 日付文字列 (YYYY-MM-DD)
+  _dateStr(ts: Timestamp): string {
+    const d = ts.toDate();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  },
+  // 内部ユーティリティ: period フィールドを配列化
+  _periods(period: string): string[] {
+    if (!period) return [];
+    return period.includes(',') ? period.split(',').map(p => p.trim()).filter(Boolean) : [period];
+  },
   // 期間内の予約を取得
   async getReservations(startDate: Date, endDate: Date): Promise<Reservation[]> {
     try {
@@ -152,8 +167,40 @@ export const reservationsService = {
         periodName: normalizePeriodName(reservation.period, reservation.periodName),
         createdAt: Timestamp.now()
       };
-      const docRef = await addDoc(collection(db, RESERVATIONS_COLLECTION), fixed);
-      return docRef.id;
+      // スロット一意性を保証するためトランザクションを使用
+      const newResRef = doc(collection(db, RESERVATIONS_COLLECTION)); // 先にIDを確保
+      const dateStr = this._dateStr(fixed.startTime);
+      const periods = this._periods(fixed.period);
+
+      await runTransaction(db, async (tx) => {
+        // スロット存在チェック
+        for (const p of periods) {
+          const slotId = `${fixed.roomId}_${dateStr}_${p}`;
+          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+          const slotSnap = await tx.get(slotRef);
+          if (slotSnap.exists()) {
+            throw new Error('同じ教室・時限の予約が既に存在します');
+          }
+        }
+
+        // 予約本体を作成
+        tx.set(newResRef, fixed);
+        // スロットを確保
+        for (const p of periods) {
+          const slotId = `${fixed.roomId}_${dateStr}_${p}`;
+          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+          tx.set(slotRef, {
+            roomId: fixed.roomId,
+            date: dateStr,
+            period: p,
+            reservationId: newResRef.id,
+            createdBy: fixed.createdBy || null,
+            createdAt: Timestamp.now()
+          });
+        }
+      });
+
+      return newResRef.id;
     } catch (error) {
       console.error('予約追加エラー:', error);
       throw error;
@@ -173,7 +220,24 @@ export const reservationsService = {
   // 予約を削除
   async deleteReservation(reservationId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, RESERVATIONS_COLLECTION, reservationId));
+      await runTransaction(db, async (tx) => {
+        const resRef = doc(db, RESERVATIONS_COLLECTION, reservationId);
+        const snap = await tx.get(resRef);
+        if (!snap.exists()) {
+          return;
+        }
+        const data = snap.data() as Reservation;
+        const dateStr = this._dateStr(data.startTime);
+        const periods = this._periods(data.period);
+        // 本体削除
+        tx.delete(resRef);
+        // スロット開放
+        for (const p of periods) {
+          const slotId = `${data.roomId}_${dateStr}_${p}`;
+          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+          tx.delete(slotRef);
+        }
+      });
     } catch (error) {
       console.error('予約削除エラー:', error);
       throw error;
@@ -213,17 +277,28 @@ export const reservationsService = {
       let batch = writeBatch(db);
       let ops = 0;
       for (const d of snap.docs) {
+        const data = d.data() as Reservation;
+        const dateStr = this._dateStr(data.startTime);
+        const periods = this._periods(data.period);
+        // 予約本体
         batch.delete(d.ref);
         ops++; processed++;
-        if (ops === 500) {
+        // スロット
+        for (const p of periods) {
+          const slotId = `${data.roomId}_${dateStr}_${p}`;
+          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+          batch.delete(slotRef);
+          ops++;
+        }
+        if (ops >= 450) { // スロット分もあるので余裕を持ってコミット
           await batch.commit();
-          console.log(`... 500件コミット (累計 ${processed}/${total})`);
+          console.log(`... バッチコミット (累計 ${processed}/${total})`);
           batch = writeBatch(db); ops = 0;
         }
       }
       if (ops > 0) {
         await batch.commit();
-        console.log(`... 残り${ops}件コミット (累計 ${processed}/${total})`);
+        console.log(`... 最終コミット (累計 ${processed}/${total})`);
       }
       console.log(`✅ 一括削除完了 合計 ${processed}件`);
       return processed;
