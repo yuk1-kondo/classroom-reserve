@@ -74,7 +74,7 @@ export const MainApp: React.FC = () => {
           桜和高校教室予約システム
         </h1>
         <div className="header-info">
-          <div className="system-info">v1.0</div>
+          <div className="system-info">v1.2</div>
           <button 
             className="toggle-panel-button"
             onClick={() => setShowSidePanel(!showSidePanel)}
