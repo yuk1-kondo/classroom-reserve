@@ -4,7 +4,9 @@ import {
   roomsService, 
   reservationsService, 
   Room, 
-  Reservation
+  Reservation,
+  ReservationSlot,
+  createDateTimeFromPeriod
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
@@ -46,7 +48,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     loadRooms();
   }, []);
 
-  // 選択日の予約データを取得
+  // 選択日の予約データを取得（予約本体＋テンプレロック）
   useEffect(() => {
     if (!selectedDate || rooms.length === 0) {
       setRoomStatuses([]);
@@ -66,14 +68,31 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         
         // 指定日の全予約を取得
         const allReservations = await reservationsService.getReservations(startOfDay, endOfDay);
-        
-        // 教室ごとの予約状況を整理（予約がある教室のみ）
-        const statuses: RoomReservationStatus[] = [];
-        
-        // 全ての予約を1つの配列にまとめて時限順にソート
-        const allReservationsWithRoom = allReservations.map(reservation => {
+
+        // 指定日のロックスロット（template-lockのみ）を取得し、擬似予約に変換
+        const allSlots: ReservationSlot[] = await reservationsService.getSlotsForDate(selectedDate);
+        const lockSlots = allSlots.filter(s => (s as any).type === 'template-lock');
+        const lockAsReservations: Reservation[] = lockSlots.map(slot => {
+          // 擬似予約として表示用に成形（start/end は後で補完）
+          return {
+            id: undefined,
+            roomId: slot.roomId,
+            roomName: '',
+            title: '🔒 固定予約（ロック）',
+            reservationName: '',
+            // 後で実際の Timestamp を設定
+            startTime: ({} as any),
+            endTime: ({} as any),
+            period: String(slot.period),
+            periodName: '固定',
+            createdAt: undefined,
+            createdBy: undefined
+          } as unknown as Reservation;
+        });
+
+        // 教室名付与と時限順のための補助を統一的に付与（予約＋ロック）
+        const mapWithOrder = (reservation: Reservation) => {
           const room = rooms.find(r => r.id === reservation.roomId);
-          
           // 時限の並び順を数値化
           let periodOrder = 0;
           if (reservation.period === 'lunch') {
@@ -83,41 +102,57 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           } else {
             periodOrder = parseInt(reservation.period) || 0;
           }
-          
           return {
             ...reservation,
             roomName: room?.name || '不明',
             periodOrder
-          };
+          } as any;
+        };
+
+        // 予約（本体）
+        const reservationsWithRoom = allReservations.map(mapWithOrder);
+
+        // ロック（擬似予約）: start/end/periodName を補完
+        const { Timestamp } = await import('firebase/firestore');
+        const lockReservationsCompleted = lockAsReservations.map(r => {
+          const dt = createDateTimeFromPeriod(selectedDate, String(r.period));
+          const start = dt?.start ? Timestamp.fromDate(dt.start) : Timestamp.fromDate(new Date(`${selectedDate}T00:00:00`));
+          const end = dt?.end ? Timestamp.fromDate(dt.end) : Timestamp.fromDate(new Date(`${selectedDate}T23:59:59`));
+          return mapWithOrder({
+            ...r,
+            periodName: dt?.periodName || r.periodName,
+            startTime: start,
+            endTime: end
+          } as Reservation);
         });
 
+        // マージしてソート
+        const combined = [...reservationsWithRoom, ...lockReservationsCompleted];
+
         // 時限順でソート
-        allReservationsWithRoom.sort((a, b) => {
+        combined.sort((a, b) => {
           if (a.periodOrder !== b.periodOrder) {
             return a.periodOrder - b.periodOrder;
           }
           // 同じ時限の場合は教室名でソート
-            return a.roomName.localeCompare(b.roomName);
+          return a.roomName.localeCompare(b.roomName);
         });
 
-        // RoomReservationStatus形式は維持するが、予約一覧として使用
+        // 教室ごとの予約状況（ロック含む）
+        const statuses: RoomReservationStatus[] = [];
         rooms.forEach(room => {
-          const roomReservations = allReservations.filter(res => res.roomId === room.id);
+          const roomReservations = combined.filter(res => res.roomId === room.id);
           if (roomReservations.length > 0) {
-            statuses.push({
-              room,
-              reservations: roomReservations,
-              isEmpty: false
-            });
+            statuses.push({ room, reservations: roomReservations as Reservation[], isEmpty: false });
           }
         });
 
         // 教室名でソート
         statuses.sort((a, b) => a.room.name.localeCompare(b.room.name));
 
-        setRoomStatuses(statuses);
-        // 時限順ソート済みの予約リストも保存
-        setSortedReservations(allReservationsWithRoom);
+  setRoomStatuses(statuses);
+  // 時限順ソート済み（予約＋ロック）の予約リストも保存
+  setSortedReservations(combined);
       } catch (error) {
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
