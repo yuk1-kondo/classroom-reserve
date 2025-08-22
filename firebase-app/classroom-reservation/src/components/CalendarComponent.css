@@ -279,3 +279,9 @@
   .fc-toolbar-title { font-size: 1.05em; }
   .fc-button { font-size: 0.8em; padding: 3px 8px; }
 }
+
+/* 上限超過の無効日を視覚的に薄く */
+.fc .fc-daygrid-day.fc-day-overlimit,
+.fc .fc-timegrid-col.fc-day-overlimit {
+  opacity: 0.45;
+}

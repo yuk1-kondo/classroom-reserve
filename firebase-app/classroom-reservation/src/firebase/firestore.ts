@@ -46,6 +46,16 @@ const ROOMS_COLLECTION = 'rooms';
 const RESERVATIONS_COLLECTION = 'reservations';
 const RESERVATION_SLOTS_COLLECTION = 'reservation_slots';
 
+// 予約スロットの型（予約本体 or テンプレロック）
+export interface ReservationSlot {
+  roomId: string;
+  date: string; // yyyy-mm-dd
+  period: string; // '1','2','lunch','after' など
+  reservationId?: string | null; // 予約本体がある場合
+  type?: string; // 'template-lock' など
+  templateId?: string | null;
+}
+
 // periodName 正規化（取得/追加両方で利用）
 function normalizePeriodName(period: string, periodName: string): string {
   if (!period) return periodName;
@@ -204,6 +214,21 @@ export const reservationsService = {
     } catch (error) {
       console.error('予約追加エラー:', error);
       throw error;
+    }
+  },
+
+  // 指定日付のスロット（予約またはロック）を取得
+  async getSlotsForDate(dateStr: string): Promise<ReservationSlot[]> {
+    try {
+      const q = query(
+        collection(db, RESERVATION_SLOTS_COLLECTION),
+        where('date', '==', dateStr)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data() as ReservationSlot);
+    } catch (error) {
+      console.error('スロット取得エラー:', error);
+      return [];
     }
   },
 

@@ -1,5 +1,5 @@
 // リファクタリング版サイドパネルコンポーネント - 予約作成・表示用
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
@@ -7,11 +7,15 @@ import { useReservationData } from '../hooks/useReservationData';
 import { useAuth } from '../hooks/useAuth';
 import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
+import { useSystemSettings } from '../hooks/useSystemSettings';
+import { validateDatesWithinMax } from '../utils/dateValidation';
 import { reservationsService } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './SidePanel.css';
 import { labelForCsv, displayLabel } from '../utils/periodLabel';
 import { formatPeriodDisplay } from '../utils/periodLabel';
+import ReservationLimitSettings from './admin/ReservationLimitSettings';
+import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
 
 interface SidePanelProps {
   selectedDate?: string;
@@ -28,7 +32,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout } = useAuth();
-  const { rooms, reservations, loadReservationsForDate } = useReservationData(currentUser, selectedDate);
+  const { rooms, reservations, slots, loadReservationsForDate } = useReservationData(currentUser, selectedDate);
+  const roomOptions = useMemo(() =>
+    rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
+  [rooms]);
+  const [showTemplates, setShowTemplates] = useState(false);
   // 直後の重複チェックを抑止するためのクールダウン時刻
   const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
@@ -40,6 +48,21 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   };
   const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
+  const { maxDateStr, limitMonths } = useSystemSettings();
+  // 予約作成: 先日付制限の検証を噛ませる
+  const handleCreateWithLimit = async () => {
+    const dates = formHook.getReservationDates();
+    const result = validateDatesWithinMax(dates, maxDateStr);
+    if (!result.ok) {
+      const msg = limitMonths
+        ? `予約は${limitMonths}ヶ月先（${maxDateStr}まで）に制限されています。無効な日付: ${result.firstInvalid}`
+        : `予約は${maxDateStr}までに制限されています。無効な日付: ${result.firstInvalid}`;
+      alert(msg);
+      return;
+    }
+    await formHook.handleCreateReservation();
+  };
+
   
   // 必要な値/関数だけ分解（useEffect依存の安定化）
   const { showForm, formData, getReservationDates, getReservationPeriods } = formHook;
@@ -387,9 +410,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             setPeriodRange={formHook.setPeriodRange}
             rooms={rooms}
             conflictCheck={conflictCheck}
-            onCreateReservation={formHook.handleCreateReservation}
+            onCreateReservation={handleCreateWithLimit}
             reservations={reservations}
+            slots={slots}
             selectedDate={selectedDate}
+            maxDateStr={maxDateStr}
+            limitMonths={limitMonths}
           />
 
           {/* 管理者機能セクション */}
@@ -401,6 +427,18 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {csvMessage}
                 </div>
               )}
+              {/* 予約制限設定 */}
+              <ReservationLimitSettings currentUserId={currentUser?.uid} />
+              <div style={{ marginTop: 12 }}>
+                <button className="admin-btn" onClick={() => setShowTemplates(true)}>固定予約テンプレートを開く</button>
+                <RecurringTemplatesModal 
+                  open={showTemplates}
+                  onClose={() => setShowTemplates(false)}
+                  isAdmin={isAdmin}
+                  currentUserId={currentUser?.uid}
+                  roomOptions={roomOptions}
+                />
+              </div>
               <div className="admin-functions">
                 <button 
                   onClick={handleCsvExport}

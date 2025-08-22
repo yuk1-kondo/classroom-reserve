@@ -1,11 +1,12 @@
 // 予約データ管理用カスタムフック
 import { useState, useEffect, useCallback } from 'react';
-import { roomsService, reservationsService, Room, Reservation } from '../firebase/firestore';
+import { roomsService, reservationsService, Room, Reservation, ReservationSlot } from '../firebase/firestore';
 import { AuthUser } from '../firebase/auth';
 
 export const useReservationData = (currentUser: AuthUser | null, selectedDate?: string) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [slots, setSlots] = useState<ReservationSlot[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 教室データを取得
@@ -44,10 +45,14 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
       
       console.log('🔍 loadReservationsForDate: 検索範囲', { startOfDay, endOfDay });
       
-      const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
+  const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
       console.log('🔍 loadReservationsForDate: 取得結果', { count: reservationsData.length, data: reservationsData });
-      
-      setReservations(reservationsData);
+  // 予約と同時にスロットも取得
+  const slotsData = await reservationsService.getSlotsForDate(date);
+  console.log('🔍 loadReservationsForDate: スロット取得結果', { count: slotsData.length, data: slotsData });
+
+  setReservations(reservationsData);
+  setSlots(slotsData);
       return reservationsData;
     } catch (error) {
       console.error('予約データ取得エラー:', error);
@@ -77,10 +82,12 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
   return {
     rooms,
     reservations,
+  slots,
     loading,
     loadRooms,
     loadReservationsForDate,
     setRooms,
-    setReservations
+  setReservations,
+  setSlots
   };
 };

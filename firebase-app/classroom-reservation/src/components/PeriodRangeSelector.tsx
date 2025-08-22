@@ -1,7 +1,7 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { periodTimeMap, Reservation, PERIOD_ORDER } from '../firebase/firestore';
+import { periodTimeMap, Reservation, PERIOD_ORDER, ReservationSlot } from '../firebase/firestore';
 
 interface PeriodRangeSelectorProps {
   periodRange: PeriodRangeState;
@@ -10,6 +10,7 @@ interface PeriodRangeSelectorProps {
   onPeriodChange: (period: string) => void;
   loading: boolean;
   reservations?: Reservation[];
+  slots?: ReservationSlot[];
   selectedRoom?: string;
   selectedDate?: string;
 }
@@ -21,6 +22,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   onPeriodChange,
   loading,
   reservations = [],
+  slots = [],
   selectedRoom,
   selectedDate
 }) => {
@@ -51,7 +53,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
       reservationsCount: reservations.length 
     });
     
-    const isReserved = reservations.some(reservation => {
+  const isReserved = reservations.some(reservation => {
       console.log('🔍 予約チェック:', {
         reservationId: reservation.id,
         reservationRoomId: reservation.roomId,
@@ -87,8 +89,18 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
       }
     });
     
-    console.log('🔍 isPeriodReserved 結果:', { period, isReserved });
-    return isReserved;
+    if (isReserved) {
+      console.log('🔍 isPeriodReserved 結果: 予約で占有', { period, isReserved });
+      return true;
+    }
+    // スロット（ロック/他予約）による占有
+    const isLocked = slots.some(slot => {
+      return slot.roomId === selectedRoom 
+        && slot.date === selectedDate 
+        && String(slot.period) === String(period);
+    });
+    console.log('🔍 isPeriodReserved 結果: スロット占有', { period, isLocked });
+    return isLocked;
   };
 
   return (

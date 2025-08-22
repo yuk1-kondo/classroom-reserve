@@ -1,0 +1,12 @@
+.rtm-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
+.rtm-modal{background:#fff;max-width:1100px;width:96%;max-height:90vh;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
+.rtm-modal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eee}
+.rtm-modal-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px;overflow:auto}
+.rtm-pane{border:1px solid #eee;border-radius:8px;padding:10px}
+.close-btn{background:transparent;border:none;font-size:20px;cursor:pointer}
+.form-row{display:flex;flex-direction:column;margin:8px 0}
+.hint{color:#666;font-size:12px;margin-top:4px}
+.actions{margin-top:8px}
+.actions button{padding:6px 12px}
+.msg{margin-top:8px}
+.note{color:#666;font-size:12px;margin-top:4px}

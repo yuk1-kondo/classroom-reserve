@@ -21,8 +21,15 @@ service cloud.firestore {
     // 予約情報は誰でも読み取り可能、書き込みは認証済みユーザーのみ
     match /reservations/{reservationId} {
       allow read: if true;
-      // 作成は認証済みであれば許可（createdBy はクライアントで設定）
-      allow create: if request.auth != null;
+      // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid
+        && (
+          // 設定が無ければ制限なし
+          !exists(/databases/$(database)/documents/system_settings/global)
+          || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
+          || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
+        );
       // 更新は作成者のみ
       allow update: if request.auth != null && request.auth.uid == resource.data.createdBy;
       // 削除は作成者 または 管理者
@@ -36,6 +43,20 @@ service cloud.firestore {
       allow read: if true;
       // 認証済みのみ作成/削除を許可（実利用では Cloud Functions 側管理が理想）
       allow write: if request.auth != null;
+    }
+
+    // システム設定（予約制限など）
+    match /system_settings/{docId} {
+      // 誰でも読み取り可能（UI 表示用）。必要に応じて認証済みに制限可。
+      allow read: if true;
+      // 書き込みは管理者のみ
+      allow write: if isAdmin();
+    }
+
+    // 固定（毎週）予約テンプレート
+    match /recurring_templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

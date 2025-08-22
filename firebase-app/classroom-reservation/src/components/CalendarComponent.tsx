@@ -11,6 +11,7 @@ import {
 import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
 import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
+import { useSystemSettings } from '../hooks/useSystemSettings';
 
 interface CalendarComponentProps {
   onDateClick?: (dateStr: string) => void;
@@ -39,6 +40,18 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   const [initialView, setInitialView] = useState<string>('timeGridWeek');
   // 直近取得した日付範囲（無限再取得防止）
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
+  // 予約上限設定の取得
+  const { maxDateStr, limitMonths } = useSystemSettings();
+
+  // 各日のセルに「上限超過」のクラスを付与（表示はするが薄く）
+  const dayCellClassNames = useCallback((arg: any) => {
+    if (!maxDateStr) return [];
+    const cellDate: Date = arg.date;
+    if (cellDate.getTime() > new Date(maxDateStr).getTime()) {
+      return ['fc-day-overlimit'];
+    }
+    return [];
+  }, [maxDateStr]);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -128,11 +141,18 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
 
   // 日付クリック処理
   const handleDateClick = (dateClickInfo: any) => {
-    console.log('📅 日付クリック:', dateClickInfo.dateStr);
-    setLastSelectedDate(dateClickInfo.dateStr); // 選択日付を保持
-    if (onDateClick) {
-      onDateClick(dateClickInfo.dateStr);
+    const dateStr = dateClickInfo.dateStr as string;
+    console.log('📅 日付クリック:', dateStr);
+    // 上限超過はクリック時点でガード（validRangeでも多くは無効化されるが、保険で）
+    if (maxDateStr && new Date(dateStr).getTime() > new Date(maxDateStr).getTime()) {
+      const msg = limitMonths
+        ? `予約は${limitMonths}ヶ月先（${maxDateStr}まで）に制限されています。`
+        : `この日は予約できません（上限: ${maxDateStr}）。`;
+      alert(msg);
+      return;
     }
+    setLastSelectedDate(dateStr); // 選択日付を保持
+    if (onDateClick) onDateClick(dateStr);
   };
 
   // ビュー変更時に選択日付に移動
@@ -219,7 +239,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView={initialView}
-        locale="ja"
+  locale="ja"
+  dayCellClassNames={dayCellClassNames}
         headerToolbar={isMobile ? {
           left: 'prev,next today',
           center: 'title',

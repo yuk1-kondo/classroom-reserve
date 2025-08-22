@@ -1,0 +1,9 @@
+.rtm-wrap { border: 1px solid #ddd; padding: 12px; border-radius: 8px; }
+.rtm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.rtm-table { width: 100%; border-collapse: collapse; }
+.rtm-table th, .rtm-table td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
+.rtm-actions button { margin-right: 6px; }
+.rtm-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.rtm-editor .form-row { display: flex; flex-direction: column; }
+.rtm-error { color: #b00020; margin: 8px 0; }
+.rtm-loading { color: #555; margin: 8px 0; }

@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## [2.1.0] - 2025-08-22
+### ✨ 機能追加 / 改善
+- 予約制限機能: 管理画面から「nヶ月先まで」の上限を設定。フォーム送信時の検証と Firestore ルールで二重に強制
+- カレンダーUX: 上限日以降を非表示にせず「グレーアウト表示＋クリック不可」に変更
+- 固定の毎週予約（テンプレート）管理を追加（管理者専用CRUD）
+- テンプレート適用で事前に予約スロットを生成（template-lock）。一般ユーザーの新規予約をブロック
+- 管理モーダル（RecurringTemplatesModal）でテンプレ管理＋ロック一括適用を統合
+
+### 🖥️ UI/UX
+- 予約フォームの時限セレクトで、予約済み/ロック済みの時限を自動でグレーアウト（選択不可）
+- サイドパネルの管理セクションに「固定予約テンプレートを開く」ボタンを追加
+
+### 🔧 クライアント/サービス
+- reservationsService に `getSlotsForDate` を追加し、予約スロット（予約本体/ロック）を日付単位で取得
+- useReservationData で同日に `reservations` と `slots` をロード。PeriodRangeSelector が両方を参照して占有判定
+- recurringTemplatesService（CRUD）と templateLocks（ロック生成）を追加
+
+### 🔒 Firestore ルール
+- `recurring_templates` の read-all / write-admin を追加
+- 予約作成は作成者一致＋上限日以内を必須（既存強化）
+
+### 🐞 修正
+- テンプレート保存時の `endDate: undefined` で発生する Firestore エラーを解消（payload サニタイズ）
+
+### 🚀 デプロイ
+- Hosting に反映（フォームの時限グレーアウト含む一連の変更）
+
 ## [2.0.3] - 2025-08-17
 ### 🎨 UI / 表示
 
