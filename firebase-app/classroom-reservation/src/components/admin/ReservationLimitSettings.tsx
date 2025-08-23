@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { systemSettingsService, calcMaxDateFromMonths } from '../../firebase/settings';
 import { Timestamp } from 'firebase/firestore';
+import { authService } from '../../firebase/auth';
 
 type Mode = 'months' | 'absolute';
 
@@ -23,6 +24,7 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
   const [absoluteDate, setAbsoluteDate] = useState<string>(maxDateStr || '');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>('');
+  const canWrite = authService.isAdmin();
 
   useEffect(() => {
     setMonths(limitMonths || 3);
@@ -34,16 +36,11 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
     return absoluteDate || '';
   }, [mode, months, absoluteDate]);
 
-  const quickSetDec31 = () => {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999); // 12/31
-    setMode('absolute');
-    setAbsoluteDate(fmt(date));
-  };
+  // 今年の12/31ボタンは要件により削除（不要）
 
   const handleSave = async () => {
-    if (!currentUserId) {
-      alert('管理者でログインしてください');
+    if (!currentUserId || !canWrite) {
+      alert('管理者メールでログインしてください（設定の保存には管理者権限が必要です）');
       return;
     }
     try {
@@ -72,7 +69,10 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
       setTimeout(() => setMessage(''), 3000);
     } catch (e: any) {
       console.error(e);
-      setMessage('❌ 設定の保存に失敗しました');
+      const msg = (e?.code === 'permission-denied')
+        ? '❌ 権限エラー: 管理者メールでログインしてください'
+        : '❌ 設定の保存に失敗しました';
+      setMessage(msg);
       setTimeout(() => setMessage(''), 4000);
     } finally {
       setSaving(false);
@@ -96,7 +96,7 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
           max={12}
           value={months}
           onChange={(e) => setMonths(parseInt(e.target.value || '1', 10))}
-          disabled={mode !== 'months' || saving}
+          disabled={!canWrite || mode !== 'months' || saving}
           style={{ width: 80 }}
           aria-label="予約可能な月数"
         />
@@ -112,12 +112,9 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
           type="date"
           value={absoluteDate}
           onChange={(e) => setAbsoluteDate(e.target.value)}
-          disabled={mode !== 'absolute' || saving}
+          disabled={!canWrite || mode !== 'absolute' || saving}
           aria-label="固定締切日"
         />
-        <button type="button" onClick={quickSetDec31} disabled={mode !== 'absolute' || saving}>
-          今年の12/31をセット
-        </button>
       </div>
 
       <div style={{ marginTop: 8, fontSize: 12, color: '#374151' }}>
@@ -127,9 +124,14 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <button type="button" onClick={handleSave} disabled={saving}>
+        <button type="button" onClick={handleSave} disabled={saving || !canWrite}>
           {saving ? '保存中…' : '保存'}
         </button>
+        {!canWrite && (
+          <div style={{ fontSize: 12, color: '#6b7280' }}>
+            設定の変更には管理者メールでのログインが必要です。
+          </div>
+        )}
         {message && <div style={{ fontSize: 12 }}>{message}</div>}
       </div>
     </div>

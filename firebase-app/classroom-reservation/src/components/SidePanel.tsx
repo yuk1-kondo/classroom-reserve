@@ -15,6 +15,7 @@ import './SidePanel.css';
 import { labelForCsv, displayLabel } from '../utils/periodLabel';
 import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
+import { authService } from '../firebase/auth';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
 
 interface SidePanelProps {
@@ -75,8 +76,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [csvMessage, setCsvMessage] = useState('');
   const [debugMode, setDebugMode] = useState(false);
   
-  // 管理者権限チェック
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin;
+  // 管理者権限チェック（共通ロジックに統一）
+  const isAdmin = authService.isAdmin();
 
   // CSV エクスポート機能
   const handleCsvExport = async () => {

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
-import { applyTemplateLocks } from '../../firebase/templateLocks';
+import { applyTemplateLocks, removeTemplateLocks } from '../../firebase/templateLocks';
 import './RecurringTemplatesModal.css';
 
 interface Props {
@@ -25,6 +25,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [rangeEnd, setRangeEnd] = useState<string>(defaultEnd);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>('');
+  const [busyRemove, setBusyRemove] = useState(false);
 
   if (!open) return null;
 
@@ -53,6 +54,27 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
   };
 
+  const handleRemoveLocks = async () => {
+    if (!isAdmin) return;
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
+      alert('削除期間を正しく指定してください');
+      return;
+    }
+    if (!window.confirm('指定期間のテンプレロックを削除します。よろしいですか？')) return;
+    setBusyRemove(true);
+    setMessage('テンプレートロックを削除中...');
+    try {
+      const res = await removeTemplateLocks(rangeStart, rangeEnd);
+      setMessage(`✅ ロック削除完了: ${res.deleted} 件`);
+    } catch (e: any) {
+      console.error(e);
+      setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
+    } finally {
+      setBusyRemove(false);
+      setTimeout(() => setMessage(''), 5000);
+    }
+  };
+
   return (
     <div className="rtm-modal-backdrop">
       <div className="rtm-modal">
@@ -76,8 +98,9 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} />
             </div>
             <div className="hint">最大予約日: {maxDateStr ? maxDateStr : `（未設定: 約${limitMonths || 3}ヶ月先）`}</div>
-            <div className="actions">
+            <div className="actions" style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>ロック生成</button>
+              <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>

@@ -183,6 +183,12 @@ export const authService = {
   return user?.role === 'admin' || user?.isAdmin === true;
   },
 
+  // Firestore ルール適合用: メールベースの管理者かどうか
+  isEmailAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return !!(user?.email && ADMIN_EMAILS.includes(user.email));
+  },
+
   // 教師権限チェック
   isTeacher(): boolean {
     const user = this.getCurrentUser();

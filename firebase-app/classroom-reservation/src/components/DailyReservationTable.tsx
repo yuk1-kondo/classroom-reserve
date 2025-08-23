@@ -8,6 +8,7 @@ import {
   ReservationSlot,
   createDateTimeFromPeriod
 } from '../firebase/firestore';
+import { dayRange } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay } from '../utils/periodLabel'; // 追加
@@ -60,11 +61,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         setLoading(true);
         setError('');
         
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
+  const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
         
         // 指定日の全予約を取得
         const allReservations = await reservationsService.getReservations(startOfDay, endOfDay);

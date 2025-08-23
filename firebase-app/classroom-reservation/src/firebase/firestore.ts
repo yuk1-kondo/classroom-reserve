@@ -12,10 +12,16 @@ import {
   orderBy, 
   Timestamp,
   writeBatch, // 追加
-  runTransaction
+  runTransaction,
+  QueryDocumentSnapshot,
+  DocumentData,
+  Transaction
 } from 'firebase/firestore';
 import { db } from './config';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
+import { PERIOD_ORDER as PERIOD_ORDER_CONST, periodTimeMap as PERIOD_TIME_MAP, createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
+import { makeSlotId } from '../utils/slot';
+import { toDateStr } from '../utils/dateRange';
 
 // 教室の型定義
 export interface Room {
@@ -76,9 +82,9 @@ export const roomsService = {
   async getAllRooms(): Promise<Room[]> {
     try {
       const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
+        id: docSnap.id,
+        ...docSnap.data()
       } as Room));
     } catch (error) {
       console.error('教室データ取得エラー:', error);
@@ -126,8 +132,8 @@ export const reservationsService = {
         orderBy('startTime', 'asc')
       );
       
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(docSnap => {
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data() as Reservation;
         return {
             id: docSnap.id,
@@ -153,8 +159,8 @@ export const reservationsService = {
         orderBy('startTime', 'asc')
       );
       
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(docSnap => {
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data() as Reservation;
         return {
           id: docSnap.id,
@@ -178,14 +184,14 @@ export const reservationsService = {
         createdAt: Timestamp.now()
       };
       // スロット一意性を保証するためトランザクションを使用
-      const newResRef = doc(collection(db, RESERVATIONS_COLLECTION)); // 先にIDを確保
-      const dateStr = this._dateStr(fixed.startTime);
+  const newResRef = doc(collection(db, RESERVATIONS_COLLECTION)); // 先にIDを確保
+  const dateStr = toDateStr((fixed.startTime as Timestamp).toDate());
       const periods = this._periods(fixed.period);
 
-      await runTransaction(db, async (tx) => {
+  await runTransaction(db, async (tx: Transaction) => {
         // スロット存在チェック
         for (const p of periods) {
-          const slotId = `${fixed.roomId}_${dateStr}_${p}`;
+          const slotId = makeSlotId(fixed.roomId, dateStr, p);
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           const slotSnap = await tx.get(slotRef);
           if (slotSnap.exists()) {
@@ -197,7 +203,7 @@ export const reservationsService = {
         tx.set(newResRef, fixed);
         // スロットを確保
         for (const p of periods) {
-          const slotId = `${fixed.roomId}_${dateStr}_${p}`;
+          const slotId = makeSlotId(fixed.roomId, dateStr, p);
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           tx.set(slotRef, {
             roomId: fixed.roomId,
@@ -224,8 +230,8 @@ export const reservationsService = {
         collection(db, RESERVATION_SLOTS_COLLECTION),
         where('date', '==', dateStr)
       );
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data() as ReservationSlot);
+  const snap = await getDocs(q);
+  return snap.docs.map((d: QueryDocumentSnapshot<DocumentData>) => d.data() as ReservationSlot);
     } catch (error) {
       console.error('スロット取得エラー:', error);
       return [];
@@ -245,20 +251,20 @@ export const reservationsService = {
   // 予約を削除
   async deleteReservation(reservationId: string): Promise<void> {
     try {
-      await runTransaction(db, async (tx) => {
+  await runTransaction(db, async (tx: Transaction) => {
         const resRef = doc(db, RESERVATIONS_COLLECTION, reservationId);
         const snap = await tx.get(resRef);
         if (!snap.exists()) {
           return;
         }
         const data = snap.data() as Reservation;
-        const dateStr = this._dateStr(data.startTime);
+  const dateStr = toDateStr((data.startTime as Timestamp).toDate());
         const periods = this._periods(data.period);
         // 本体削除
         tx.delete(resRef);
         // スロット開放
         for (const p of periods) {
-          const slotId = `${data.roomId}_${dateStr}_${p}`;
+          const slotId = makeSlotId(data.roomId, dateStr, p);
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           tx.delete(slotRef);
         }
@@ -278,7 +284,7 @@ export const reservationsService = {
         console.log('削除する予約データがありません');
         return;
       }
-      const deletePromises = querySnapshot.docs.map(docRef => deleteDoc(docRef.ref));
+  const deletePromises = querySnapshot.docs.map((docRef: QueryDocumentSnapshot<DocumentData>) => deleteDoc(docRef.ref));
       await Promise.all(deletePromises);
       console.log(`✅ ${querySnapshot.docs.length}件の予約データを削除しました`);
     } catch (error) {
@@ -303,14 +309,14 @@ export const reservationsService = {
       let ops = 0;
       for (const d of snap.docs) {
         const data = d.data() as Reservation;
-        const dateStr = this._dateStr(data.startTime);
+        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
         const periods = this._periods(data.period);
         // 予約本体
         batch.delete(d.ref);
         ops++; processed++;
         // スロット
         for (const p of periods) {
-          const slotId = `${data.roomId}_${dateStr}_${p}`;
+          const slotId = makeSlotId(data.roomId, dateStr, p);
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           batch.delete(slotRef);
           ops++;
@@ -358,7 +364,7 @@ export const reservationsService = {
   // デバッグ: 全ID列挙
   async listAllReservationIds(): Promise<string[]> {
     const snap = await getDocs(collection(db, RESERVATIONS_COLLECTION));
-    const ids = snap.docs.map(d=>d.id);
+  const ids = snap.docs.map((d: QueryDocumentSnapshot<DocumentData>) => d.id);
     console.log('📄 [DEBUG][RESERVATIONS] 全ID一覧:', ids);
     return ids;
   },
@@ -400,35 +406,12 @@ export const reservationsService = {
   }
 };
 
-// 時限マッピング（正しい時間設定）
-export const periodTimeMap = {
-  '0': { start: '07:30', end: '08:30', name: '0限' },
-  '1': { start: '08:50', end: '09:40', name: '1限' },
-  '2': { start: '09:50', end: '10:40', name: '2限' },
-  '3': { start: '10:50', end: '11:40', name: '3限' },
-  '4': { start: '11:50', end: '12:40', name: '4限' },
-  'lunch': { start: '12:40', end: '13:25', name: '昼休み' }, // 名称変更
-  '5': { start: '13:25', end: '14:15', name: '5限' },
-  '6': { start: '14:25', end: '15:15', name: '6限' },
-  '7': { start: '15:25', end: '16:15', name: '7限' },
-  'after': { start: '16:25', end: '18:00', name: '放課後' }
-};
-
 // 時限から日時を作成するヘルパー関数
 export function createDateTimeFromPeriod(dateStr: string, period: string) {
-  const times = periodTimeMap[period as keyof typeof periodTimeMap];
-  if (!times) return null;
-  
-  const startDateTime = new Date(`${dateStr}T${times.start}:00`);
-  const endDateTime = new Date(`${dateStr}T${times.end}:00`);
-  
-  return {
-    start: startDateTime,
-    end: endDateTime,
-    periodName: times.name
-  };
+  return createDTFromPeriod(dateStr, period);
 }
 
-// 時限の順序
-export const PERIOD_ORDER = ['0','1','2','3','4','lunch','5','6','7','after'] as const;
-export type PeriodKey = typeof PERIOD_ORDER[number];
+// 順序・型を utils/periods から再エクスポート（後方互換）
+export const periodTimeMap = PERIOD_TIME_MAP;
+export const PERIOD_ORDER = PERIOD_ORDER_CONST;
+export type PeriodKey = typeof PERIOD_ORDER_CONST[number];

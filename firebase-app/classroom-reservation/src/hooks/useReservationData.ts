@@ -1,6 +1,7 @@
 // 予約データ管理用カスタムフック
 import { useState, useEffect, useCallback } from 'react';
 import { roomsService, reservationsService, Room, Reservation, ReservationSlot } from '../firebase/firestore';
+import { dayRange } from '../utils/dateRange';
 import { AuthUser } from '../firebase/auth';
 
 export const useReservationData = (currentUser: AuthUser | null, selectedDate?: string) => {
@@ -38,10 +39,7 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
     try {
       console.log('🔍 loadReservationsForDate: 開始', date);
       setLoading(true);
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0); // 00:00:00から開始
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const { start: startOfDay, end: endOfDay } = dayRange(date);
       
       console.log('🔍 loadReservationsForDate: 検索範囲', { startOfDay, endOfDay });
       

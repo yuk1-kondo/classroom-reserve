@@ -1,6 +1,7 @@
 // 重複チェック用カスタムフック
 import { useState, useCallback, useRef } from 'react';
 import { reservationsService } from '../firebase/firestore';
+import { dayRange } from '../utils/dateRange';
 import { displayLabel } from '../utils/periodLabel';
 
 const debug = (...args: any[]) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
@@ -42,10 +43,7 @@ export const useConflictDetection = () => {
         debug(`🔍 ${date}の重複チェック開始`);
         
         // その日の予約を取得
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0); // 00:00:00から開始
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+  const { start: startOfDay, end: endOfDay } = dayRange(date);
         
         debug(`🔍 検索範囲: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
         

@@ -1,6 +1,8 @@
-import { collection, doc, getDocs, runTransaction, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, runTransaction, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { db } from './config';
 import { WeeklyTemplate } from './recurringTemplates';
+import { makeSlotId } from '../utils/slot';
+import { toDateStr } from '../utils/dateRange';
 
 const RESERVATION_SLOTS_COLLECTION = 'reservation_slots';
 const TEMPLATES_COLLECTION = 'recurring_templates';
@@ -20,12 +22,7 @@ function toDate(dateStr: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function toDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+// toDateStr は utils/dateRange の共通実装を使用
 
 export async function listEnabledTemplates(): Promise<WeeklyTemplate[]> {
   const snap = await getDocs(collection(db, TEMPLATES_COLLECTION));
@@ -53,7 +50,7 @@ export async function applyTemplateLocks(rangeStart: string, rangeEnd: string, c
 
       const dateStr = toDateStr(d);
       for (const p of tpl.periods) {
-        const slotId = `${tpl.roomId}_${dateStr}_${p}`;
+        const slotId = makeSlotId(tpl.roomId, dateStr, p);
         const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
         const result = await runTransaction(db, async (tx) => {
           const snap = await tx.get(slotRef);
@@ -77,4 +74,37 @@ export async function applyTemplateLocks(rangeStart: string, rangeEnd: string, c
     }
   }
   return { created, skipped };
+}
+
+// 指定範囲のテンプレロックを削除
+export async function removeTemplateLocks(
+  rangeStart: string,
+  rangeEnd: string,
+  opts?: { roomId?: string; templateId?: string }
+): Promise<{ deleted: number }> {
+  const conditions = [
+    where('date', '>=', rangeStart),
+    where('date', '<=', rangeEnd),
+    where('type', '==', 'template-lock')
+  ];
+  if (opts?.roomId) conditions.push(where('roomId', '==', opts.roomId));
+  if (opts?.templateId) conditions.push(where('templateId', '==', opts.templateId));
+
+  const q = query(collection(db, RESERVATION_SLOTS_COLLECTION), ...conditions as any);
+  const snap = await getDocs(q);
+  if (snap.empty) return { deleted: 0 };
+
+  let deleted = 0;
+  let batch = writeBatch(db);
+  let ops = 0;
+  for (const d of snap.docs) {
+    batch.delete(d.ref);
+    ops++; deleted++;
+    if (ops >= 450) {
+      await batch.commit();
+      batch = writeBatch(db); ops = 0;
+    }
+  }
+  if (ops > 0) await batch.commit();
+  return { deleted };
 }

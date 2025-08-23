@@ -6,7 +6,7 @@ export type WeeklyTemplate = {
   name: string; // 表示名
   roomId: string; // 教室ID
   weekday: number; // 0(日)〜6(土)
-  periods: number[]; // コマ番号の配列（例: [1,2]）
+  periods: (number | string)[]; // コマキーの配列（例: 0,1,2, lunch, after）
   startDate: string; // yyyy-mm-dd（適用開始）
   endDate?: string; // yyyy-mm-dd（任意、適用終了）
   createdBy: string;

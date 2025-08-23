@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { recurringTemplatesService, WeeklyTemplate } from '../../firebase/recurringTemplates';
+import { PERIOD_ORDER, periodTimeMap } from '../../utils/periods';
 import './RecurringTemplatesManager.css';
 
 type Props = {
@@ -17,6 +18,13 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
   const [error, setError] = useState<string | null>(null);
 
   const roomMap = useMemo(() => Object.fromEntries(roomOptions.map(r => [r.id, r.name])), [roomOptions]);
+
+    const formatPeriods = (periods: (number|string)[]) =>
+      periods.map(p => {
+        const k = String(p) as keyof typeof periodTimeMap;
+        if (periodTimeMap[k]) return periodTimeMap[k].name;
+        return /^\d+$/.test(String(p)) ? `${p}限` : String(p);
+      }).join(', ');
 
   const load = async () => {
     setLoading(true);
@@ -113,7 +121,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
                 <td>{it.name}</td>
                 <td>{roomMap[it.roomId] || it.roomId}</td>
                 <td>{weekdays[it.weekday]}</td>
-                <td>{it.periods.join(', ')}</td>
+                <td>{formatPeriods(it.periods)}</td>
                 <td>{it.startDate}{it.endDate ? ` 〜 ${it.endDate}` : ''}</td>
                 <td>{it.enabled ? '有効' : '無効'}</td>
                 <td className="rtm-actions">
@@ -150,10 +158,29 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
           </div>
           <div className="form-row">
             <label>コマ</label>
-            <input placeholder="例: 1,2" value={editing.periods.join(',')} onChange={e => {
-              const arr = e.target.value.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-              setEditing({ ...editing, periods: arr });
-            }} />
+            <div className="period-toggle-grid">
+              {PERIOD_ORDER.map(key => (
+                <label key={key} className={`toggle ${editing.periods.map(String).includes(String(key)) ? 'on' : 'off'}`}>
+                  <input
+                    type="checkbox"
+                    checked={editing.periods.map(String).includes(String(key))}
+                    onChange={(e) => {
+                      const strPeriods = editing.periods.map(String);
+                      let next: (number|string)[];
+                      if (e.target.checked) {
+                        next = [...strPeriods, String(key)];
+                      } else {
+                        next = strPeriods.filter(p => p !== String(key));
+                      }
+                      // 数値に戻せるものは数値で保持
+                      const normalized = next.map(p => (/^\d+$/.test(String(p)) ? Number(p) : String(p)) as (number|string));
+                      setEditing({ ...editing, periods: normalized });
+                    }}
+                  />
+                  <span>{periodTimeMap[key].name}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="form-row">
             <label>開始日</label>

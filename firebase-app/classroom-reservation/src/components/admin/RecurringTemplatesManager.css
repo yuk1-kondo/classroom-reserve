@@ -7,3 +7,24 @@
 .rtm-editor .form-row { display: flex; flex-direction: column; }
 .rtm-error { color: #b00020; margin: 8px 0; }
 .rtm-loading { color: #555; margin: 8px 0; }
+
+.period-toggle-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+	gap: 8px;
+}
+.period-toggle-grid .toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	border: 1px solid #e5e7eb;
+	border-radius: 6px;
+	cursor: pointer;
+	user-select: none;
+}
+.period-toggle-grid .toggle.on {
+	background: #eef2ff;
+	border-color: #6366f1;
+}
+.period-toggle-grid .toggle input { display: none; }
