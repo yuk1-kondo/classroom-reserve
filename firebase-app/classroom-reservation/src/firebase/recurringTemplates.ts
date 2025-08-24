@@ -14,6 +14,8 @@ function migrateTemplateData(data: any): WeeklyTemplateExtended {
     priority: data.priority || DEFAULTS.TEMPLATE_PRIORITY,
     category: data.category || DEFAULTS.TEMPLATE_CATEGORY,
     forceOverride: data.forceOverride || DEFAULTS.FORCE_OVERRIDE,
+    // 複数曜日選択のデフォルト値（既存データは単一曜日として扱う）
+    weekdays: data.weekdays || (data.weekday !== undefined ? [data.weekday] : [1]),
     // 既存フィールドはそのまま保持
     id: data.id,
     name: data.name,
@@ -64,6 +66,8 @@ export const recurringTemplatesService = {
       priority: t.priority || DEFAULTS.TEMPLATE_PRIORITY,
       category: t.category || DEFAULTS.TEMPLATE_CATEGORY,
       forceOverride: t.forceOverride || DEFAULTS.FORCE_OVERRIDE,
+      // 複数曜日選択のデフォルト値
+      weekdays: t.weekdays || (t.weekday !== undefined ? [t.weekday] : [1]),
     };
     
     const payload = sanitize({

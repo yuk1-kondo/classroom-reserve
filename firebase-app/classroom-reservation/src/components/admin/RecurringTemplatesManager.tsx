@@ -17,6 +17,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<WeeklyTemplate | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const roomMap = useMemo(() => Object.fromEntries(roomOptions.map(r => [r.id, r.name])), [roomOptions]);
 
@@ -47,6 +48,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
       name: '',
       roomId: roomOptions[0]?.id || '',
       weekday: 1,
+      weekdays: [1], // デフォルトで月曜日を選択
       periods: [],
       startDate: new Date().toISOString().slice(0,10),
       endDate: undefined,
@@ -110,6 +112,81 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
     }
   };
 
+  // 選択状態の管理
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const selectAll = () => {
+    if (selectedItems.size === items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(items.map(item => item.id!)));
+    }
+  };
+
+  // 統合アクション
+  const handleEdit = () => {
+    const selectedArray = Array.from(selectedItems);
+    if (selectedArray.length !== 1) {
+      alert('編集するには1つの項目を選択してください');
+      return;
+    }
+    const item = items.find(it => it.id === selectedArray[0]);
+    if (item) setEditing(item);
+  };
+
+  const handleDelete = () => {
+    if (selectedItems.size === 0) {
+      alert('削除する項目を選択してください');
+      return;
+    }
+    if (!window.confirm(`選択された${selectedItems.size}件のテンプレートを削除しますか？`)) return;
+    
+    setLoading(true);
+    setError(null);
+    Promise.all(Array.from(selectedItems).map(id => recurringTemplatesService.remove(id)))
+      .then(() => {
+        setSelectedItems(new Set());
+        return load();
+      })
+      .catch((e: any) => {
+        setError(e?.message || '削除に失敗しました');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  const handleRemoveLocks = () => {
+    if (selectedItems.size === 0) {
+      alert('固定予約を削除する項目を選択してください');
+      return;
+    }
+    if (!window.confirm(`選択された${selectedItems.size}件のテンプレートの固定予約を削除しますか？`)) return;
+    
+    setLoading(true);
+    setError(null);
+    Promise.all(Array.from(selectedItems).map(id => removeTemplateLocksByTemplate(id)))
+      .then((results) => {
+        const totalDeleted = results.reduce((sum, result) => sum + result.deleted, 0);
+        alert(`${totalDeleted}件の固定予約を削除しました`);
+        setSelectedItems(new Set());
+      })
+      .catch((e: any) => {
+        setError(e?.message || '固定予約の削除に失敗しました');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   return (
     <div className="rtm-wrap">
       <div className="rtm-header">
@@ -123,50 +200,81 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
       {loading && <div className="rtm-loading">読み込み中…</div>}
 
       {!editing && (
-        <table className="rtm-table">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>教室</th>
-              <th>曜日</th>
-              <th>時限</th>
-              <th>期間</th>
-              <th>優先度</th>
-              <th>カテゴリ</th>
-              <th>状態</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(it => (
-              <tr key={it.id}>
-                <td>{it.name}</td>
-                <td>{roomMap[it.roomId] || it.roomId}</td>
-                <td>{weekdays[it.weekday]}</td>
-                <td>{formatPeriods(it.periods)}</td>
-                <td>{it.startDate}{it.endDate ? ` 〜 ${it.endDate}` : ''}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>{it.enabled ? '有効' : '無効'}</td>
-                <td className="rtm-actions">
-                  {isAdmin && (
-                    <>
-                      <button onClick={() => setEditing(it)}>編集</button>
-                      <button onClick={() => remove(it.id)}>削除</button>
-                      <button 
-                        onClick={() => removeTemplateLocks(it.id!)} 
-                        className="remove-locks-button"
-                        title="このテンプレートで作成された固定予約を削除"
-                      >
-                        固定予約削除
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {/* 統合アクションボタン */}
+          <div className="rtm-actions-bar">
+            <div className="rtm-selection-info">
+              選択中: {selectedItems.size}件
+            </div>
+            <div className="rtm-action-buttons">
+              <button 
+                onClick={handleEdit} 
+                disabled={selectedItems.size !== 1 || !isAdmin}
+                title="選択されたテンプレートを編集"
+              >
+                編集
+              </button>
+              <button 
+                onClick={handleDelete} 
+                disabled={selectedItems.size === 0 || !isAdmin}
+                title="選択されたテンプレートを削除"
+              >
+                削除
+              </button>
+              <button 
+                onClick={handleRemoveLocks} 
+                disabled={selectedItems.size === 0 || !isAdmin}
+                className="remove-locks-button"
+                title="選択されたテンプレートの固定予約を削除"
+              >
+                固定予約削除
+              </button>
+            </div>
+          </div>
+
+          <div className="rtm-table-container">
+            <table className="rtm-table">
+              <thead>
+                <tr>
+                  <th>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedItems.size === items.length && items.length > 0}
+                      onChange={selectAll}
+                      title="すべて選択/選択解除"
+                    />
+                  </th>
+                  <th>名称</th>
+                  <th>教室</th>
+                  <th>曜日</th>
+                  <th>時限</th>
+                  <th>期間</th>
+                  <th>状態</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(it => (
+                  <tr key={it.id} className={selectedItems.has(it.id!) ? 'selected' : ''}>
+                    <td>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedItems.has(it.id!)}
+                        onChange={() => toggleSelection(it.id!)}
+                        title={`${it.name}を選択`}
+                      />
+                    </td>
+                    <td>{it.name}</td>
+                    <td>{roomMap[it.roomId] || it.roomId}</td>
+                    <td>{(it.weekdays || [it.weekday]).map(w => weekdays[w]).join(', ')}</td>
+                    <td>{formatPeriods(it.periods)}</td>
+                    <td>{it.startDate}{it.endDate ? ` 〜 ${it.endDate}` : ''}</td>
+                    <td>{it.enabled ? '有効' : '無効'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {editing && (
@@ -183,9 +291,33 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
           </div>
           <div className="form-row">
             <label>曜日</label>
-            <select value={editing.weekday} onChange={e => setEditing({ ...editing, weekday: Number(e.target.value) })}>
-              {weekdays.map((w, i) => <option key={i} value={i}>{w}</option>)}
-            </select>
+            <div className="weekday-toggle-grid">
+              {weekdays.map((w, i) => (
+                <label key={i} className={`toggle ${editing.weekdays?.includes(i) ? 'on' : 'off'}`}>
+                  <input
+                    type="checkbox"
+                    checked={editing.weekdays?.includes(i) || false}
+                    onChange={(e) => {
+                      const currentWeekdays = editing.weekdays || [editing.weekday];
+                      let next: number[];
+                      if (e.target.checked) {
+                        next = [...currentWeekdays, i];
+                      } else {
+                        next = currentWeekdays.filter(w => w !== i);
+                      }
+                      // 最低1つは選択されている必要がある
+                      if (next.length === 0) next = [editing.weekday];
+                      setEditing({ 
+                        ...editing, 
+                        weekdays: next,
+                        weekday: next[0] // 後方互換性のため最初の曜日を設定
+                      });
+                    }}
+                  />
+                  <span>{w}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="form-row">
             <label>時限</label>

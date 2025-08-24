@@ -1,12 +1,20 @@
 .rtm-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
-.rtm-modal{background:#fff;max-width:1100px;width:96%;max-height:90vh;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
-.rtm-modal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eee}
-.rtm-modal-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px;overflow:auto}
-.rtm-pane{border:1px solid #eee;border-radius:8px;padding:10px}
-.close-btn{background:transparent;border:none;font-size:20px;cursor:pointer}
-.form-row{display:flex;flex-direction:column;margin:8px 0}
-.hint{color:#666;font-size:12px;margin-top:4px}
-.actions{margin-top:8px}
-.actions button{padding:6px 12px}
-.msg{margin-top:8px}
-.note{color:#666;font-size:12px;margin-top:4px}
+.rtm-modal{background:#fff;max-width:1200px;width:96%;max-height:75vh;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
+.rtm-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #eee;flex-shrink:0}
+.rtm-modal-header h3{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
+.close-btn{background:transparent;border:none;font-size:24px;cursor:pointer;padding:4px 8px;border-radius:4px;color:#666;transition:all 0.2s}
+.close-btn:hover{background:#f0f0f0;color:#333}
+.rtm-modal-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px;overflow:hidden;flex:1;min-height:0}
+.rtm-pane{border:1px solid #eee;border-radius:8px;padding:16px;display:flex;flex-direction:column;overflow:hidden}
+.rtm-pane h4{margin:0 0 16px 0;font-size:16px;font-weight:600;flex-shrink:0}
+.form-row{display:flex;flex-direction:column;margin:12px 0;flex-shrink:0}
+.form-row label{font-weight:500;margin-bottom:4px;color:#333}
+.form-row input{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;font-size:14px;box-sizing:border-box}
+.form-row input[type="date"]{min-height:38px}
+.hint{color:#666;font-size:12px;margin-top:4px;flex-shrink:0}
+.actions{margin-top:12px;flex-shrink:0}
+.actions button{padding:8px 16px;margin-right:8px;border:1px solid #007bff;background:#007bff;color:white;border-radius:4px;cursor:pointer;font-size:14px}
+.actions button:hover{background:#0056b3}
+.actions button:disabled{background:#ccc;border-color:#ccc;cursor:not-allowed}
+.msg{margin-top:8px;padding:8px;border-radius:4px;background:#f8f9fa;border:1px solid #e9ecef;flex-shrink:0}
+.note{color:#666;font-size:12px;margin-top:8px;line-height:1.4;flex-shrink:0}

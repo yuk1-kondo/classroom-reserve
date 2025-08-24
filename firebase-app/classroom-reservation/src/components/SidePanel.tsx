@@ -17,7 +17,6 @@ import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
 import { authService } from '../firebase/auth';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
-import BulkTemplateManager from './admin/BulkTemplateManager';
 
 
 interface SidePanelProps {
@@ -75,7 +74,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [csvMessage, setCsvMessage] = useState('');
   const [debugMode, setDebugMode] = useState(false);
-  const [showBulkTemplates, setShowBulkTemplates] = useState(false);
+
   
   // 管理者権限チェック（共通ロジックに統一）
   const isAdmin = authService.isAdmin();
@@ -441,9 +440,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   roomOptions={roomOptions}
                 />
               </div>
-              <div style={{ marginTop: 12 }}>
-                <button className="admin-btn" onClick={() => setShowBulkTemplates(true)}>年度・学期別一括適用</button>
-              </div>
 
               <div className="admin-functions">
                 <button 
@@ -527,23 +523,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         </div>
       )}
 
-      {/* 一括適用モーダル */}
-      {showBulkTemplates && (
-        <div className="modal-overlay" onClick={() => setShowBulkTemplates(false)}>
-          <div className="modal-content bulk-modal" onClick={(e) => e.stopPropagation()}>
-            <BulkTemplateManager
-              isAdmin={isAdmin}
-              currentUserId={currentUser?.uid}
-            />
-            <button 
-              className="modal-close-btn"
-              onClick={() => setShowBulkTemplates(false)}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
+
 
 
     </div>

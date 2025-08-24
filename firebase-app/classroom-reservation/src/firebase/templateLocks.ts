@@ -10,6 +10,7 @@ import { ConflictResolutionService } from '../services/conflictResolutionService
 
 
 const RESERVATION_SLOTS_COLLECTION = COLLECTIONS.RESERVATION_SLOTS;
+
 const TEMPLATES_COLLECTION = COLLECTIONS.RECURRING_TEMPLATES;
 
 function iterateDates(start: Date, end: Date): Date[] {
@@ -153,7 +154,9 @@ export async function applyTemplatesAsReservations(
     const tplEnd = tpl.endDate ? toDate(tpl.endDate) : undefined;
 
     for (const d of iterateDates(start, end)) {
-      if (d.getDay() !== tpl.weekday) continue;
+      // 複数曜日対応: weekdaysがあればそれを使用、なければweekdayを使用
+      const targetWeekdays = tpl.weekdays || [tpl.weekday];
+      if (!targetWeekdays.includes(d.getDay())) continue;
       if (d < tplStart) continue;
       if (tplEnd && d > tplEnd) continue;
 
