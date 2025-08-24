@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { recurringTemplatesService, WeeklyTemplate } from '../../firebase/recurringTemplates';
+import { removeTemplateLocksByTemplate } from '../../firebase/templateLocks';
 import { PERIOD_ORDER, periodTimeMap } from '../../utils/periods';
 import './RecurringTemplatesManager.css';
 
@@ -19,12 +20,12 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
 
   const roomMap = useMemo(() => Object.fromEntries(roomOptions.map(r => [r.id, r.name])), [roomOptions]);
 
-    const formatPeriods = (periods: (number|string)[]) =>
-      periods.map(p => {
-        const k = String(p) as keyof typeof periodTimeMap;
-        if (periodTimeMap[k]) return periodTimeMap[k].name;
-        return /^\d+$/.test(String(p)) ? `${p}限` : String(p);
-      }).join(', ');
+  const formatPeriods = (periods: (number|string)[]) =>
+    periods.map(p => {
+      const k = String(p) as keyof typeof periodTimeMap;
+      if (periodTimeMap[k]) return periodTimeMap[k].name;
+      return /^\d+$/.test(String(p)) ? `${p}限` : String(p);
+    }).join(', ');
 
   const load = async () => {
     setLoading(true);
@@ -51,6 +52,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
       endDate: undefined,
       createdBy: currentUserId || 'unknown',
       enabled: true,
+      // 余分な項目はもたせない
     });
   };
 
@@ -77,7 +79,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
   const remove = async (id?: string) => {
     if (!id) return;
     if (!isAdmin) { setError('管理者のみ削除できます'); return; }
-  if (!window.confirm('このテンプレートを削除しますか？')) return;
+    if (!window.confirm('このテンプレートを削除しますか？')) return;
     setLoading(true);
     setError(null);
     try {
@@ -85,6 +87,24 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
       await load();
     } catch (e: any) {
       setError(e?.message || '削除に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 新規追加: テンプレートの固定予約を削除
+  const removeTemplateLocks = async (templateId: string) => {
+    if (!isAdmin) { setError('管理者のみ削除できます'); return; }
+    if (!window.confirm('このテンプレートで作成された固定予約を削除しますか？\n\n※テンプレート自体は削除されません')) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await removeTemplateLocksByTemplate(templateId);
+      setError(null);
+      alert(`${result.deleted}件の固定予約を削除しました`);
+    } catch (e: any) {
+      setError(e?.message || '固定予約の削除に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -109,8 +129,10 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
               <th>名称</th>
               <th>教室</th>
               <th>曜日</th>
-              <th>コマ</th>
+              <th>時限</th>
               <th>期間</th>
+              <th>優先度</th>
+              <th>カテゴリ</th>
               <th>状態</th>
               <th></th>
             </tr>
@@ -123,12 +145,21 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
                 <td>{weekdays[it.weekday]}</td>
                 <td>{formatPeriods(it.periods)}</td>
                 <td>{it.startDate}{it.endDate ? ` 〜 ${it.endDate}` : ''}</td>
+                <td>-</td>
+                <td>-</td>
                 <td>{it.enabled ? '有効' : '無効'}</td>
                 <td className="rtm-actions">
                   {isAdmin && (
                     <>
                       <button onClick={() => setEditing(it)}>編集</button>
                       <button onClick={() => remove(it.id)}>削除</button>
+                      <button 
+                        onClick={() => removeTemplateLocks(it.id!)} 
+                        className="remove-locks-button"
+                        title="このテンプレートで作成された固定予約を削除"
+                      >
+                        固定予約削除
+                      </button>
                     </>
                   )}
                 </td>
@@ -157,7 +188,7 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
             </select>
           </div>
           <div className="form-row">
-            <label>コマ</label>
+            <label>時限</label>
             <div className="period-toggle-grid">
               {PERIOD_ORDER.map(key => (
                 <label key={key} className={`toggle ${editing.periods.map(String).includes(String(key)) ? 'on' : 'off'}`}>
@@ -182,20 +213,23 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
               ))}
             </div>
           </div>
+          {/* 不要オプションは撤去（固定予約はシンプル運用） */}
+
           <div className="form-row">
-            <label>開始日</label>
-            <input type="date" value={editing.startDate} onChange={e => setEditing({ ...editing, startDate: e.target.value })} />
+            <label>開始日（適用範囲）</label>
+            <input 
+              type="date" 
+              value={editing.startDate} 
+              onChange={e => setEditing({ ...editing, startDate: e.target.value })}
+            />
           </div>
           <div className="form-row">
-            <label>終了日</label>
-            <input type="date" value={editing.endDate || ''} onChange={e => setEditing({ ...editing, endDate: e.target.value || undefined })} />
-          </div>
-          <div className="form-row">
-            <label>状態</label>
-            <select value={editing.enabled ? '1' : '0'} onChange={e => setEditing({ ...editing, enabled: e.target.value === '1' })}>
-              <option value="1">有効</option>
-              <option value="0">無効</option>
-            </select>
+            <label>終了日（適用範囲）</label>
+            <input 
+              type="date" 
+              value={editing.endDate || ''} 
+              onChange={e => setEditing({ ...editing, endDate: e.target.value || undefined })}
+            />
           </div>
           <div className="rtm-editor-actions">
             <button onClick={() => setEditing(null)}>キャンセル</button>

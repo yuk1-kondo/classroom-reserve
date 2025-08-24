@@ -2,7 +2,30 @@
 .rtm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .rtm-table { width: 100%; border-collapse: collapse; }
 .rtm-table th, .rtm-table td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
-.rtm-actions button { margin-right: 6px; }
+.rtm-actions button { 
+  margin-right: 6px; 
+  padding: 4px 8px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.rtm-actions button:hover {
+  background: #0056b3;
+}
+
+.rtm-actions .remove-locks-button {
+  background: #dc3545;
+  font-size: 11px;
+  padding: 3px 6px;
+}
+
+.rtm-actions .remove-locks-button:hover {
+  background: #c82333;
+}
 .rtm-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
 .rtm-editor .form-row { display: flex; flex-direction: column; }
 .rtm-error { color: #b00020; margin: 8px 0; }
@@ -21,6 +44,7 @@
 	border: 1px solid #e5e7eb;
 	border-radius: 6px;
 	cursor: pointer;
+	-webkit-user-select: none;
 	user-select: none;
 }
 .period-toggle-grid .toggle.on {

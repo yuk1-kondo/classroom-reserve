@@ -1,26 +1,39 @@
 {
-  // Example:
-  //
-  // "indexes": [
-  //   {
-  //     "collectionGroup": "widgets",
-  //     "queryScope": "COLLECTION",
-  //     "fields": [
-  //       { "fieldPath": "foo", "arrayConfig": "CONTAINS" },
-  //       { "fieldPath": "bar", "mode": "DESCENDING" }
-  //     ]
-  //   },
-  //
-  //  "fieldOverrides": [
-  //    {
-  //      "collectionGroup": "widgets",
-  //      "fieldPath": "baz",
-  //      "indexes": [
-  //        { "order": "ASCENDING", "queryScope": "COLLECTION" }
-  //      ]
-  //    },
-  //   ]
-  // ]
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "reservation_slots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "mode": "ASCENDING" },
+        { "fieldPath": "type", "mode": "ASCENDING" },
+        { "fieldPath": "roomId", "mode": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservation_slots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "mode": "ASCENDING" },
+        { "fieldPath": "type", "mode": "ASCENDING" },
+        { "fieldPath": "templateId", "mode": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "startTime", "mode": "ASCENDING" },
+        { "fieldPath": "roomId", "mode": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "startTime", "mode": "ASCENDING" },
+        { "fieldPath": "createdBy", "mode": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

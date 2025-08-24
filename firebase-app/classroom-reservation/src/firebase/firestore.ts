@@ -189,13 +189,21 @@ export const reservationsService = {
       const periods = this._periods(fixed.period);
 
   await runTransaction(db, async (tx: Transaction) => {
-        // スロット存在チェック
+        // スロット存在チェック（テンプレートロックは無視）
         for (const p of periods) {
           const slotId = makeSlotId(fixed.roomId, dateStr, p);
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           const slotSnap = await tx.get(slotRef);
           if (slotSnap.exists()) {
-            throw new Error('同じ教室・時限の予約が既に存在します');
+            const slotData = slotSnap.data() as ReservationSlot;
+            // テンプレートロック（type: "template-lock"）は無視
+            if (slotData.type === 'template-lock') {
+              console.log(`🔓 テンプレートロックを上書き: ${slotId}`);
+              // テンプレートロックを削除
+              tx.delete(slotRef);
+            } else {
+              throw new Error('同じ教室・時限の予約が既に存在します');
+            }
           }
         }
 

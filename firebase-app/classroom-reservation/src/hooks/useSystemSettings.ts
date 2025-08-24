@@ -5,7 +5,7 @@ import { systemSettingsService, calcMaxDateFromMonths } from '../firebase/settin
 export const useSystemSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [limitMonths, setLimitMonths] = useState<number>(3); // 既定3ヶ月
+  const [limitMonths, setLimitMonths] = useState<number>(3); // 互換のため保持（UIでは使用しない）
   const [maxDate, setMaxDate] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export const useSystemSettings = () => {
         if (s?.reservationMaxTimestamp) {
           setMaxDate(s.reservationMaxTimestamp.toDate());
         } else {
+          // 後方互換: 月数がある場合はそこから最大日付を推定
           setMaxDate(calcMaxDateFromMonths(months));
         }
       } catch (e: any) {

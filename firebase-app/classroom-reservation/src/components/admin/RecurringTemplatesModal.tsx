@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
-import { applyTemplateLocks, removeTemplateLocks } from '../../firebase/templateLocks';
+import { applyTemplateLocks, removeTemplateLocks, applyTemplatesAsReservations } from '../../firebase/templateLocks';
 import './RecurringTemplatesModal.css';
 
 interface Props {
@@ -43,8 +43,9 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     setBusy(true);
     setMessage('テンプレートを適用中...');
     try {
-      const res = await applyTemplateLocks(rangeStart, rangeEnd, currentUserId);
-      setMessage(`✅ ロック生成完了: 追加 ${res.created} / 既存 ${res.skipped}`);
+      // 通常予約として作成（カレンダーに表示され、手動削除可能）
+      const res = await applyTemplatesAsReservations(rangeStart, rangeEnd, currentUserId, { forceOverride: false });
+      setMessage(`✅ 予約作成完了: 追加 ${res.created} / 既存 ${res.skipped}`);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
@@ -88,7 +89,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <RecurringTemplatesManager isAdmin={isAdmin} currentUserId={currentUserId} roomOptions={roomOptions} />
           </div>
           <div className="rtm-pane">
-            <h4>テンプレート適用（ロック生成）</h4>
+            <h4>テンプレート適用（予約作成）</h4>
             <div className="form-row">
               <label>開始日</label>
               <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
@@ -97,13 +98,13 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <label>終了日</label>
               <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} />
             </div>
-            <div className="hint">最大予約日: {maxDateStr ? maxDateStr : `（未設定: 約${limitMonths || 3}ヶ月先）`}</div>
+            <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
             <div className="actions" style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>ロック生成</button>
+              <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
-            <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>
+            <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
           </div>
         </div>
       </div>

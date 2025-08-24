@@ -145,9 +145,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     console.log('📅 日付クリック:', dateStr);
     // 上限超過はクリック時点でガード（validRangeでも多くは無効化されるが、保険で）
     if (maxDateStr && new Date(dateStr).getTime() > new Date(maxDateStr).getTime()) {
-      const msg = limitMonths
-        ? `予約は${limitMonths}ヶ月先（${maxDateStr}まで）に制限されています。`
-        : `この日は予約できません（上限: ${maxDateStr}）。`;
+      const msg = `設定した日付（${maxDateStr}）までしか予約できません。`;
       alert(msg);
       return;
     }

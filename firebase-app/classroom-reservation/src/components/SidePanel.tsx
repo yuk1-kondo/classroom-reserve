@@ -17,6 +17,8 @@ import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
 import { authService } from '../firebase/auth';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
+import BulkTemplateManager from './admin/BulkTemplateManager';
+
 
 interface SidePanelProps {
   selectedDate?: string;
@@ -55,9 +57,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     const dates = formHook.getReservationDates();
     const result = validateDatesWithinMax(dates, maxDateStr);
     if (!result.ok) {
-      const msg = limitMonths
-        ? `予約は${limitMonths}ヶ月先（${maxDateStr}まで）に制限されています。無効な日付: ${result.firstInvalid}`
-        : `予約は${maxDateStr}までに制限されています。無効な日付: ${result.firstInvalid}`;
+      const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
       alert(msg);
       return;
     }
@@ -75,6 +75,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [csvMessage, setCsvMessage] = useState('');
   const [debugMode, setDebugMode] = useState(false);
+  const [showBulkTemplates, setShowBulkTemplates] = useState(false);
   
   // 管理者権限チェック（共通ロジックに統一）
   const isAdmin = authService.isAdmin();
@@ -440,6 +441,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   roomOptions={roomOptions}
                 />
               </div>
+              <div style={{ marginTop: 12 }}>
+                <button className="admin-btn" onClick={() => setShowBulkTemplates(true)}>年度・学期別一括適用</button>
+              </div>
+
               <div className="admin-functions">
                 <button 
                   onClick={handleCsvExport}
@@ -521,6 +526,26 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* 一括適用モーダル */}
+      {showBulkTemplates && (
+        <div className="modal-overlay" onClick={() => setShowBulkTemplates(false)}>
+          <div className="modal-content bulk-modal" onClick={(e) => e.stopPropagation()}>
+            <BulkTemplateManager
+              isAdmin={isAdmin}
+              currentUserId={currentUser?.uid}
+            />
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowBulkTemplates(false)}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 };
