@@ -4,7 +4,7 @@ import { COLLECTIONS, SLOT_TYPES } from '../constants/collections';
 import { WeeklyTemplate, TemplatePriority } from '../types/templates';
 import { makeSlotId } from '../utils/slot';
 import { toDateStr } from '../utils/dateRange';
-import { reservationsService } from './firestore';
+import { reservationsService, roomsService } from './firestore';
 import { periodTimeMap as PERIOD_TIME_MAP, createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
 import { ConflictResolutionService } from '../services/conflictResolutionService';
 
@@ -143,6 +143,11 @@ export async function applyTemplatesAsReservations(
   const start = toDate(rangeStart);
   const end = toDate(rangeEnd);
   const templates = await listEnabledTemplates();
+  // 追加: roomId→roomName の補完マップ
+  const rooms = await roomsService.getAllRooms().catch(()=>[] as any[]);
+  const roomIdToName: Record<string,string> = Object.fromEntries(
+    (rooms || []).map((r: any) => [String(r.id || ''), String(r.name || '')])
+  );
 
   let created = 0;
   let skipped = 0;
@@ -188,7 +193,7 @@ export async function applyTemplatesAsReservations(
           title: tpl.name,
           reservationName: '管理者',
           roomId: tpl.roomId,
-          roomName: '',
+          roomName: roomIdToName[tpl.roomId] || tpl.roomId, // 空欄防止のため補完
           startTime,
           endTime,
           period: periodStr,

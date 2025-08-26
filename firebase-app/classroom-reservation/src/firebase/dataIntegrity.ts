@@ -2,7 +2,7 @@
 import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
 import { db } from './config';
 
-// マスターデータ定義
+// マスターデータ定義（写真の順番通り）
 export const MASTER_ROOMS = [
   { id: 'room-1', name: '小演習室1', capacity: 20, description: '少人数での演習・グループワーク向け' },
   { id: 'room-2', name: '小演習室2', capacity: 20, description: '少人数での演習・グループワーク向け' },

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { recurringTemplatesService, WeeklyTemplate } from '../../firebase/recurringTemplates';
+import { recurringTemplatesService, WeeklyTemplate, testFirestoreConnection } from '../../firebase/recurringTemplates';
 import { removeTemplateLocksByTemplate } from '../../firebase/templateLocks';
 import { PERIOD_ORDER, periodTimeMap } from '../../utils/periods';
 import './RecurringTemplatesManager.css';
@@ -32,6 +32,13 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
     setLoading(true);
     setError(null);
     try {
+      // Firestore接続テストを実行
+      const connectionTest = await testFirestoreConnection();
+      if (!connectionTest) {
+        setError('Firestore接続に失敗しました。ブラウザ拡張機能を無効化してください。');
+        return;
+      }
+      
       const list = await recurringTemplatesService.list();
       setItems(list);
     } catch (e: any) {
@@ -290,59 +297,64 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
             </select>
           </div>
           <div className="form-row">
-            <label>曜日</label>
-            <div className="weekday-toggle-grid">
-              {weekdays.map((w, i) => (
-                <label key={i} className={`toggle ${editing.weekdays?.includes(i) ? 'on' : 'off'}`}>
-                  <input
-                    type="checkbox"
-                    checked={editing.weekdays?.includes(i) || false}
-                    onChange={(e) => {
-                      const currentWeekdays = editing.weekdays || [editing.weekday];
-                      let next: number[];
-                      if (e.target.checked) {
-                        next = [...currentWeekdays, i];
-                      } else {
-                        next = currentWeekdays.filter(w => w !== i);
-                      }
-                      // 最低1つは選択されている必要がある
-                      if (next.length === 0) next = [editing.weekday];
-                      setEditing({ 
-                        ...editing, 
-                        weekdays: next,
-                        weekday: next[0] // 後方互換性のため最初の曜日を設定
-                      });
-                    }}
-                  />
-                  <span>{w}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="form-row">
-            <label>時限</label>
-            <div className="period-toggle-grid">
-              {PERIOD_ORDER.map(key => (
-                <label key={key} className={`toggle ${editing.periods.map(String).includes(String(key)) ? 'on' : 'off'}`}>
-                  <input
-                    type="checkbox"
-                    checked={editing.periods.map(String).includes(String(key))}
-                    onChange={(e) => {
-                      const strPeriods = editing.periods.map(String);
-                      let next: (number|string)[];
-                      if (e.target.checked) {
-                        next = [...strPeriods, String(key)];
-                      } else {
-                        next = strPeriods.filter(p => p !== String(key));
-                      }
-                      // 数値に戻せるものは数値で保持
-                      const normalized = next.map(p => (/^\d+$/.test(String(p)) ? Number(p) : String(p)) as (number|string));
-                      setEditing({ ...editing, periods: normalized });
-                    }}
-                  />
-                  <span>{periodTimeMap[key].name}</span>
-                </label>
-              ))}
+            <label>曜日・時限</label>
+            <div className="weekday-period-container">
+              <div className="weekday-section">
+                <div className="weekday-label">曜日:</div>
+                <div className="weekday-toggle-grid">
+                  {weekdays.map((w, i) => (
+                    <label key={i} className={`toggle weekday-toggle ${editing.weekdays?.includes(i) ? 'on' : 'off'}`}>
+                      <input
+                        type="checkbox"
+                        checked={editing.weekdays?.includes(i) || false}
+                        onChange={(e) => {
+                          const currentWeekdays = editing.weekdays || [editing.weekday];
+                          let next: number[];
+                          if (e.target.checked) {
+                            next = [...currentWeekdays, i];
+                          } else {
+                            next = currentWeekdays.filter(w => w !== i);
+                          }
+                          // 最低1つは選択されている必要がある
+                          if (next.length === 0) next = [editing.weekday];
+                          setEditing({ 
+                            ...editing, 
+                            weekdays: next,
+                            weekday: next[0] // 後方互換性のため最初の曜日を設定
+                          });
+                        }}
+                      />
+                      <span>{w}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="period-section">
+                <div className="period-label">時限:</div>
+                <div className="period-toggle-grid">
+                  {PERIOD_ORDER.map(key => (
+                    <label key={key} className={`toggle period-toggle ${editing.periods.map(String).includes(String(key)) ? 'on' : 'off'}`}>
+                      <input
+                        type="checkbox"
+                        checked={editing.periods.map(String).includes(String(key))}
+                        onChange={(e) => {
+                          const strPeriods = editing.periods.map(String);
+                          let next: (number|string)[];
+                          if (e.target.checked) {
+                            next = [...strPeriods, String(key)];
+                          } else {
+                            next = strPeriods.filter(p => p !== String(key));
+                          }
+                          // 数値に戻せるものは数値で保持
+                          const normalized = next.map(p => (/^\d+$/.test(String(p)) ? Number(p) : String(p)) as (number|string));
+                          setEditing({ ...editing, periods: normalized });
+                        }}
+                      />
+                      <span>{periodTimeMap[key].name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           {/* 不要オプションは撤去（固定予約はシンプル運用） */}

@@ -43,6 +43,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   // 予約上限設定の取得
   const { maxDateStr, limitMonths } = useSystemSettings();
 
+  // 教室名からカテゴリを判定
+  const classifyRoom = useCallback((roomName: string): string => {
+    if (!roomName) return 'room-cat-default';
+    if (/^小演習室/.test(roomName)) return 'room-cat-small';
+    if (/^大演習室/.test(roomName)) return 'room-cat-large';
+    if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
+    if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
+    if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
+    return 'room-cat-default';
+  }, []);
+
   // 各日のセルに「上限超過」のクラスを付与（表示はするが薄く）
   const dayCellClassNames = useCallback((arg: any) => {
     if (!maxDateStr) return [];
@@ -258,6 +269,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
           endTime: '18:30',
         }}
         events={events}
+        eventClassNames={(arg:any)=>[classifyRoom(arg.event.extendedProps?.roomName || '')]}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         datesSet={handleDatesSet}

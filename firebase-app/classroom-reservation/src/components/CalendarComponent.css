@@ -79,23 +79,35 @@
 }
 
 .fc-button {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: var(--color-surface);
+  border-color: var(--color-outline);
+  color: var(--color-on-surface);
+  box-shadow: none;
 }
 
 .fc-button:hover {
-  background-color: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
+  background-color: var(--color-surface-variant);
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface);
 }
 
-.fc-button:focus {
-  box-shadow: 0 0 0 0.2rem var(--color-primary-light);
+.fc-button:focus { box-shadow: var(--focus-ring); }
+
+/* Segmented active state */
+.fc-button.fc-button-active,
+.fc-button:active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
+
+/* Segment look */
+.fc-button-group .fc-button { border-radius: 6px; }
 
 .fc-event {
   border-radius: var(--radius-small);
-  padding: 1px 3px;
-  font-size: 11px;
+  padding: var(--event-padding, 2px 4px);
+  font-size: var(--event-font-size, 11px);
   line-height: 1.2;
   overflow: hidden;
   cursor: pointer;
@@ -273,6 +285,14 @@
   .fc-toolbar-title { font-size: 1.2em; }
   .is-mobile-cal .fc-daygrid-day-frame { min-height: 50px; }
 }
+
+/* === 教室カテゴリごとの配色 === */
+.room-cat-small  { background:#10B981 !important; border-color:#0E946C !important; color:#fff !important; }
+.room-cat-large  { background:#F59E0B !important; border-color:#C47E08 !important; color:#111 !important; }
+.room-cat-purple { background:#8B5CF6 !important; border-color:#6D28D9 !important; color:#fff !important; }
+.room-cat-blue   { background:#3B82F6 !important; border-color:#2563EB !important; color:#fff !important; }
+.room-cat-red    { background:#EF4444 !important; border-color:#DC2626 !important; color:#fff !important; }
+.room-cat-default{ background:#9CA3AF !important; border-color:#6B7280 !important; color:#fff !important; }
 
 @media (max-height: 700px) {
   .fc-toolbar { padding: 6px 10px; }

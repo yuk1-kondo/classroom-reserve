@@ -54,7 +54,7 @@ service cloud.firestore {
     }
 
     // 固定（毎週）予約テンプレート
-    match /recurring_templates/{templateId} {
+    match /weekly_templates/{templateId} {
       allow read: if true;
       allow write: if isAdmin();
     }

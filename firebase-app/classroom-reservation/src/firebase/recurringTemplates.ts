@@ -6,6 +6,28 @@ import { WeeklyTemplateExtended, TemplatePriority, TemplateCategory } from '../t
 // 既存のWeeklyTemplate型を新しい型に更新（後方互換性を保つ）
 export type WeeklyTemplate = WeeklyTemplateExtended;
 
+// Firestore接続テスト関数
+export const testFirestoreConnection = async () => {
+  try {
+    console.log('🔍 Firestore接続テスト開始...');
+    
+    // システム設定の読み取りテスト
+    const settingsRef = collection(db, 'system_settings');
+    const settingsSnap = await getDocs(settingsRef);
+    console.log('✅ システム設定読み取り成功:', settingsSnap.size, '件');
+    
+    // テンプレートコレクションの読み取りテスト
+    const templateRef = collection(db, COLLECTIONS.RECURRING_TEMPLATES);
+    const templateSnap = await getDocs(templateRef);
+    console.log('✅ テンプレート読み取り成功:', templateSnap.size, '件');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Firestore接続テスト失敗:', error);
+    return false;
+  }
+};
+
 // 既存のテンプレートデータを新しい型に変換するヘルパー
 function migrateTemplateData(data: any): WeeklyTemplateExtended {
   return {

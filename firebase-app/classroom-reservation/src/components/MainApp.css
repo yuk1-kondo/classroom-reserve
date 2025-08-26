@@ -10,16 +10,14 @@
 }
 
 .main-header {
-  /* 修正: レイアウト崩れ対策でflex設定/パディング復帰 */
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-lg) var(--spacing-xl);
-  /* 以前: グラデーション背景 → ロゴと色が被るためホワイトフラットに */
-  background: var(--color-header-bg);
-  border-bottom: 1px solid var(--color-header-border);
-  color: var(--color-header-text);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-outline);
+  color: var(--color-on-surface);
+  box-shadow: none;
 }
 
 .main-header h1 {
@@ -70,16 +68,7 @@
 }
 
 /* 調整: 白背景上でボタンの視認性を少し改善 */
-.toggle-panel-button {
-  background: rgba(255,255,255,0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255,255,255,0.35);
-}
-.toggle-panel-button:hover {
-  background: #ffffff;
-  color: var(--color-header-bg);
-  border-color: #ffffff;
-}
+/* remove alternate white-on-blue variant */
 
 /* 旧: 水色背景バッジ → シンプルなテキストのみへ */
 .system-info {
@@ -312,13 +301,18 @@
   .main-footer { background: var(--color-surface) !important; color: var(--color-on-surface-variant) !important; }
 }
 */
-/* 代替: ダークモードでもライト配色固定 */
+/* 代替: ダークモードでもライト配色固定（ヘッダーもフラットのまま） */
 @media (prefers-color-scheme: dark) {
   .main-app, .side-panel-section, .main-footer, .calendar-section .fc { 
     background: var(--color-background) !important; 
     color: var(--color-on-surface) !important; 
   }
-  .main-header { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%) !important; }
+  .main-header { 
+    background: var(--color-surface) !important; 
+    border-bottom: 1px solid var(--color-outline) !important;
+    color: var(--color-on-surface) !important; 
+    box-shadow: none !important;
+  }
 }
 
 .open-reserve-panel-btn {
