@@ -23,7 +23,8 @@ type PreviewItem = CsvRow & { roomId?: string; roomName?: string; error?: string
 const weekdaysJp = ['日','月','火','水','木','金','土'];
 
 function parseWeekday(cell: string): number | null {
-  const v = cell.trim();
+  const vRaw = (cell || '').replace(/^\ufeff/, '').trim(); // BOM除去
+  const v = vRaw.replace(/^"|"$/g, ''); // 囲みダブルクオート除去
   if (v === '') return null;
   // 数値 0-6
   if (/^\d+$/.test(v)) {
@@ -31,7 +32,7 @@ function parseWeekday(cell: string): number | null {
     return n >= 0 && n <= 6 ? n : null;
   }
   // 日本語一文字
-  const idx = weekdaysJp.indexOf(v);
+  const idx = weekdaysJp.indexOf(v.length > 1 && v.endsWith('曜日') ? v[0] : v);
   if (idx >= 0) return idx;
   // 英語表記
   const map: Record<string, number> = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
@@ -128,13 +129,16 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
     parse(text);
   };
 
+  const normalizeCell = (s: string) => (s || '').replace(/^\ufeff/, '').trim().replace(/^"|"$/g, '');
+
   const parse = (text: string) => {
-    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '' && !/^#/.test(l.trim()));
+    const cleaned = (text || '').replace(/^\ufeff/, '');
+    const lines = cleaned.split(/\r?\n/).filter(l => l.trim() !== '' && !/^#/.test(l.trim()));
     const result: PreviewItem[] = [];
     if (lines.length === 0) { setRows(result); return; }
 
     // ヘッダー対応: weekday/曜日, room/room_name/教室, periods/period/時限, title/entry/内容
-    const headerRaw = lines[0].split(',').map(s => s.trim());
+    const headerRaw = lines[0].split(',').map(normalizeCell);
     const header = headerRaw.map(s => s.toLowerCase());
     const hasHeader = header.length >= 3 && (
       header.includes('weekday') || header.includes('day') || header.includes('曜日')
@@ -159,7 +163,7 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
     for (let i = startIndex; i < lines.length; i++) {
       const idx = i;
       const line = lines[i];
-      const cols = line.split(',');
+      const cols = line.split(',').map(normalizeCell);
       if (cols.length < 3) { result.push({ weekday: -1 as any, roomKey: '', periods: [], error: `行${idx+1}: 列不足` }); continue; }
       const wdCol = hasHeader && wdIdxHeader >= 0 ? cols[wdIdxHeader] : cols[0];
       const roomCol = hasHeader && roomIdxHeader >= 0 ? cols[roomIdxHeader] : cols[1];
