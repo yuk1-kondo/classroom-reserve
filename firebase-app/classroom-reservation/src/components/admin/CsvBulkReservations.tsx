@@ -111,8 +111,35 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
   const [skipExisting, setSkipExisting] = useState<boolean>(true);
   const [rooms, setRooms] = useState<RoomOption[]>(roomOptions || []);
 
+  // ルーム名の正規化（①→1、②→2、全角数字→半角、前後空白除去）
+  const normalizeRoomName = (name: string): string => {
+    const circledToAscii: Record<string, string> = {
+      '①':'1','②':'2','③':'3','④':'4','⑤':'5','⑥':'6','⑦':'7','⑧':'8','⑨':'9','⑩':'10'
+    };
+    const fullToHalfDigits = (s: string) => s.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
+    const replaced = (name || '')
+      .replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, m => circledToAscii[m] || m)
+      .replace(/グローバル教室[\s]*No\.?/i, 'グローバル教室')
+      .replace(/\s+/g, '')
+      .trim();
+    return fullToHalfDigits(replaced);
+  };
+
   const roomMapById = useMemo(() => Object.fromEntries(rooms.map(r => [r.id, r.name])), [rooms]);
-  const roomIdByName = useMemo(() => Object.fromEntries(rooms.map(r => [r.name, r.id])), [rooms]);
+  // 名前の別表記も同じIDへ解決できるよう、正規化名でも引けるマップを作成
+  const roomIdByName = useMemo(() => {
+    const entries: [string, string][] = [];
+    for (const r of rooms) {
+      const original = (r.name || '').trim();
+      const canonical = normalizeRoomName(original);
+      entries.push([original, r.id]);
+      if (canonical !== original) entries.push([canonical, r.id]);
+      // グローバル教室① → グローバル教室1 の補助キー（冗長だが安全）
+      const numeric = original.replace('①','1').replace('②','2');
+      if (numeric !== original && numeric !== canonical) entries.push([numeric, r.id]);
+    }
+    return Object.fromEntries(entries);
+  }, [rooms]);
 
   const loadRoomsIfNeeded = async () => {
     if (rooms.length > 0) return;
@@ -170,7 +197,7 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
       const periodsCol = hasHeader && periodsIdxHeader >= 0 ? cols[periodsIdxHeader] : cols[2];
       const titleCol = hasHeader && titleIdxHeader >= 0 ? cols[titleIdxHeader] : (cols.length >= 4 ? cols.slice(3).join(',') : '');
       const wd = parseWeekday(wdCol);
-      const roomKey = (roomCol || '').trim();
+      const roomKey = normalizeRoomName((roomCol || ''));
       const periodsCell = (periodsCol || '').trim();
       const titleCell = (titleCol || '').trim();
       const periods = expandPeriods(periodsCell);
