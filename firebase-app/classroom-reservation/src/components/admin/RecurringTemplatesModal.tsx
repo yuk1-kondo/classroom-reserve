@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
-import { applyTemplateLocks, removeTemplateLocks, applyTemplatesAsReservations } from '../../firebase/templateLocks';
+import { applyTemplateLocks, removeTemplateLocks } from '../../firebase/templateLocks';
+import { applyTemplateReservations } from '../../firebase/templateReservations';
 import './RecurringTemplatesModal.css';
 
 interface Props {
@@ -24,7 +25,9 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [rangeStart, setRangeStart] = useState<string>(todayStr);
   const [rangeEnd, setRangeEnd] = useState<string>(defaultEnd);
   const [busy, setBusy] = useState(false);
+  const [busyReserve, setBusyReserve] = useState(false);
   const [message, setMessage] = useState<string>('');
+  const [messageReserve, setMessageReserve] = useState<string>('');
   const [busyRemove, setBusyRemove] = useState(false);
 
   if (!open) return null;
@@ -43,9 +46,8 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     setBusy(true);
     setMessage('テンプレートを適用中...');
     try {
-      // 通常予約として作成（カレンダーに表示され、手動削除可能）
-      const res = await applyTemplatesAsReservations(rangeStart, rangeEnd, currentUserId, { forceOverride: false });
-      setMessage(`✅ 予約作成完了: 追加 ${res.created} / 既存 ${res.skipped}`);
+      const res = await applyTemplateLocks(rangeStart, rangeEnd, currentUserId);
+      setMessage(`✅ ロック生成完了: 追加 ${res.created} / 既存 ${res.skipped}`);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
@@ -76,6 +78,27 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
   };
 
+  const handleApplyReservations = async () => {
+    if (!isAdmin) return;
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
+      alert('適用期間を正しく指定してください');
+      return;
+    }
+    setBusyReserve(true);
+    setMessageReserve('テンプレートから実予約を作成中...');
+    try {
+      const res = await applyTemplateReservations(rangeStart, rangeEnd, currentUserId);
+      setMessageReserve(`✅ 実予約生成: 作成 ${res.created} / 重複 ${res.skipped} / 失敗 ${res.errors}`);
+    } catch (e: any) {
+      console.error(e);
+      setMessageReserve(`❌ 失敗: ${e?.message || '不明なエラー'}`);
+    } finally {
+      setBusyReserve(false);
+      setTimeout(() => setMessageReserve(''), 7000);
+    }
+  };
+
+
   return (
     <div className="rtm-modal-backdrop">
       <div className="rtm-modal">
@@ -89,7 +112,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <RecurringTemplatesManager isAdmin={isAdmin} currentUserId={currentUserId} roomOptions={roomOptions} />
           </div>
           <div className="rtm-pane">
-            <h4>テンプレート適用（予約作成）</h4>
+            <h4>テンプレート適用（ロック生成）</h4>
             <div className="form-row">
               <label>開始日</label>
               <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
@@ -100,12 +123,29 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             </div>
             <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
             <div className="actions" style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
+              <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>ロック生成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
-            <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
+            <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>
           </div>
+          <div className="rtm-pane">
+            <h4>テンプレート適用（実予約生成）</h4>
+            <div className="form-row">
+              <label>開始日</label>
+              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
+            </div>
+            <div className="form-row">
+              <label>終了日</label>
+              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} />
+            </div>
+            <div className="hint">注: 実予約は従来の手動予約と同一の処理で作成されます（スロット重複は自動スキップ）。</div>
+            <div className="actions">
+              <button onClick={handleApplyReservations} disabled={!isAdmin || busyReserve}>実予約を作成</button>
+            </div>
+            {messageReserve && <div className="msg">{messageReserve}</div>}
+          </div>
+
         </div>
       </div>
     </div>
