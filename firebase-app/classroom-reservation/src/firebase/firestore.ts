@@ -432,6 +432,57 @@ export const reservationsService = {
       console.error('日別予約取得エラー:', error);
       throw error;
     }
+  },
+
+  // 期間内の予約を一括削除（オプションで roomId / createdBy で絞り込み）
+  async deleteReservationsInRange(
+    rangeStart: string,
+    rangeEnd: string,
+    opts?: { roomId?: string; createdBy?: string }
+  ): Promise<number> {
+    try {
+      const startDate = new Date(rangeStart);
+      const endDate = new Date(rangeEnd);
+      endDate.setHours(23, 59, 59, 999);
+
+      const conditions: any[] = [
+        where('startTime', '>=', Timestamp.fromDate(startDate)),
+        where('startTime', '<=', Timestamp.fromDate(endDate))
+      ];
+      if (opts?.roomId) conditions.push(where('roomId', '==', opts.roomId));
+      if (opts?.createdBy) conditions.push(where('createdBy', '==', opts.createdBy));
+
+      const q = query(collection(db, RESERVATIONS_COLLECTION), ...conditions as any);
+      const snap = await getDocs(q);
+      if (snap.empty) return 0;
+
+      let deleted = 0;
+      let ops = 0;
+      let batch = writeBatch(db);
+      for (const d of snap.docs) {
+        const data = d.data() as Reservation;
+        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
+        const periods = this._periods(data.period);
+        // 予約本体
+        batch.delete(d.ref);
+        ops++; deleted++;
+        // スロット
+        for (const p of periods) {
+          const slotId = makeSlotId(data.roomId, dateStr, p);
+          batch.delete(doc(db, RESERVATION_SLOTS_COLLECTION, slotId));
+          ops++;
+        }
+        if (ops >= 450) {
+          await batch.commit();
+          batch = writeBatch(db); ops = 0;
+        }
+      }
+      if (ops > 0) await batch.commit();
+      return deleted;
+    } catch (error) {
+      console.error('期間削除エラー:', error);
+      throw error;
+    }
   }
 };
 

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { applyTemplateLocks, removeTemplateLocks, applyTemplatesAsReservations } from '../../firebase/templateLocks';
+import { reservationsService } from '../../firebase/firestore';
 import './RecurringTemplatesModal.css';
 import CsvBulkReservations from './CsvBulkReservations';
 
@@ -27,6 +28,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [busyRemove, setBusyRemove] = useState(false);
+  const [busyBulkDelete, setBusyBulkDelete] = useState(false);
 
   if (!open) return null;
 
@@ -77,6 +79,26 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
   };
 
+  // 新規: 固定予約の一括削除（期間内の通常予約を管理者作成のみ対象に削除）
+  const handleBulkDeleteReservations = async () => {
+    if (!isAdmin) return;
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
+      alert('削除期間を正しく指定してください');
+      return;
+    }
+    if (!window.confirm(`期間 ${rangeStart} 〜 ${rangeEnd} の固定予約（管理者作成）を一括削除します。よろしいですか？`)) return;
+    try {
+      setBusyBulkDelete(true);
+      const deleted = await reservationsService.deleteReservationsInRange(rangeStart, rangeEnd, { createdBy: '管理者' });
+      alert(`削除完了: ${deleted} 件`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`削除に失敗しました: ${e?.message || '不明なエラー'}`);
+    } finally {
+      setBusyBulkDelete(false);
+    }
+  };
+
   return (
     <div className="rtm-modal-backdrop">
       <div className="rtm-modal">
@@ -103,6 +125,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <div className="actions">
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
+              <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の管理者作成予約を一括削除">固定予約一括削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
