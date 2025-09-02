@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
-import { applyTemplateLocks, removeTemplateLocks, applyTemplatesAsReservations } from '../../firebase/templateLocks';
+import { applyTemplatesAsReservations } from '../../firebase/templateLocks';
 import { reservationsService } from '../../firebase/firestore';
 import './RecurringTemplatesModal.css';
 import CsvBulkReservations from './CsvBulkReservations';
@@ -27,7 +27,6 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [rangeEnd, setRangeEnd] = useState<string>(defaultEnd);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>('');
-  const [busyRemove, setBusyRemove] = useState(false);
   const [busyBulkDelete, setBusyBulkDelete] = useState(false);
 
   if (!open) return null;
@@ -58,39 +57,20 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
   };
 
-  const handleRemoveLocks = async () => {
-    if (!isAdmin) return;
-    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
-      alert('削除期間を正しく指定してください');
-      return;
-    }
-    if (!window.confirm('指定期間のテンプレロックを削除します。よろしいですか？')) return;
-    setBusyRemove(true);
-    setMessage('テンプレートロックを削除中...');
-    try {
-      const res = await removeTemplateLocks(rangeStart, rangeEnd);
-      setMessage(`✅ ロック削除完了: ${res.deleted} 件`);
-    } catch (e: any) {
-      console.error(e);
-      setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
-    } finally {
-      setBusyRemove(false);
-      setTimeout(() => setMessage(''), 5000);
-    }
-  };
+  
 
-  // 新規: 固定予約の一括削除（期間内の通常予約を管理者作成のみ対象に削除）
+  // 期間内の予約を一括削除（作成者フィルタなし）
   const handleBulkDeleteReservations = async () => {
     if (!isAdmin) return;
     if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
       alert('削除期間を正しく指定してください');
       return;
     }
-    if (!window.confirm(`期間 ${rangeStart} 〜 ${rangeEnd} の固定予約（管理者作成）を一括削除します。よろしいですか？`)) return;
+    if (!window.confirm(`期間 ${rangeStart} 〜 ${rangeEnd} の全予約を一括削除します。よろしいですか？`)) return;
     try {
       setBusyBulkDelete(true);
-      const deleted = await reservationsService.deleteReservationsInRange(rangeStart, rangeEnd, { createdBy: '管理者' });
-      alert(`削除完了: ${deleted} 件`);
+      const deleted = await reservationsService.deleteReservationsInRange(rangeStart, rangeEnd);
+      alert(`期間削除 完了: ${deleted} 件`);
     } catch (e: any) {
       console.error(e);
       alert(`削除に失敗しました: ${e?.message || '不明なエラー'}`);
@@ -124,8 +104,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
             <div className="actions">
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
-              <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
-              <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の管理者作成予約を一括削除">固定予約一括削除</button>
+              <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の全予約を削除">期間内の予約削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>

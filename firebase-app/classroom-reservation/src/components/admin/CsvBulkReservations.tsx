@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { roomsService, reservationsService, PERIOD_ORDER, createDateTimeFromPeriod } from '../../firebase/firestore';
+import { toDateStr } from '../../utils/dateRange';
 import { displayLabel } from '../../utils/periodLabel';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 
@@ -224,8 +225,8 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
       let created = 0; let skipped = 0; let errors = 0;
 
       for (const d of dates) {
-        const ymd = d.toISOString().slice(0,10);
-        const dayReservations = await reservationsService.getDayReservations(new Date(ymd));
+        const ymd = toDateStr(d); // ローカル日付で固定（ISOで日付が前日にずれる問題を回避）
+        const dayReservations = await reservationsService.getDayReservations(d);
 
         for (const row of rows) {
           if (d.getDay() !== row.weekday) continue;

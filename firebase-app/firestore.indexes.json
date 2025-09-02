@@ -1,37 +1,19 @@
 {
   "indexes": [
     {
-      "collectionGroup": "reservation_slots",
+      "collectionGroup": "reservations",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "date", "mode": "ASCENDING" },
-        { "fieldPath": "type", "mode": "ASCENDING" },
-        { "fieldPath": "roomId", "mode": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "reservation_slots",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "date", "mode": "ASCENDING" },
-        { "fieldPath": "type", "mode": "ASCENDING" },
-        { "fieldPath": "templateId", "mode": "ASCENDING" }
+        { "fieldPath": "roomId", "mode": "ASCENDING" },
+        { "fieldPath": "startTime", "mode": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "reservations",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "startTime", "mode": "ASCENDING" },
-        { "fieldPath": "roomId", "mode": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "reservations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "startTime", "mode": "ASCENDING" },
-        { "fieldPath": "createdBy", "mode": "ASCENDING" }
+        { "fieldPath": "createdBy", "mode": "ASCENDING" },
+        { "fieldPath": "startTime", "mode": "ASCENDING" }
       ]
     }
   ],

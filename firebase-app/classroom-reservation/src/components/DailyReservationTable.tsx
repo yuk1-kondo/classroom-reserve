@@ -4,14 +4,13 @@ import {
   roomsService, 
   reservationsService, 
   Room, 
-  Reservation,
-  ReservationSlot,
-  createDateTimeFromPeriod
+  Reservation
 } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
-import { formatPeriodDisplay } from '../utils/periodLabel'; // 追加
+import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
+import { PERIOD_ORDER } from '../firebase/firestore';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -33,6 +32,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [sortedReservations, setSortedReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [filterRoomId, setFilterRoomId] = useState<string>('all');
+  const [filterPeriod, setFilterPeriod] = useState<string>('all');
 
   // 教室データを取得
   useEffect(() => {
@@ -49,7 +50,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     loadRooms();
   }, []);
 
-  // 選択日の予約データを取得（予約本体＋テンプレロック）
+  // 選択日の予約データを取得（予約本体のみ）
   useEffect(() => {
     if (!selectedDate || rooms.length === 0) {
       setRoomStatuses([]);
@@ -63,29 +64,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         
   const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
         
-        // 指定日の全予約を取得
+        // 指定日の全予約を取得（ロックは表示しない）
         const allReservations = await reservationsService.getReservations(startOfDay, endOfDay);
-
-        // 指定日のロックスロット（template-lockのみ）を取得し、擬似予約に変換
-        const allSlots: ReservationSlot[] = await reservationsService.getSlotsForDate(selectedDate);
-        const lockSlots = allSlots.filter(s => (s as any).type === 'template-lock');
-        const lockAsReservations: Reservation[] = lockSlots.map(slot => {
-          // 擬似予約として表示用に成形（start/end は後で補完）
-          return {
-            id: undefined,
-            roomId: slot.roomId,
-            roomName: '',
-            title: '🔒 固定予約（ロック）',
-            reservationName: '',
-            // 後で実際の Timestamp を設定
-            startTime: ({} as any),
-            endTime: ({} as any),
-            period: String(slot.period),
-            periodName: '固定',
-            createdAt: undefined,
-            createdBy: undefined
-          } as unknown as Reservation;
-        });
 
         // 教室名付与と時限順のための補助を統一的に付与（予約＋ロック）
         const mapWithOrder = (reservation: Reservation) => {
@@ -106,25 +86,14 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           } as any;
         };
 
-        // 予約（本体）
-        const reservationsWithRoom = allReservations.map(mapWithOrder);
+        // 予約（本体）のみ
+        let combined = allReservations.map(mapWithOrder);
 
-        // ロック（擬似予約）: start/end/periodName を補完
-        const { Timestamp } = await import('firebase/firestore');
-        const lockReservationsCompleted = lockAsReservations.map(r => {
-          const dt = createDateTimeFromPeriod(selectedDate, String(r.period));
-          const start = dt?.start ? Timestamp.fromDate(dt.start) : Timestamp.fromDate(new Date(`${selectedDate}T00:00:00`));
-          const end = dt?.end ? Timestamp.fromDate(dt.end) : Timestamp.fromDate(new Date(`${selectedDate}T23:59:59`));
-          return mapWithOrder({
-            ...r,
-            periodName: dt?.periodName || r.periodName,
-            startTime: start,
-            endTime: end
-          } as Reservation);
-        });
-
-        // マージしてソート
-        const combined = [...reservationsWithRoom, ...lockReservationsCompleted];
+        // フィルター適用
+        combined = combined.filter(r =>
+          (filterRoomId === 'all' || r.roomId === filterRoomId) &&
+          (filterPeriod === 'all' || String(r.period) === String(filterPeriod))
+        );
 
         // 時限順でソート
         combined.sort((a, b) => {
@@ -135,7 +104,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           return a.roomName.localeCompare(b.roomName);
         });
 
-        // 教室ごとの予約状況（ロック含む）
+        // 教室ごとの予約状況
         const statuses: RoomReservationStatus[] = [];
         rooms.forEach(room => {
           const roomReservations = combined.filter(res => res.roomId === room.id);
@@ -159,7 +128,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     };
 
     loadDayReservations();
-  }, [selectedDate, rooms]);
+  }, [selectedDate, rooms, filterRoomId, filterPeriod]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
@@ -192,12 +161,35 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     <div className="daily-reservation-table">
       <div className="table-header">
         <h4>📋 {formatDate(selectedDate)} の予約状況</h4>
-        {loading && <div className="loading-indicator">読み込み中...</div>}
-        {error && <div className="error-message">{error}</div>}
-        {!loading && !error && roomStatuses.length === 0 && (
-          <div className="no-reservations-message">予約はありません</div>
-        )}
+        {/* フィルター（ヘッダー右側） */}
+        <div className="filters">
+          <label>
+            教室:
+            <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)}>
+              <option value="all">すべて</option>
+              {rooms.map(r => (
+                <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            時限:
+            <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
+              <option value="all">すべて</option>
+              {PERIOD_ORDER.map(p => (
+                <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
+
+      {/* メッセージ行 */}
+      {loading && <div className="loading-inline">読み込み中...</div>}
+      {error && <div className="error-inline">{error}</div>}
+      {!loading && !error && roomStatuses.length === 0 && (
+        <div className="no-reservations-inline">予約はありません</div>
+      )}
 
       <div className="table-scroll-container">
         <div className="table-wrapper">

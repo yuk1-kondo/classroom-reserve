@@ -13,6 +13,17 @@
   box-sizing: border-box;
 }
 
+/* フィルター行 */
+.daily-reservation-table .filters {
+  display: flex;
+  gap: 8px;
+  margin: 8px 12px;
+}
+
+.daily-reservation-table .filters label select {
+  margin-left: 6px;
+}
+
 .daily-reservation-table * {
   box-sizing: border-box;
 }
@@ -40,8 +51,9 @@
 /* ヘッダー */
 .table-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 12px;
   padding: 8px 12px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
   border-bottom: 1px solid #d0d7de; /* 外枠と同色 */
@@ -62,6 +74,13 @@
 .error-message {
   color: #d1242f;
   font-size: 11px;
+}
+
+/* ヘッダー直下のインラインメッセージ余白 */
+.loading-inline,
+.error-inline,
+.no-reservations-inline {
+  padding: 0 12px 6px;
 }
 
 /* エクセル風テーブル */
