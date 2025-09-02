@@ -196,14 +196,35 @@ export const reservationsService = {
           const slotSnap = await tx.get(slotRef);
           if (slotSnap.exists()) {
             const slotData = slotSnap.data() as ReservationSlot;
-            // テンプレートロック（type: "template-lock"）は無視
+            // テンプレートロック（type: "template-lock"）は無視して上書き
             if (slotData.type === 'template-lock') {
               console.log(`🔓 テンプレートロックを上書き: ${slotId}`);
-              // テンプレートロックを削除
               tx.delete(slotRef);
-            } else {
-              throw new Error('同じ教室・時限の予約が既に存在します');
+              continue;
             }
+
+            // 予約スロットだが reservationId が欠落 → 孤立スロットとして自動削除
+            if (!slotData.reservationId) {
+              console.warn(`🧹 孤立スロットを自動削除 (reservationIdなし): ${slotId}`);
+              tx.delete(slotRef);
+              continue;
+            }
+
+            // 予約スロットだが参照先予約が存在しない → 孤立スロットとして自動削除
+            try {
+              const resRef = doc(db, RESERVATIONS_COLLECTION, String(slotData.reservationId));
+              const resSnap = await tx.get(resRef);
+              if (!resSnap.exists()) {
+                console.warn(`🧹 孤立スロットを自動削除 (予約欠落): ${slotId} -> ${slotData.reservationId}`);
+                tx.delete(slotRef);
+                continue;
+              }
+            } catch (e) {
+              console.warn('⚠️ 予約参照チェック中エラー: ', slotData.reservationId, e);
+            }
+
+            // 正常な予約スロットが既にあるため、重複扱い
+            throw new Error('同じ教室・時限の予約が既に存在します');
           }
         }
 

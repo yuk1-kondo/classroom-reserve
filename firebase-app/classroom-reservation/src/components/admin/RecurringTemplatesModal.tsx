@@ -3,6 +3,7 @@ import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { applyTemplateLocks, removeTemplateLocks, applyTemplatesAsReservations } from '../../firebase/templateLocks';
 import './RecurringTemplatesModal.css';
+import CsvBulkReservations from './CsvBulkReservations';
 
 interface Props {
   open: boolean;
@@ -92,19 +93,23 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <h4>テンプレート適用（予約作成）</h4>
             <div className="form-row">
               <label>開始日</label>
-              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
+              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} title="テンプレート適用の開始日" />
             </div>
             <div className="form-row">
               <label>終了日</label>
-              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} />
+              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} title="テンプレート適用の終了日" />
             </div>
             <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
-            <div className="actions" style={{ display: 'flex', gap: 8 }}>
+            <div className="actions">
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
+          </div>
+          <div className="rtm-pane">
+            <h4>CSV一括固定予約（週間定義 × 期間適用）</h4>
+            <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} />
           </div>
         </div>
       </div>
