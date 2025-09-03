@@ -4,7 +4,8 @@ import {
   roomsService, 
   reservationsService, 
   Room, 
-  Reservation
+  Reservation,
+  createDateTimeFromPeriod
 } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
@@ -36,6 +37,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [error, setError] = useState<string>('');
   const [filterRoomId, setFilterRoomId] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
+  const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Timestamp; end:Timestamp}>>([]);
 
   // 教室データを取得
   useEffect(() => {
@@ -143,8 +146,50 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         statuses.sort((a, b) => a.room.name.localeCompare(b.room.name));
 
   setRoomStatuses(statuses);
-  // 時限順ソート済み（予約＋ロック）の予約リストも保存
+  // 時限順ソート済み（予約）の予約リストも保存
   setSortedReservations(combined);
+
+  // 空き状況の計算（room × period ベース）
+  const expand = (raw: string): string[] => {
+    const p = String(raw || '');
+    if (p.includes(',')) return p.split(',').map(s => s.trim()).filter(Boolean);
+    if (/^\d+\s*-\s*\d+$/.test(p)) {
+      const [a,b] = p.split('-').map(s=>parseInt(s.trim(),10));
+      if (!Number.isNaN(a) && !Number.isNaN(b)) {
+        const min = Math.min(a,b); const max = Math.max(a,b);
+        const nums = [] as string[]; for (let x=min; x<=max; x++) nums.push(String(x));
+        return nums;
+      }
+    }
+    return [p];
+  };
+
+  const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Timestamp; end:Timestamp}> = [];
+  const periodList = PERIOD_ORDER as readonly string[];
+  for (const room of rooms) {
+    if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
+    for (const p of periodList) {
+      if (filterPeriod !== 'all' && String(filterPeriod) !== String(p)) {
+        // ただしフィルター時、available でも単一一致のみ対象
+        continue;
+      }
+      const reservedHere = combined.some(r => r.roomId === room.id && expand(r.period).includes(String(p)));
+      if (!reservedHere) {
+        const dt = createDateTimeFromPeriod(selectedDate, String(p));
+        const startT = Timestamp.fromDate(dt?.start || new Date(`${selectedDate}T00:00:00`));
+        const endT = Timestamp.fromDate(dt?.end || new Date(`${selectedDate}T23:59:59`));
+        free.push({ roomId: String(room.id), roomName: room.name, period: String(p), periodName: dt?.periodName || displayLabel(String(p)), start: startT, end: endT });
+      }
+    }
+  }
+  // 並び替え: 時限→教室
+  free.sort((a,b)=>{
+    const ao = periodList.indexOf(a.period as any);
+    const bo = periodList.indexOf(b.period as any);
+    if (ao !== bo) return ao - bo;
+    return a.roomName.localeCompare(b.roomName);
+  });
+  setAvailableRows(free);
       } catch (error) {
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
@@ -186,7 +231,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   return (
     <div className="daily-reservation-table">
       <div className="table-header">
-        <h4>📋 {formatDate(selectedDate)} の予約状況</h4>
+        <h4>📋 {formatDate(selectedDate)} の予約</h4>
         {/* フィルター（ヘッダー右側） */}
         <div className="filters">
           <label>
@@ -214,6 +259,12 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         </div>
       </div>
 
+      {/* タブ */}
+      <div className="subtabs tabs-padding">
+        <button className={activeTab==='reserved'?'tab active':'tab'} onClick={()=>setActiveTab('reserved')}>予約状況</button>
+        <button className={activeTab==='available'?'tab active':'tab'} onClick={()=>setActiveTab('available')}>空き状況</button>
+      </div>
+
       {/* メッセージ行 */}
       {loading && <div className="loading-inline">読み込み中...</div>}
       {error && <div className="error-inline">{error}</div>}
@@ -229,31 +280,32 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 <th className="col-period">時限</th>
                 <th className="col-room">教室</th>
                 <th className="col-time">時間</th>
-                <th className="col-title">予約内容</th> {/* 予約タイトル -> 予約内容 */}
-                <th className="col-user">予約者</th>
+                {activeTab==='reserved' && <th className="col-title">予約内容</th>}
+                {activeTab==='reserved' && <th className="col-user">予約者</th>}
               </tr>
             </thead>
             <tbody>
-              {sortedReservations.map((reservation, index) => {
+              {activeTab==='reserved' && sortedReservations.map((reservation, index) => {
                 const timeStart = formatTime(reservation.startTime);
                 const timeEnd = formatTime(reservation.endTime);
                 return (
                   <tr key={`${reservation.roomId}-${reservation.id || index}`}>
-                    <td className="col-period">
-                      <span className="period-badge">{formatPeriodDisplay(reservation.period, reservation.periodName)}</span>
-                    </td>
-                    <td className="col-room">
-                      <div className="room-name">{reservation.roomName}</div>
-                    </td>
-                    <td className="col-time">
-                      <div className="time-range">{timeStart}-{timeEnd}</div>
-                    </td>
-                    <td className="col-title">
-                      <div className="reservation-title">{reservation.title}</div> {/* 表示そのまま */}
-                    </td>
-                    <td className="col-user">
-                      <div className="reservation-user">{reservation.reservationName}</div>
-                    </td>
+                    <td className="col-period"><span className="period-badge">{formatPeriodDisplay(reservation.period, reservation.periodName)}</span></td>
+                    <td className="col-room"><div className="room-name">{reservation.roomName}</div></td>
+                    <td className="col-time"><div className="time-range">{timeStart}-{timeEnd}</div></td>
+                    <td className="col-title"><div className="reservation-title">{reservation.title}</div></td>
+                    <td className="col-user"><div className="reservation-user">{reservation.reservationName}</div></td>
+                  </tr>
+                );
+              })}
+              {activeTab==='available' && availableRows.map((row, idx) => {
+                const timeStart = formatTime(row.start);
+                const timeEnd = formatTime(row.end);
+                return (
+                  <tr key={`${row.roomId}-${row.period}-${idx}`}>
+                    <td className="col-period"><span className="period-badge">{formatPeriodDisplay(row.period, row.periodName)}</span></td>
+                    <td className="col-room"><div className="room-name">{row.roomName}</div></td>
+                    <td className="col-time"><div className="time-range">{timeStart}-{timeEnd}</div></td>
                   </tr>
                 );
               })}
