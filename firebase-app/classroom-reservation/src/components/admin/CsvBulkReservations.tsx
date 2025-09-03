@@ -207,7 +207,23 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
       const roomName = roomId ? roomMapById[roomId] : undefined;
       result.push({ weekday: wd, roomKey, periods, roomId, roomName, title: titleCell || undefined, error: roomId ? undefined : `行${idx+1}: 教室が見つかりません (${roomKey})` });
     }
-    setRows(result);
+    // ① 同一(weekday, roomId/name, title)で時限をマージ
+    const mergedMap: Record<string, PreviewItem> = {};
+    for (const r of result) {
+      const keyRoom = r.roomId ? `id:${r.roomId}` : `name:${r.roomKey}`;
+      const keyTitle = (r.title || '').trim();
+      const key = `${r.weekday}__${keyRoom}__${keyTitle}`;
+      if (!mergedMap[key]) {
+        mergedMap[key] = { ...r, periods: [...r.periods] };
+      } else {
+        mergedMap[key].periods = Array.from(new Set([...(mergedMap[key].periods || []), ...r.periods]));
+        // エラーは厳しい方を維持
+        mergedMap[key].error = mergedMap[key].error || r.error;
+      }
+    }
+    const merged = Object.values(mergedMap);
+
+    setRows(merged);
   };
 
   const handleApply = async () => {

@@ -15,6 +15,7 @@ import { PERIOD_ORDER } from '../firebase/firestore';
 interface DailyReservationTableProps {
   selectedDate?: string;
   showWhenEmpty?: boolean; // 追加: 空でも表示
+  onDateChange?: (dateStr: string) => void;
 }
 
 interface RoomReservationStatus {
@@ -25,7 +26,8 @@ interface RoomReservationStatus {
 
 export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   selectedDate,
-  showWhenEmpty = false
+  showWhenEmpty = false,
+  onDateChange
 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
@@ -89,10 +91,34 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         // 予約（本体）のみ
         let combined = allReservations.map(mapWithOrder);
 
+        // 単一/複数/範囲(ハイフン)を考慮して時限一致判定
+        const periodMatches = (reservationPeriod: string, target: string): boolean => {
+          if (target === 'all') return true;
+          const p = String(reservationPeriod || '');
+          const t = String(target);
+          if (p === t) return true;
+          // カンマ区切り
+          if (p.includes(',')) {
+            const list = p.split(',').map(s => s.trim()).filter(Boolean);
+            return list.includes(t);
+          }
+          // ハイフン範囲 (例: 5-6)
+          if (/^\d+\s*-\s*\d+$/.test(p)) {
+            const [a, b] = p.split('-').map(s => parseInt(s.trim(), 10));
+            const x = parseInt(t, 10);
+            if (!Number.isNaN(a) && !Number.isNaN(b) && !Number.isNaN(x)) {
+              const min = Math.min(a, b);
+              const max = Math.max(a, b);
+              return x >= min && x <= max;
+            }
+          }
+          return false;
+        };
+
         // フィルター適用
         combined = combined.filter(r =>
           (filterRoomId === 'all' || r.roomId === filterRoomId) &&
-          (filterPeriod === 'all' || String(r.period) === String(filterPeriod))
+          periodMatches(String(r.period), String(filterPeriod))
         );
 
         // 時限順でソート
@@ -163,6 +189,10 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         <h4>📋 {formatDate(selectedDate)} の予約状況</h4>
         {/* フィルター（ヘッダー右側） */}
         <div className="filters">
+          <label>
+            日付:
+            <input type="date" value={selectedDate} onChange={e => onDateChange && onDateChange(e.target.value)} />
+          </label>
           <label>
             教室:
             <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)}>

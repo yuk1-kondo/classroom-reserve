@@ -100,6 +100,10 @@ export const MainApp: React.FC = () => {
               <DailyReservationTable 
                 selectedDate={dailyTableDate}
                 showWhenEmpty={true}
+                onDateChange={(d)=>{
+                  setDailyTableDate(d);
+                  setSelectedDate(d);
+                }}
               />
               {window.innerWidth < 600 && !showSidePanel && (
                 <div className="open-reserve-panel-wrapper">
