@@ -76,6 +76,15 @@ function normalizePeriodName(period: string, periodName: string): string {
   return periodName;
 }
 
+// CSV 用エスケープ（カンマ/改行/ダブルクォートを含む場合に二重引用）
+function escapeCsv(value: any): string {
+  const s = (value ?? '').toString();
+  if (/[",\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
 // 教室関連の操作
 export const roomsService = {
   // 全教室を取得
@@ -146,6 +155,36 @@ export const reservationsService = {
       console.error('予約データ取得エラー:', error);
       throw error;
     }
+  },
+
+  // 期間内の予約をCSV文字列としてエクスポート
+  async exportReservationsCsv(rangeStart: string, rangeEnd: string, opts?: { roomId?: string }): Promise<string> {
+    // ヘッダー: 日付,教室,タイトル,予約者,時限,時刻(開始-終了)
+    const header = ['date','room','title','reservedBy','period','timeRange'];
+    const start = new Date(rangeStart); start.setHours(0,0,0,0);
+    const end = new Date(rangeEnd); end.setHours(23,59,59,999);
+    const list = opts?.roomId
+      ? await this.getRoomReservations(String(opts.roomId), start, end)
+      : await this.getReservations(start, end);
+    const lines: string[] = [header.join(',')];
+    for (const r of list) {
+      const d = (r.startTime as Timestamp).toDate();
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const startD = (r.startTime as Timestamp).toDate();
+      const endD = (r.endTime as Timestamp).toDate();
+      const timeRange = `${startD.getHours().toString().padStart(2,'0')}:${startD.getMinutes().toString().padStart(2,'0')}-${endD.getHours().toString().padStart(2,'0')}:${endD.getMinutes().toString().padStart(2,'0')}`;
+      const periodDisp = normalizePeriodName(r.period, r.periodName);
+      const cells = [
+        dateStr,
+        escapeCsv(r.roomName),
+        escapeCsv(r.title || ''),
+        escapeCsv(r.reservationName || r.createdBy || ''),
+        escapeCsv(periodDisp),
+        timeRange
+      ];
+      lines.push(cells.join(','));
+    }
+    return lines.join('\n');
   },
 
   // 特定教室の予約を取得
@@ -442,7 +481,10 @@ export const reservationsService = {
   ): Promise<number> {
     try {
       const startDate = new Date(rangeStart);
+      // 開始日は一日の始まり（ローカル時刻）に丸める（UTCズレ対策）
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(rangeEnd);
+      // 終了日は一日の終わり（ローカル時刻）に丸める
       endDate.setHours(23, 59, 59, 999);
 
       const conditions: any[] = [

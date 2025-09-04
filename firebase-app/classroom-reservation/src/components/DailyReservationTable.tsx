@@ -7,7 +7,7 @@ import {
   Reservation,
   createDateTimeFromPeriod
 } from '../firebase/firestore';
-import { dayRange } from '../utils/dateRange';
+import { dayRange, toDateStr } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
@@ -38,7 +38,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [filterRoomId, setFilterRoomId] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
-  const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Timestamp; end:Timestamp}>>([]);
+  const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
 
   // 教室データを取得
   useEffect(() => {
@@ -164,8 +164,9 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     return [p];
   };
 
-  const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Timestamp; end:Timestamp}> = [];
+  const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
   const periodList = PERIOD_ORDER as readonly string[];
+  const baseDateStr = toDateStr(new Date(selectedDate));
   for (const room of rooms) {
     if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
     for (const p of periodList) {
@@ -175,10 +176,10 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       }
       const reservedHere = combined.some(r => r.roomId === room.id && expand(r.period).includes(String(p)));
       if (!reservedHere) {
-        const dt = createDateTimeFromPeriod(selectedDate, String(p));
-        const startT = Timestamp.fromDate(dt?.start || new Date(`${selectedDate}T00:00:00`));
-        const endT = Timestamp.fromDate(dt?.end || new Date(`${selectedDate}T23:59:59`));
-        free.push({ roomId: String(room.id), roomName: room.name, period: String(p), periodName: dt?.periodName || displayLabel(String(p)), start: startT, end: endT });
+        const dt = createDateTimeFromPeriod(baseDateStr, String(p));
+        const startD = dt?.start || new Date(`${selectedDate}T00:00:00`);
+        const endD = dt?.end || new Date(`${selectedDate}T23:59:59`);
+        free.push({ roomId: String(room.id), roomName: room.name, period: String(p), periodName: dt?.periodName || displayLabel(String(p)), start: startD, end: endD });
       }
     }
   }
@@ -242,9 +243,25 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
             教室:
             <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)}>
               <option value="all">すべて</option>
-              {rooms.map(r => (
-                <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
-              ))}
+              {(() => {
+                const customOrder = [
+                  '小演習室1','小演習室2','小演習室3','小演習室4','小演習室5','小演習室6',
+                  '大演習室1','大演習室2','大演習室3','大演習室4','大演習室5','大演習室6',
+                  'サテライト','会議室','社会科教室','グローバル教室①','グローバル教室②',
+                  'LL教室','モノラボ','視聴覚教室','多目的室'
+                ];
+                const sorted = [...rooms].sort((a,b)=>{
+                  const ia = customOrder.indexOf(a.name);
+                  const ib = customOrder.indexOf(b.name);
+                  if (ia !== -1 && ib !== -1) return ia - ib;
+                  if (ia !== -1) return -1;
+                  if (ib !== -1) return 1;
+                  return a.name.localeCompare(b.name);
+                });
+                return sorted.map(r => (
+                  <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
+                ));
+              })()}
             </select>
           </label>
           <label>
@@ -299,8 +316,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 );
               })}
               {activeTab==='available' && availableRows.map((row, idx) => {
-                const timeStart = formatTime(row.start);
-                const timeEnd = formatTime(row.end);
+                const timeStart = row.start.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                const timeEnd = row.end.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
                 return (
                   <tr key={`${row.roomId}-${row.period}-${idx}`}>
                     <td className="col-period"><span className="period-badge">{formatPeriodDisplay(row.period, row.periodName)}</span></td>

@@ -39,7 +39,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
     return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
   };
 
-  // 指定時限が予約済みかチェック
+  // 指定時限が予約済みかチェック（スロット参照は負荷増のため行わない）
   const isPeriodReserved = (period: string): boolean => {
     if (!selectedRoom || !selectedDate) {
       console.log('🔍 isPeriodReserved: selectedRoom または selectedDate が未設定', { selectedRoom, selectedDate });
@@ -93,14 +93,8 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
       console.log('🔍 isPeriodReserved 結果: 予約で占有', { period, isReserved });
       return true;
     }
-    // スロット（ロック/他予約）による占有
-    const isLocked = slots.some(slot => {
-      return slot.roomId === selectedRoom 
-        && slot.date === selectedDate 
-        && String(slot.period) === String(period);
-    });
-    console.log('🔍 isPeriodReserved 結果: スロット占有', { period, isLocked });
-    return isLocked;
+    // スロット読み取りは行わず、予約ベースのみで判定（429対策）
+    return false;
   };
 
   return (

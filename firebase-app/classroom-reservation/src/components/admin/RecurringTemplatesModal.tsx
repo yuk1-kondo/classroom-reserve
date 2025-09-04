@@ -28,6 +28,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [busyBulkDelete, setBusyBulkDelete] = useState(false);
+  const [busyExport, setBusyExport] = useState(false);
 
   if (!open) return null;
 
@@ -79,6 +80,33 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
   };
 
+  // 期間内の予約をCSVエクスポート
+  const handleExportCsv = async () => {
+    if (!isAdmin) return;
+    if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) {
+      alert('エクスポート期間を正しく指定してください');
+      return;
+    }
+    try {
+      setBusyExport(true);
+      const csv = await reservationsService.exportReservationsCsv(rangeStart, rangeEnd);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reservations_${rangeStart}_${rangeEnd}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error(e);
+      alert(`エクスポートに失敗しました: ${e?.message || '不明なエラー'}`);
+    } finally {
+      setBusyExport(false);
+    }
+  };
+
   return (
     <div className="rtm-modal-backdrop">
       <div className="rtm-modal">
@@ -105,6 +133,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <div className="actions">
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
               <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の全予約を削除">期間内の予約削除</button>
+              <button onClick={handleExportCsv} disabled={!isAdmin || busyExport} title="期間内の予約をCSVでエクスポート">CSVエクスポート</button>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
