@@ -128,7 +128,7 @@ export const MainApp: React.FC = () => {
       </main>
 
       <footer className="main-footer">
-        <p>© 2025 桜和高校教室予約システム (Owa-CBS) - Developed by YUKI KONDO</p>
+        <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
       </footer>
       
       {/* 予約詳細モーダル */}

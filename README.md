@@ -1,4 +1,4 @@
-# 🌸 桜和高校教室予約システム (Owa-CBS)
+# 🌸 桜和高校教室予約システム (owa-cbs)
 
 React + TypeScript + Firebase による現代的な教室予約管理システム
 
@@ -130,4 +130,4 @@ firebase deploy --only hosting
 ```
 
 ## 📄 ライセンス
-© 2025 桜和高校教室予約システム (Owa-CBS) - Developed by YUKI KONDO
+© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO
