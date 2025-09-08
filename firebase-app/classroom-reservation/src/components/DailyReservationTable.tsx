@@ -12,6 +12,7 @@ import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
 import { PERIOD_ORDER } from '../firebase/firestore';
+import { authService } from '../firebase/auth';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -37,6 +38,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [error, setError] = useState<string>('');
   const [filterRoomId, setFilterRoomId] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
+  const [filterMine, setFilterMine] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
 
@@ -67,7 +69,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         setLoading(true);
         setError('');
         
-  const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
+        const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
         
         // 指定日の全予約を取得（ロックは表示しない）
         const allReservations = await reservationsService.getReservations(startOfDay, endOfDay);
@@ -118,10 +120,14 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           return false;
         };
 
+        // 自分の予約のみ（reserved タブにのみ適用）
+        const current = authService.getCurrentUser();
+
         // フィルター適用
         combined = combined.filter(r =>
           (filterRoomId === 'all' || r.roomId === filterRoomId) &&
-          periodMatches(String(r.period), String(filterPeriod))
+          periodMatches(String(r.period), String(filterPeriod)) &&
+          (!filterMine || (current && (r.createdBy === current.uid || r.reservationName === current.displayName)))
         );
 
         // 時限順でソート
@@ -145,52 +151,52 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         // 教室名でソート
         statuses.sort((a, b) => a.room.name.localeCompare(b.room.name));
 
-  setRoomStatuses(statuses);
-  // 時限順ソート済み（予約）の予約リストも保存
-  setSortedReservations(combined);
+        setRoomStatuses(statuses);
+        // 時限順ソート済み（予約）の予約リストも保存
+        setSortedReservations(combined);
 
-  // 空き状況の計算（room × period ベース）
-  const expand = (raw: string): string[] => {
-    const p = String(raw || '');
-    if (p.includes(',')) return p.split(',').map(s => s.trim()).filter(Boolean);
-    if (/^\d+\s*-\s*\d+$/.test(p)) {
-      const [a,b] = p.split('-').map(s=>parseInt(s.trim(),10));
-      if (!Number.isNaN(a) && !Number.isNaN(b)) {
-        const min = Math.min(a,b); const max = Math.max(a,b);
-        const nums = [] as string[]; for (let x=min; x<=max; x++) nums.push(String(x));
-        return nums;
-      }
-    }
-    return [p];
-  };
+        // 空き状況の計算（room × period ベース）
+        const expand = (raw: string): string[] => {
+          const p = String(raw || '');
+          if (p.includes(',')) return p.split(',').map(s => s.trim()).filter(Boolean);
+          if (/^\d+\s*-\s*\d+$/.test(p)) {
+            const [a,b] = p.split('-').map(s=>parseInt(s.trim(),10));
+            if (!Number.isNaN(a) && !Number.isNaN(b)) {
+              const min = Math.min(a,b); const max = Math.max(a,b);
+              const nums = [] as string[]; for (let x=min; x<=max; x++) nums.push(String(x));
+              return nums;
+            }
+          }
+          return [p];
+        };
 
-  const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
-  const periodList = PERIOD_ORDER as readonly string[];
-  const baseDateStr = toDateStr(new Date(selectedDate));
-  for (const room of rooms) {
-    if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
-    for (const p of periodList) {
-      if (filterPeriod !== 'all' && String(filterPeriod) !== String(p)) {
-        // ただしフィルター時、available でも単一一致のみ対象
-        continue;
-      }
-      const reservedHere = combined.some(r => r.roomId === room.id && expand(r.period).includes(String(p)));
-      if (!reservedHere) {
-        const dt = createDateTimeFromPeriod(baseDateStr, String(p));
-        const startD = dt?.start || new Date(`${selectedDate}T00:00:00`);
-        const endD = dt?.end || new Date(`${selectedDate}T23:59:59`);
-        free.push({ roomId: String(room.id), roomName: room.name, period: String(p), periodName: dt?.periodName || displayLabel(String(p)), start: startD, end: endD });
-      }
-    }
-  }
-  // 並び替え: 時限→教室
-  free.sort((a,b)=>{
-    const ao = periodList.indexOf(a.period as any);
-    const bo = periodList.indexOf(b.period as any);
-    if (ao !== bo) return ao - bo;
-    return a.roomName.localeCompare(b.roomName);
-  });
-  setAvailableRows(free);
+        const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
+        const periodList = PERIOD_ORDER as readonly string[];
+        const baseDateStr = toDateStr(new Date(selectedDate));
+        for (const room of rooms) {
+          if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
+          for (const p of periodList) {
+            if (filterPeriod !== 'all' && String(filterPeriod) !== String(p)) {
+              // ただしフィルター時、available でも単一一致のみ対象
+              continue;
+            }
+            const reservedHere = combined.some(r => r.roomId === room.id && expand(r.period).includes(String(p)));
+            if (!reservedHere) {
+              const dt = createDateTimeFromPeriod(baseDateStr, String(p));
+              const startD = dt?.start || new Date(`${selectedDate}T00:00:00`);
+              const endD = dt?.end || new Date(`${selectedDate}T23:59:59`);
+              free.push({ roomId: String(room.id), roomName: room.name, period: String(p), periodName: dt?.periodName || displayLabel(String(p)), start: startD, end: endD });
+            }
+          }
+        }
+        // 並び替え: 時限→教室
+        free.sort((a,b)=>{
+          const ao = periodList.indexOf(a.period as any);
+          const bo = periodList.indexOf(b.period as any);
+          if (ao !== bo) return ao - bo;
+          return a.roomName.localeCompare(b.roomName);
+        });
+        setAvailableRows(free);
       } catch (error) {
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
@@ -200,7 +206,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     };
 
     loadDayReservations();
-  }, [selectedDate, rooms, filterRoomId, filterPeriod]);
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
@@ -272,6 +278,10 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
               ))}
             </select>
+          </label>
+          <label>
+            自分の予約のみ
+            <input type="checkbox" checked={filterMine} onChange={e => setFilterMine(e.target.checked)} />
           </label>
         </div>
       </div>
