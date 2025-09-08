@@ -127,7 +127,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         combined = combined.filter(r =>
           (filterRoomId === 'all' || r.roomId === filterRoomId) &&
           periodMatches(String(r.period), String(filterPeriod)) &&
-          (!filterMine || (current && (r.createdBy === current.uid || r.reservationName === current.displayName)))
+          (!filterMine || (current && r.createdBy === current.uid))
         );
 
         // 時限順でソート
