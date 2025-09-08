@@ -16,6 +16,7 @@ import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
 import { authService } from '../firebase/auth';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
+import { APP_VERSION } from '../version';
 
 
 interface SidePanelProps {
@@ -141,7 +142,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       />
 
       <div className="side-panel-header">
-        <h3>📅 予約管理</h3>
+        <h3>📅 予約管理 <span style={{ marginLeft: 8, fontSize: '0.85em', color: '#666' }}>Ver {APP_VERSION}</span></h3>
       </div>
 
       {selectedDate ? (
