@@ -41,6 +41,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // 教室データを取得
   useEffect(() => {
@@ -228,6 +229,29 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     });
   };
 
+  const currentUser = authService.getCurrentUser();
+  const canDeleteReservation = (r: Reservation) => currentUser && r.createdBy === currentUser.uid;
+
+  const handleInlineDelete = async (r: Reservation) => {
+    if (!r.id) return;
+    try {
+      setLoading(true);
+      await reservationsService.deleteReservation(r.id);
+      setConfirmingId(null);
+      // 再読込
+      if (selectedDate) {
+        const { start, end } = dayRange(selectedDate);
+        const updated = await reservationsService.getReservations(start, end);
+        setSortedReservations(updated as any);
+      }
+    } catch (e) {
+      console.error('インライン削除失敗', e);
+      alert('削除に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!selectedDate) {
     return null;
   }
@@ -309,12 +333,15 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                 <th className="col-time">時間</th>
                 {activeTab==='reserved' && <th className="col-title">予約内容</th>}
                 {activeTab==='reserved' && <th className="col-user">予約者</th>}
+                {activeTab==='reserved' && <th className="col-actions">操作</th>}
               </tr>
             </thead>
             <tbody>
               {activeTab==='reserved' && sortedReservations.map((reservation, index) => {
                 const timeStart = formatTime(reservation.startTime);
                 const timeEnd = formatTime(reservation.endTime);
+                const isMine = canDeleteReservation(reservation);
+                const isConfirming = confirmingId === reservation.id;
                 return (
                   <tr key={`${reservation.roomId}-${reservation.id || index}`}>
                     <td className="col-period"><span className="period-badge">{formatPeriodDisplay(reservation.period, reservation.periodName)}</span></td>
@@ -322,6 +349,17 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                     <td className="col-time"><div className="time-range">{timeStart}-{timeEnd}</div></td>
                     <td className="col-title"><div className="reservation-title">{reservation.title}</div></td>
                     <td className="col-user"><div className="reservation-user">{reservation.reservationName}</div></td>
+                    <td className="col-actions">
+                      {isMine && !isConfirming && (
+                        <button className="inline-delete-btn" onClick={()=>setConfirmingId(reservation.id!)}>削除</button>
+                      )}
+                      {isMine && isConfirming && (
+                        <div className="inline-confirm">
+                          <button className="confirm" onClick={()=>handleInlineDelete(reservation)}>確定</button>
+                          <button className="cancel" onClick={()=>setConfirmingId(null)}>取消</button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
