@@ -9,6 +9,7 @@ import {
   signInAnonymously // 追加: 匿名認証
 } from 'firebase/auth';
 import { auth } from './config';
+import { setPersistence, browserSessionPersistence } from 'firebase/auth';
 
 // 許可されたドメイン設定
 const ALLOWED_DOMAIN = 'e.osakamanabi.jp';
@@ -28,13 +29,20 @@ export interface AuthUser {
 // 認証関連の操作
 export const authService = {
   adminPassword: 'admin2025', // 管理者パスワード
+  // ログイン有効期間 (ミリ秒)
+  LOGIN_TTL_MS: 1000 * 60 * 60 * 24 * 7, // 7日（必要に応じて変更）
+  LAST_LOGIN_KEY: 'lastLoginAt',
 
   // Googleサインイン
   async signInWithGoogle(): Promise<UserCredential> {
     try {
+      // セッションごとにのみ永続化（タブを閉じるとサインアウト）
+      try { await setPersistence(auth, browserSessionPersistence); } catch {}
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
+      // 毎回アカウント選択を表示
+      provider.setCustomParameters({ prompt: 'select_account' });
       
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -53,6 +61,7 @@ export const authService = {
       }
       
       console.log('✅ Googleログイン成功:', user.email);
+      try { localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}
       return result;
     } catch (error) {
       console.error('❌ Googleログインエラー:', error);
@@ -86,6 +95,7 @@ export const authService = {
         isAdmin: true
       };
       localStorage.setItem('adminUser', JSON.stringify(adminUser));
+      try { localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}
       console.log('✅ 管理者ログイン成功 uid=', adminUser.uid);
       return true;
     } catch (e) {
@@ -98,6 +108,7 @@ export const authService = {
   async signOut(): Promise<void> {
     try {
       localStorage.removeItem('adminUser');
+      localStorage.removeItem('lastLoginAt');
       await signOut(auth);
       console.log('👋 ログアウト完了');
     } catch (error) {
@@ -111,11 +122,30 @@ export const authService = {
     // 管理者ログインの場合は即座にコールバック実行
     const adminUser = localStorage.getItem('adminUser');
     if (adminUser) {
+      // TTLチェック
+      try {
+        const last = Number(localStorage.getItem(this.LAST_LOGIN_KEY) || '0');
+        if (last > 0 && Date.now() - last > this.LOGIN_TTL_MS) {
+          this.signOut();
+          callback(null);
+          return () => {};
+        }
+      } catch {}
       setTimeout(() => callback(JSON.parse(adminUser)), 0);
       return () => {}; // 空のunsubscribe関数
     }
 
     return onAuthStateChanged(auth, async (user: User | null) => {
+      // TTLチェック（一般ログイン）
+      try {
+        const last = Number(localStorage.getItem(this.LAST_LOGIN_KEY) || '0');
+        if (last > 0 && Date.now() - last > this.LOGIN_TTL_MS) {
+          await signOut(auth);
+          localStorage.removeItem(this.LAST_LOGIN_KEY);
+          callback(null);
+          return;
+        }
+      } catch {}
       if (user) {
         if (user.email && !this.isAllowedDomain(user.email)) {
           console.error('❌ 許可されていないドメインでログイン:', user.email);
@@ -125,6 +155,7 @@ export const authService = {
         }
 
         const isAdmin = !!(user.email && ADMIN_EMAILS.includes(user.email));
+        try { if (!localStorage.getItem(this.LAST_LOGIN_KEY)) localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}
         callback({
           uid: user.uid,
           email: user.email,
