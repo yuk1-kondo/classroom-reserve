@@ -223,6 +223,11 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     }
   }, [refreshTrigger, refetchEvents]);
 
+  // 「自分の予約のみ」切替時に即座に再取得
+  useEffect(() => {
+    refetchEvents();
+  }, [filterMine, refetchEvents]);
+
   // selectedDateが変更されたときに対象日付に移動
   useEffect(() => {
     if (selectedDate && calendarRef.current) {
