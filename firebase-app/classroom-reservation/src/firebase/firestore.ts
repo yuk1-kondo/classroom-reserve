@@ -147,7 +147,8 @@ export const reservationsService = {
         return {
             id: docSnap.id,
             ...data,
-            createdBy: data.createdBy || data.reservationName || 'unknown', // createdBy 補完
+            // createdBy は UID を保持（過去データで未設定の場合のみ undefined）
+            createdBy: data.createdBy || undefined,
             periodName: normalizePeriodName(data.period, data.periodName)
         };
       });
@@ -210,7 +211,7 @@ export const reservationsService = {
         return {
           id: docSnap.id,
           ...data,
-          createdBy: data.createdBy || data.reservationName || 'unknown',
+          createdBy: data.createdBy || undefined,
           periodName: normalizePeriodName(data.period, data.periodName)
         };
       });
@@ -452,7 +453,7 @@ export const reservationsService = {
         return {
           id: docSnap.id,
           ...data,
-          createdBy: data.createdBy || data.reservationName || 'unknown',
+          createdBy: data.createdBy || undefined,
           periodName: normalizePeriodName(data.period, data.periodName)
         };
       }

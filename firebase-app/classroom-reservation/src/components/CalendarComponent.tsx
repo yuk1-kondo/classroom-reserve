@@ -93,7 +93,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       console.log('📅 予約データ取得成功:', reservations.length + '件');
       const current = authService.getCurrentUser();
       const filtered = filterMine && current
-        ? reservations.filter(r => r.createdBy === current.uid || r.reservationName === current.displayName)
+        ? reservations.filter(r => r.createdBy === current.uid)
         : reservations;
       const calendarEvents: CalendarEvent[] = filtered.map(reservation => {
          const startTime = reservation.startTime instanceof Timestamp 
