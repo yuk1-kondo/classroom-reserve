@@ -12,6 +12,7 @@ import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
 import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
 import { useSystemSettings } from '../hooks/useSystemSettings';
+import { authService } from '../firebase/auth';
 
 interface CalendarComponentProps {
   onDateClick?: (dateStr: string) => void;
@@ -38,6 +39,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const isMobile = windowWidth < 600;
   const [initialView, setInitialView] = useState<string>('timeGridWeek');
+  const [filterMine, setFilterMine] = useState<boolean>(false);
   // 直近取得した日付範囲（無限再取得防止）
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
   // 予約上限設定の取得
@@ -89,7 +91,11 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
       const reservations = await reservationsService.getReservations(startDate, endDate);
       console.log('📅 予約データ取得成功:', reservations.length + '件');
-      const calendarEvents: CalendarEvent[] = reservations.map(reservation => {
+      const current = authService.getCurrentUser();
+      const filtered = filterMine && current
+        ? reservations.filter(r => r.createdBy === current.uid || r.reservationName === current.displayName)
+        : reservations;
+      const calendarEvents: CalendarEvent[] = filtered.map(reservation => {
          const startTime = reservation.startTime instanceof Timestamp 
            ? reservation.startTime.toDate() 
            : new Date(reservation.startTime);
@@ -124,7 +130,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterMine]);
 
   // 教室データを取得
   useEffect(() => {
@@ -244,6 +250,13 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
         </div>
       )}
       
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
+        <div></div>
+        <label style={{ fontSize: '0.9em' }}>
+          自分の予約のみ
+          <input type="checkbox" style={{ marginLeft: 6 }} checked={filterMine} onChange={e=>setFilterMine(e.target.checked)} />
+        </label>
+      </div>
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

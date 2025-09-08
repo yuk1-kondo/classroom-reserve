@@ -158,9 +158,12 @@ export const reservationsService = {
   },
 
   // 期間内の予約をCSV文字列としてエクスポート
-  async exportReservationsCsv(rangeStart: string, rangeEnd: string, opts?: { roomId?: string }): Promise<string> {
-    // ヘッダー: 日付,教室,タイトル,予約者,時限,時刻(開始-終了)
+  async exportReservationsCsv(rangeStart: string, rangeEnd: string, opts?: { roomId?: string; includeId?: boolean; includeCreatedAt?: boolean; includeCreatedByUid?: boolean }): Promise<string> {
+    // ヘッダー基本: 日付,教室,タイトル,予約者,時限,時刻(開始-終了)
     const header = ['date','room','title','reservedBy','period','timeRange'];
+    if (opts?.includeId) header.push('reservationId');
+    if (opts?.includeCreatedAt) header.push('createdAt');
+    if (opts?.includeCreatedByUid) header.push('createdBy');
     const start = new Date(rangeStart); start.setHours(0,0,0,0);
     const end = new Date(rangeEnd); end.setHours(23,59,59,999);
     const list = opts?.roomId
@@ -182,6 +185,9 @@ export const reservationsService = {
         escapeCsv(periodDisp),
         timeRange
       ];
+      if (opts?.includeId) cells.push(escapeCsv(r.id || ''));
+      if (opts?.includeCreatedAt) cells.push((r.createdAt instanceof Timestamp ? r.createdAt.toDate() : new Date()).toISOString());
+      if (opts?.includeCreatedByUid) cells.push(escapeCsv(r.createdBy || ''));
       lines.push(cells.join(','));
     }
     return lines.join('\n');

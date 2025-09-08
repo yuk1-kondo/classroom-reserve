@@ -29,6 +29,9 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
   const [message, setMessage] = useState<string>('');
   const [busyBulkDelete, setBusyBulkDelete] = useState(false);
   const [busyExport, setBusyExport] = useState(false);
+  const [includeId, setIncludeId] = useState(true);
+  const [includeCreatedAt, setIncludeCreatedAt] = useState(true);
+  const [includeCreatedByUid, setIncludeCreatedByUid] = useState(true);
 
   if (!open) return null;
 
@@ -57,8 +60,6 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
       setTimeout(() => setMessage(''), 5000);
     }
   };
-
-  
 
   // 期間内の予約を一括削除（作成者フィルタなし）
   const handleBulkDeleteReservations = async () => {
@@ -89,7 +90,11 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     }
     try {
       setBusyExport(true);
-      const csv = await reservationsService.exportReservationsCsv(rangeStart, rangeEnd);
+      const csv = await reservationsService.exportReservationsCsv(rangeStart, rangeEnd, {
+        includeId,
+        includeCreatedAt,
+        includeCreatedByUid
+      });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -134,6 +139,11 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>予約作成</button>
               <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の全予約を削除">期間内の予約削除</button>
               <button onClick={handleExportCsv} disabled={!isAdmin || busyExport} title="期間内の予約をCSVでエクスポート">CSVエクスポート</button>
+            </div>
+            <div className="form-row" style={{ display:'flex', gap: '12px', marginTop: '8px' }}>
+              <label><input type="checkbox" checked={includeId} onChange={e=>setIncludeId(e.target.checked)} /> 予約ID</label>
+              <label><input type="checkbox" checked={includeCreatedAt} onChange={e=>setIncludeCreatedAt(e.target.checked)} /> 作成日時</label>
+              <label><input type="checkbox" checked={includeCreatedByUid} onChange={e=>setIncludeCreatedByUid(e.target.checked)} /> 作成者UID</label>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ここで作成された予約は通常の予約と同じ扱いでカレンダーに表示・削除できます。</div>
