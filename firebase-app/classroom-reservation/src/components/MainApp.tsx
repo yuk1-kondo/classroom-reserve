@@ -17,6 +17,7 @@ export const MainApp: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
   const [showSheet, setShowSheet] = useState(false);
+  const [filterMine, setFilterMine] = useState<boolean>(false);
 
   // 日付クリック処理
   const handleDateClick = (dateStr: string) => {
@@ -90,6 +91,8 @@ export const MainApp: React.FC = () => {
             key={refreshKey}
             refreshTrigger={refreshKey}
             selectedDate={selectedDate} // 選択日付を渡す
+            filterMine={filterMine}
+            onFilterMineChange={setFilterMine}
             onDateClick={handleDateClick}
             onEventClick={handleEventClick}
           />
@@ -100,6 +103,8 @@ export const MainApp: React.FC = () => {
               <DailyReservationTable 
                 selectedDate={dailyTableDate}
                 showWhenEmpty={true}
+                filterMine={filterMine}
+                onFilterMineChange={setFilterMine}
                 onDateChange={(d)=>{
                   setDailyTableDate(d);
                   setSelectedDate(d);

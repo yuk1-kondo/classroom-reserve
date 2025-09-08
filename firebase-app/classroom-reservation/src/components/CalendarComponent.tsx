@@ -19,6 +19,8 @@ interface CalendarComponentProps {
   onEventClick?: (eventId: string) => void;
   refreshTrigger?: number; // 外部からの更新トリガー
   selectedDate?: string; // 選択された日付（表示モード切り替え時に使用）
+  filterMine?: boolean;
+  onFilterMineChange?: (v: boolean) => void;
 }
 
 interface CalendarEvent {
@@ -30,7 +32,7 @@ interface CalendarEvent {
   roomName: string;
 }
 
-export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClick, onEventClick, refreshTrigger, selectedDate }) => {
+export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClick, onEventClick, refreshTrigger, selectedDate, filterMine: propFilterMine, onFilterMineChange }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -39,7 +41,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const isMobile = windowWidth < 600;
   const [initialView, setInitialView] = useState<string>('timeGridWeek');
-  const [filterMine, setFilterMine] = useState<boolean>(false);
+  const filterMine = propFilterMine ?? false;
   // 直近取得した日付範囲（無限再取得防止）
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
   // 予約上限設定の取得
@@ -259,7 +261,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
         <div></div>
         <label style={{ fontSize: '0.9em' }}>
           自分の予約のみ
-          <input type="checkbox" style={{ marginLeft: 6 }} checked={filterMine} onChange={e=>setFilterMine(e.target.checked)} />
+          <input type="checkbox" style={{ marginLeft: 6 }} checked={filterMine} onChange={e=>onFilterMineChange && onFilterMineChange(e.target.checked)} />
         </label>
       </div>
       <FullCalendar

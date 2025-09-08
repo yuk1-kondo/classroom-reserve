@@ -18,6 +18,8 @@ interface DailyReservationTableProps {
   selectedDate?: string;
   showWhenEmpty?: boolean; // 追加: 空でも表示
   onDateChange?: (dateStr: string) => void;
+  filterMine?: boolean;
+  onFilterMineChange?: (v: boolean) => void;
 }
 
 interface RoomReservationStatus {
@@ -29,7 +31,9 @@ interface RoomReservationStatus {
 export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   selectedDate,
   showWhenEmpty = false,
-  onDateChange
+  onDateChange,
+  filterMine: propFilterMine,
+  onFilterMineChange
 }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
@@ -38,7 +42,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [error, setError] = useState<string>('');
   const [filterRoomId, setFilterRoomId] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
-  const [filterMine, setFilterMine] = useState<boolean>(false);
+  const filterMine = propFilterMine ?? false;
   const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -302,7 +306,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           </label>
           <label>
             自分の予約のみ
-            <input type="checkbox" checked={filterMine} onChange={e => setFilterMine(e.target.checked)} />
+            <input type="checkbox" checked={filterMine} onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)} />
           </label>
         </div>
       </div>
