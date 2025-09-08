@@ -7,6 +7,7 @@ import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
+import { APP_VERSION } from '../version';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
@@ -75,7 +76,7 @@ export const MainApp: React.FC = () => {
           桜和高校教室予約システム
         </h1>
         <div className="header-info">
-          <div className="system-info">v1.5</div>
+          <div className="system-info">v{APP_VERSION}</div>
           <button 
             className="toggle-panel-button"
             onClick={() => setShowSidePanel(!showSidePanel)}
