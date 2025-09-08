@@ -42,6 +42,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [activeTab, setActiveTab] = useState<'reserved'|'available'>('reserved');
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
   // 教室データを取得
   useEffect(() => {
@@ -207,7 +208,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     };
 
     loadDayReservations();
-  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine, refreshKey]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
@@ -238,12 +239,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       setLoading(true);
       await reservationsService.deleteReservation(r.id);
       setConfirmingId(null);
-      // 再読込
-      if (selectedDate) {
-        const { start, end } = dayRange(selectedDate);
-        const updated = await reservationsService.getReservations(start, end);
-        setSortedReservations(updated as any);
-      }
+      // 再読込トリガー
+      setRefreshKey(v => v + 1);
     } catch (e) {
       console.error('インライン削除失敗', e);
       alert('削除に失敗しました');
