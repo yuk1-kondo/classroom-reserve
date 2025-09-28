@@ -96,7 +96,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
           )}
         </div>
         {maxDateStr && (
-          <div className="helper-text" aria-live="polite" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+          <div className="helper-text" aria-live="polite">
             予約は{maxDateStr}まで選択できます。
           </div>
         )}

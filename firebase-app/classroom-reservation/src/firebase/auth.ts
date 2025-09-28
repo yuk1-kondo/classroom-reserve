@@ -9,6 +9,7 @@ import {
   signInAnonymously // 追加: 匿名認証
 } from 'firebase/auth';
 import { auth } from './config';
+import { adminService } from './admin';
 import { setPersistence, browserSessionPersistence } from 'firebase/auth';
 
 // 許可されたドメイン設定
@@ -61,6 +62,8 @@ export const authService = {
       }
       
       console.log('✅ Googleログイン成功:', user.email);
+      // UID とメールの紐付けを user_profiles に保存（管理者追加のための逆引きに使用）
+      try { await adminService.upsertUserProfile(user.uid, user.email, user.displayName); } catch {}
       try { localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}
       return result;
     } catch (error) {

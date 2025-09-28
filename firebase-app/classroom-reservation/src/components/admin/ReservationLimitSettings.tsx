@@ -3,6 +3,7 @@ import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { systemSettingsService } from '../../firebase/settings';
 import { Timestamp } from 'firebase/firestore';
 import { authService } from '../../firebase/auth';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Props {
   currentUserId?: string | null;
@@ -20,7 +21,9 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
   const [absoluteDate, setAbsoluteDate] = useState<string>(maxDateStr || '');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>('');
-  const canWrite = authService.isAdmin();
+  // 仕様: 追加登録した管理者も予約制限設定は変更可能（スーパー限定ではない）
+  const { isAdmin } = useAuth();
+  const canWrite = isAdmin;
 
   useEffect(() => {
     if (maxDateStr) setAbsoluteDate(maxDateStr);
@@ -61,13 +64,13 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
   };
 
   return (
-    <div className="admin-card" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginTop: 12 }}>
-      <h5 style={{ margin: 0, marginBottom: 8 }}>🛡️ 予約制限設定</h5>
-      {loading && <div style={{ fontSize: 12, color: '#666' }}>設定を読み込み中…</div>}
-      {error && <div style={{ fontSize: 12, color: '#b91c1c' }}>{error}</div>}
+    <div className="admin-card rls-card">
+      <h5 className="rls-title">🛡️ 予約制限設定</h5>
+      {loading && <div className="rls-loading">設定を読み込み中…</div>}
+      {error && <div className="rls-error">{error}</div>}
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>固定日付で制限</label>
+      <div className="rls-row">
+        <label className="rls-label">固定日付で制限</label>
         <input
           type="date"
           value={absoluteDate}
@@ -77,22 +80,22 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
         />
       </div>
 
-      <div style={{ marginTop: 8, fontSize: 12, color: '#374151' }}>
+      <div className="rls-info">
         <div>現在の適用上限: <strong>{maxDate ? fmt(maxDate) : '未設定'}</strong></div>
         <div>今回の保存内容プレビュー: <strong>{absoluteDate || '—'}</strong></div>
-        <div style={{ color: '#6b7280' }}>保存すると UI と ルール（予約作成の startTime）に即時反映されます。</div>
+        <div className="rls-hint">保存すると UI と ルール（予約作成の startTime）に即時反映されます。</div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+      <div className="rls-actions">
         <button type="button" onClick={handleSave} disabled={saving || !canWrite}>
           {saving ? '保存中…' : '保存'}
         </button>
         {!canWrite && (
-          <div style={{ fontSize: 12, color: '#6b7280' }}>
+          <div className="rls-note">
             設定の変更には管理者メールでのログインが必要です。
           </div>
         )}
-        {message && <div style={{ fontSize: 12 }}>{message}</div>}
+        {message && <div className="rls-msg">{message}</div>}
       </div>
     </div>
   );

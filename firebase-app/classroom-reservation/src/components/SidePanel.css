@@ -221,6 +221,7 @@
   color: #333;
   font-weight: 600;
 }
+.app-version { margin-left: 8px; font-size: 0.85em; color: #666; }
 
 .close-button {
   background: none;
@@ -783,6 +784,9 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* helper-text for DateRangeSelector */
+.helper-text { font-size: 12px; color: #666; margin-top: 4px; }
+
 /* 情報メッセージスタイル */
 .info-message {
   background: #fff3cd;
@@ -914,6 +918,8 @@
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.3s ease-out;
+  position: relative;
+  padding: 16px 16px 12px;
 }
 
 .backup-modal {
@@ -1007,3 +1013,49 @@
 .only-mobile .mobile-inline-close-wrapper { padding:4px 8px; }
 .mobile-inline-close-btn { background: var(--color-outline-variant); border:none; padding:6px 10px; border-radius: var(--radius-small); font-size:0.8rem; cursor:pointer; }
 .mobile-inline-close-btn:active { opacity:0.8; }
+
+/* 管理者管理モーダル用スタイル */
+.admin-manager-modal {
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.admin-manager-modal .admin-user-manager {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+/* モーダルの右上クローズボタン */
+.modal-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #6b7280; /* slate-500 */
+  cursor: pointer;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: #f3f4f6; /* slate-100 */
+  color: #374151; /* slate-700 */
+}
+
+/* モバイル用の管理者管理モーダル */
+@media (max-width: 768px) {
+  .admin-manager-modal {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+}

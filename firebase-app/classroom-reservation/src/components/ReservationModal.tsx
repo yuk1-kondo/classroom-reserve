@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { reservationsService, Reservation } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
 import { formatPeriodDisplay } from '../utils/periodLabel';
@@ -19,6 +20,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   onClose,
   onReservationUpdated
 }) => {
+  const { isSuperAdmin } = useAuth();
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -92,7 +94,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     }
   };
 
-  const canDelete = authService.canDeleteReservation(reservation?.createdBy);
+  // 仕様変更（要望に合わせて更新）:
+  // - 管理者（super/regular 共通）は誰の予約でも削除可能
+  // - 一般ユーザーは作成者本人のみ削除可能
+  const { isAdmin } = useAuth();
+  const isCreator = reservation?.createdBy && authService.getCurrentUser()?.uid === reservation?.createdBy;
+  // 管理者は常に削除可能。一般ユーザーは作成者のみ。
+  const canDelete = isAdmin || (isCreator === true);
 
   useEffect(() => {
     if (showDeleteConfirm && confirmDeleteBtnRef.current) {

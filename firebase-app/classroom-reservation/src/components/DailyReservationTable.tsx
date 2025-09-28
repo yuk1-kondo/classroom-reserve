@@ -13,6 +13,7 @@ import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
 import { PERIOD_ORDER } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -35,6 +36,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   filterMine: propFilterMine,
   onFilterMineChange
 }) => {
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
   const [sortedReservations, setSortedReservations] = useState<any[]>([]);
@@ -47,6 +49,16 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const selectedDateInputValue = React.useMemo(() => {
+    if (!selectedDate) return '';
+    const v = String(selectedDate);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    try {
+      return toDateStr(new Date(v));
+    } catch {
+      return v.slice(0, 10);
+    }
+  }, [selectedDate]);
 
   // 教室データを取得
   useEffect(() => {
@@ -235,7 +247,11 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   };
 
   const currentUser = authService.getCurrentUser();
-  const canDeleteReservation = (r: Reservation) => currentUser && r.createdBy === currentUser.uid;
+  // 仕様変更（要望に合わせて更新）: 管理者（super/regular 共通）は誰の予約でも削除可
+  const canDeleteReservation = (r: Reservation) => {
+    if (isAdmin) return true;
+    return currentUser && r.createdBy === currentUser.uid;
+  };
 
   const handleInlineDelete = async (r: Reservation) => {
     if (!r.id) return;
@@ -268,7 +284,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         <div className="filters">
           <label>
             日付:
-            <input type="date" value={selectedDate} onChange={e => onDateChange && onDateChange(e.target.value)} />
+            <input type="date" value={selectedDateInputValue} onChange={e => onDateChange && onDateChange(e.target.value)} />
           </label>
           <label>
             教室:

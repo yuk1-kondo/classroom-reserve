@@ -287,12 +287,12 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
       {editing && (
         <div className="rtm-editor">
           <div className="form-row">
-            <label>名称</label>
-            <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} />
+            <label htmlFor="rtm-name">名称</label>
+            <input id="rtm-name" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} title="テンプレート名称" aria-label="テンプレート名称" />
           </div>
           <div className="form-row">
-            <label>教室</label>
-            <select value={editing.roomId} onChange={e => setEditing({ ...editing, roomId: e.target.value })}>
+            <label htmlFor="rtm-room">教室</label>
+            <select id="rtm-room" value={editing.roomId} onChange={e => setEditing({ ...editing, roomId: e.target.value })} title="教室選択" aria-label="教室選択">
               {roomOptions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
@@ -360,18 +360,24 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
           {/* 不要オプションは撤去（固定予約はシンプル運用） */}
 
           <div className="form-row">
-            <label>開始日（適用範囲）</label>
+            <label htmlFor="rtm-start">開始日（適用範囲）</label>
             <input 
               type="date" 
               value={editing.startDate} 
+              id="rtm-start"
+              title="開始日"
+              aria-label="開始日"
               onChange={e => setEditing({ ...editing, startDate: e.target.value })}
             />
           </div>
           <div className="form-row">
-            <label>終了日（適用範囲）</label>
+            <label htmlFor="rtm-end">終了日（適用範囲）</label>
             <input 
               type="date" 
               value={editing.endDate || ''} 
+              id="rtm-end"
+              title="終了日"
+              aria-label="終了日"
               onChange={e => setEditing({ ...editing, endDate: e.target.value || undefined })}
             />
           </div>

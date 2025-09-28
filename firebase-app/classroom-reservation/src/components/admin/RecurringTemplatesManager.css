@@ -401,6 +401,9 @@
   display: none;
 }
 
+/* Export options row */
+.rtm-export-options { display: flex; gap: 12px; margin-top: 8px; }
+
 .toggle.on {
   background: var(--color-primary);
   color: #fff;

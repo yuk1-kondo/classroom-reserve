@@ -15,7 +15,9 @@ import { displayLabel } from '../utils/periodLabel';
 import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
 import { authService } from '../firebase/auth';
+import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
+import AdminUserManager from './admin/AdminUserManager';
 import { APP_VERSION } from '../version';
 
 
@@ -33,12 +35,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onReservationCreated
 }) => {
   // カスタムフックで状態管理を分離
-  const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout } = useAuth();
+  const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
   const { rooms, reservations, slots } = useReservationData(currentUser, selectedDate);
   const roomOptions = useMemo(() =>
     rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
   [rooms]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showAdminManager, setShowAdminManager] = useState(false);
   // 直後の重複チェックを抑止するためのクールダウン時刻
   const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
@@ -70,10 +73,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   
   // 管理者機能の表示状態（簡素化）
   const [csvMessage, setCsvMessage] = useState('');
+  // isSuperAdmin は useAuth から取得するように変更
 
   
   // 管理者権限チェック（共通ロジックに統一）
-  const isAdmin = authService.isAdmin();
+  // useAuth の isAdmin は「管理者として認識されているか」
+  // さらに、最初の管理者（スーパー管理者）かを判定
+  // 旧: ローカルで super 判定。新: useAuth 側に集約済み。
 
   // 使わない管理系アクションは撤去（必要時に再実装）
 
@@ -142,7 +148,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       />
 
       <div className="side-panel-header">
-        <h3>📅 予約管理 <span style={{ marginLeft: 8, fontSize: '0.85em', color: '#666' }}>Ver {APP_VERSION}</span></h3>
+        <h3>📅 予約管理 <span className="app-version">Ver {APP_VERSION}</span></h3>
       </div>
 
       {selectedDate ? (
@@ -182,18 +188,22 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {csvMessage}
                 </div>
               )}
-              {/* 予約制限設定 */}
+              {/* 予約制限設定（全管理者が利用可能）*/}
               <ReservationLimitSettings currentUserId={currentUser?.uid} />
-              <div className="admin-actions-row">
-                <button className="admin-btn" onClick={() => setShowTemplates(true)}>固定予約テンプレートを開く</button>
-                <RecurringTemplatesModal 
-                  open={showTemplates}
-                  onClose={() => setShowTemplates(false)}
-                  isAdmin={isAdmin}
-                  currentUserId={currentUser?.uid}
-                  roomOptions={roomOptions}
-                />
-              </div>
+              {/* スーパー管理者専用ツール */}
+              {isSuperAdmin && (
+                <div className="admin-actions-row">
+                  <button className="admin-btn" onClick={() => setShowTemplates(true)}>固定予約テンプレートを開く</button>
+                  <button className="admin-btn" onClick={() => setShowAdminManager(true)}>管理者権限管理</button>
+                  <RecurringTemplatesModal 
+                    open={showTemplates}
+                    onClose={() => setShowTemplates(false)}
+                    isAdmin={isSuperAdmin}
+                    currentUserId={currentUser?.uid}
+                    roomOptions={roomOptions}
+                  />
+                </div>
+              )}
 
               <div className="admin-functions" />
             </div>
@@ -220,6 +230,21 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             <button 
               className="modal-close-btn"
               onClick={() => setShowLoginModal(false)}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 管理者管理モーダル */}
+      {showAdminManager && (
+        <div className="modal-overlay" onClick={() => setShowAdminManager(false)}>
+          <div className="modal-content admin-manager-modal" onClick={(e) => e.stopPropagation()}>
+            <AdminUserManager />
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowAdminManager(false)}
             >
               ✕
             </button>

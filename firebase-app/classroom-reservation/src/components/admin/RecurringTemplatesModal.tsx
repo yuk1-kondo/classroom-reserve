@@ -140,7 +140,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <button onClick={handleBulkDeleteReservations} disabled={!isAdmin || busyBulkDelete} title="期間内の全予約を削除">期間内の予約削除</button>
               <button onClick={handleExportCsv} disabled={!isAdmin || busyExport} title="期間内の予約をCSVでエクスポート">CSVエクスポート</button>
             </div>
-            <div className="form-row" style={{ display:'flex', gap: '12px', marginTop: '8px' }}>
+            <div className="form-row rtm-export-options">
               <label><input type="checkbox" checked={includeId} onChange={e=>setIncludeId(e.target.checked)} /> 予約ID</label>
               <label><input type="checkbox" checked={includeCreatedAt} onChange={e=>setIncludeCreatedAt(e.target.checked)} /> 作成日時</label>
               <label><input type="checkbox" checked={includeCreatedByUid} onChange={e=>setIncludeCreatedByUid(e.target.checked)} /> 作成者UID</label>
