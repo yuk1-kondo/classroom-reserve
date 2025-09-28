@@ -37,6 +37,22 @@
   line-height: 1.4;
 }
 
+/* ツールバー: インラインスタイルの外出し */
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.calendar-toolbar .mine-label {
+  font-size: 0.9em;
+}
+
+.calendar-toolbar .mine-checkbox {
+  margin-left: 6px;
+}
+
 /* FullCalendar のマテリアルデザイン調整 */
 .fc {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;

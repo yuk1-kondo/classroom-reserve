@@ -36,7 +36,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   filterMine: propFilterMine,
   onFilterMineChange
 }) => {
-  const { isAdmin, isSuperAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
   const [sortedReservations, setSortedReservations] = useState<any[]>([]);

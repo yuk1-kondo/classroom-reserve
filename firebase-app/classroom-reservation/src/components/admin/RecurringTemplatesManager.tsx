@@ -85,39 +85,10 @@ export default function RecurringTemplatesManager({ isAdmin, currentUserId, room
     }
   };
 
-  const remove = async (id?: string) => {
-    if (!id) return;
-    if (!isAdmin) { setError('管理者のみ削除できます'); return; }
-    if (!window.confirm('このテンプレートを削除しますか？')) return;
-    setLoading(true);
-    setError(null);
-    try {
-      await recurringTemplatesService.remove(id);
-      await load();
-    } catch (e: any) {
-      setError(e?.message || '削除に失敗しました');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // remove は handleDelete に統合済み
 
   // 新規追加: テンプレートの固定予約を削除
-  const removeTemplateLocks = async (templateId: string) => {
-    if (!isAdmin) { setError('管理者のみ削除できます'); return; }
-    if (!window.confirm('このテンプレートで作成された固定予約を削除しますか？\n\n※テンプレート自体は削除されません')) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await removeTemplateLocksByTemplate(templateId);
-      setError(null);
-      alert(`${result.deleted}件の固定予約を削除しました`);
-    } catch (e: any) {
-      setError(e?.message || '固定予約の削除に失敗しました');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // removeTemplateLocks は handleRemoveLocks に統合済み
 
   // 選択状態の管理
   const toggleSelection = (id: string) => {

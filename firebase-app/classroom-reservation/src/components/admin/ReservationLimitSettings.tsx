@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { systemSettingsService } from '../../firebase/settings';
 import { Timestamp } from 'firebase/firestore';
-import { authService } from '../../firebase/auth';
+// import { authService } from '../../firebase/auth';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Props {

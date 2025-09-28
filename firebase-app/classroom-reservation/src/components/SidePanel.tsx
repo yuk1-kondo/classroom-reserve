@@ -9,13 +9,13 @@ import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { validateDatesWithinMax } from '../utils/dateValidation';
-import { reservationsService } from '../firebase/firestore';
+// import { reservationsService } from '../firebase/firestore';
 import './SidePanel.css';
-import { displayLabel } from '../utils/periodLabel';
-import { formatPeriodDisplay } from '../utils/periodLabel';
+// import { displayLabel } from '../utils/periodLabel';
+// import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
-import { authService } from '../firebase/auth';
-import { adminService } from '../firebase/admin';
+// import { authService } from '../firebase/auth';
+// import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
 import AdminUserManager from './admin/AdminUserManager';
 import { APP_VERSION } from '../version';
@@ -72,7 +72,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const { selectedRoom } = formData;
   
   // 管理者機能の表示状態（簡素化）
-  const [csvMessage, setCsvMessage] = useState('');
+  // const [csvMessage, setCsvMessage] = useState(''); // 未使用のためコメントアウト（将来のCSV処理で再利用）
   // isSuperAdmin は useAuth から取得するように変更
 
   
@@ -133,7 +133,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   };
 
   // 予約ラベル正規化（既存データ再書込み）
-  const handleNormalizeExisting = async () => {};
+  // const handleNormalizeExisting = async () => {};
 
   return (
     <div className="side-panel">
@@ -183,11 +183,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           {isAdmin && (
             <div className="admin-section">
               <h4>🔧 管理者機能</h4>
-              {csvMessage && (
-                <div className={`csv-message ${csvMessage.includes('❌') ? 'error' : 'success'}`}>
-                  {csvMessage}
-                </div>
-              )}
+              {/* CSV処理メッセージ（現在未使用） */}
               {/* 予約制限設定（全管理者が利用可能）*/}
               <ReservationLimitSettings currentUserId={currentUser?.uid} />
               {/* スーパー管理者専用ツール */}

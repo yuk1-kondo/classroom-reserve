@@ -20,7 +20,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   onClose,
   onReservationUpdated
 }) => {
-  const { isSuperAdmin } = useAuth();
+  // isSuperAdmin はUI制御に未使用のため削除
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import './CsvBulkReservations.css';
 import { Timestamp } from 'firebase/firestore';
 import { roomsService, reservationsService, PERIOD_ORDER, createDateTimeFromPeriod } from '../../firebase/firestore';
 import { toDateStr } from '../../utils/dateRange';
@@ -100,7 +101,6 @@ function iterateDates(startStr: string, endStr: string): Date[] {
 
 export default function CsvBulkReservations({ currentUserId, roomOptions }: Props) {
   const [busy, setBusy] = useState(false);
-  const [csvText, setCsvText] = useState<string>('');
   const [rows, setRows] = useState<PreviewItem[]>([]);
   const { maxDateStr, limitMonths } = useSystemSettings();
   const [rangeStart, setRangeStart] = useState<string>(() => new Date().toISOString().slice(0,10));
@@ -153,7 +153,6 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
     if (!file) return;
     await loadRoomsIfNeeded();
     const text = await file.text();
-    setCsvText(text);
     parse(text);
   };
 
@@ -298,47 +297,47 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
   };
 
   return (
-    <div className="csv-bulk-wrap" style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12 }}>
+    <div className="csvb-wrap">
       <h4>CSV一括固定予約（週間定義 × 期間適用）</h4>
-      <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+      <div className="csvb-help">
         CSV形式（ヘッダー任意）: <code>weekday,room,periods,title</code>
         例: <code>weekday,room,periods,title</code> / <code>月,小演習室1,1-3,英語演習</code>
       </div>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="csvb-controls">
         <input type="file" accept=".csv,text/csv" onChange={handleFile} disabled={busy} title="CSVファイルを選択" />
         <label>開始日</label>
         <input type="date" value={rangeStart} onChange={e=>setRangeStart(e.target.value)} disabled={busy} title="適用開始日" />
         <label>終了日</label>
         <input type="date" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)} disabled={busy} title="適用終了日" />
-        <label style={{ display:'inline-flex', gap:6, alignItems:'center' }}>
+        <label className="csvb-inline-check">
           <input type="checkbox" checked={skipExisting} onChange={e=>setSkipExisting(e.target.checked)} disabled={busy} title="既存予約がある枠はスキップ" />
           既存はスキップ
         </label>
         <button onClick={handleApply} disabled={busy || rows.length === 0}>予約作成</button>
       </div>
 
-      {message && <div style={{ marginTop: 8 }}>{message}</div>}
+      {message && <div className="csvb-message">{message}</div>}
 
       {rows.length > 0 && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>プレビュー（{rows.length} 行）</div>
-          <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #eee' }}>
-            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+        <div className="csvb-preview">
+          <div className="csvb-preview-title">プレビュー（{rows.length} 行）</div>
+          <div className="csvb-preview-scroll">
+            <table className="csvb-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign:'left', padding:'6px 8px', borderBottom:'1px solid #eee' }}>曜日</th>
-                  <th style={{ textAlign:'left', padding:'6px 8px', borderBottom:'1px solid #eee' }}>教室</th>
-                  <th style={{ textAlign:'left', padding:'6px 8px', borderBottom:'1px solid #eee' }}>時限</th>
-                  <th style={{ textAlign:'left', padding:'6px 8px', borderBottom:'1px solid #eee' }}>状態</th>
+                  <th className="csvb-th">曜日</th>
+                  <th className="csvb-th">教室</th>
+                  <th className="csvb-th">時限</th>
+                  <th className="csvb-th">状態</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i}>
-                    <td style={{ padding:'6px 8px', borderBottom:'1px solid #f5f5f5' }}>{weekdaysJp[r.weekday] ?? '-'}</td>
-                    <td style={{ padding:'6px 8px', borderBottom:'1px solid #f5f5f5' }}>{r.roomName || r.roomKey}</td>
-                    <td style={{ padding:'6px 8px', borderBottom:'1px solid #f5f5f5' }}>{r.periods.join(', ')}</td>
-                    <td style={{ padding:'6px 8px', borderBottom:'1px solid #f5f5f5', color: r.error ? '#c00' : '#090' }}>
+                    <td className="csvb-td">{weekdaysJp[r.weekday] ?? '-'}</td>
+                    <td className="csvb-td">{r.roomName || r.roomKey}</td>
+                    <td className="csvb-td">{r.periods.join(', ')}</td>
+                    <td className={`csvb-td csvb-status ${r.error ? 'error' : 'ok'}`}>
                       {r.error ? r.error : 'OK'}
                     </td>
                   </tr>

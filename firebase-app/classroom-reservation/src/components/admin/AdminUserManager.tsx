@@ -11,7 +11,7 @@ export const AdminUserManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [isFirstAdmin, setIsFirstAdmin] = useState(false); // 互換のため保持（UI制御には未使用）
+  // const [isFirstAdmin, setIsFirstAdmin] = useState(false); // 互換保持のみ（UI制御には未使用）
   const [superAdminUid, setSuperAdminUid] = useState<string | null>(null);
 
   // 管理者リストを読み込み
@@ -47,8 +47,8 @@ export const AdminUserManager: React.FC = () => {
     }
 
     // 最初の管理者のみが管理者を追加できる
-    if (!isFirstAdmin) {
-      setError('管理者の追加は最初の管理者のみが行えます');
+    if (!isSuperAdmin) {
+      setError('管理者の追加は最初の管理者（スーパー管理者）のみが行えます');
       return;
     }
 
@@ -217,7 +217,7 @@ export const AdminUserManager: React.FC = () => {
       )}
 
       {/* 管理者追加セクション（スーパー管理者のみ） */}
-      {isFirstAdmin && (
+      {isSuperAdmin && (
         <div className="add-admin-section">
           <h4>➕ 新しい管理者を追加</h4>
           <div className="add-admin-form">

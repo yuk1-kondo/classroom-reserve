@@ -5,7 +5,7 @@ import { WeeklyTemplate, TemplatePriority } from '../types/templates';
 import { makeSlotId } from '../utils/slot';
 import { toDateStr } from '../utils/dateRange';
 import { reservationsService, roomsService } from './firestore';
-import { periodTimeMap as PERIOD_TIME_MAP, createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
+import { createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
 import { ConflictResolutionService } from '../services/conflictResolutionService';
 
 

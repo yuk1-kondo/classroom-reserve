@@ -45,7 +45,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   // 直近取得した日付範囲（無限再取得防止）
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
   // 予約上限設定の取得
-  const { maxDateStr, limitMonths } = useSystemSettings();
+  const { maxDateStr } = useSystemSettings();
 
   // 教室名からカテゴリを判定
   const classifyRoom = useCallback((roomName: string): string => {
@@ -257,11 +257,11 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
         </div>
       )}
       
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8 }}>
+      <div className="calendar-toolbar">
         <div></div>
-        <label style={{ fontSize: '0.9em' }}>
+        <label className="mine-label">
           自分の予約のみ
-          <input type="checkbox" style={{ marginLeft: 6 }} checked={filterMine} onChange={e=>onFilterMineChange && onFilterMineChange(e.target.checked)} />
+          <input type="checkbox" className="mine-checkbox" checked={filterMine} onChange={e=>onFilterMineChange && onFilterMineChange(e.target.checked)} />
         </label>
       </div>
       <FullCalendar
