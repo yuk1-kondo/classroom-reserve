@@ -5,7 +5,7 @@
   border: 1px solid #d4dbe2; /* 統一ライン色 */
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   overflow: hidden; /* 横スクロール抑止 */
   box-shadow: 0 1px 2px rgba(0,0,0,0.06); /* 影わずかに弱め */
   /* レスポンシブ対応のため最小幅を設定 */
@@ -97,7 +97,7 @@
   min-width: 0 !important; /* 強制固定 */
   border-collapse: separate; /* collapse を使わず重複回避 */
   border-spacing: 0; /* 余白なし */
-  font-size: 11px;
+  font-size: 12px;
   background: white;
   table-layout: fixed; /* 列幅固定して折返し */
   border: none;
@@ -112,7 +112,7 @@
   border: none; /* 既存クリア */
   border-right: 1px solid #d4dbe2;
   border-bottom: 1px solid #d4dbe2;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   /* ヘッダー固定 */
   position: sticky;
@@ -128,7 +128,7 @@
   vertical-align: middle; /* 中央揃え */
   text-align: center; /* 中央揃え */
   background: white;
-  font-size: 11px;
+  font-size: 12px;
   white-space: normal; /* 折り返し許可 */
   word-break: break-word;
 }
@@ -162,10 +162,16 @@
 
 /* セル内容 */
 .room-name { font-weight: 500; color: #24292f; }
-.period-badge { background: #ddf4ff; color: #0969da; padding: 2px 6px; border-radius: 12px; font-size: 10px; font-weight: 600; display: inline-block; }
-.time-range { font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; color: #656d76; font-size: 10px; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; font-weight: 600; letter-spacing: 0.2px; }
-.reservation-title { color: #24292f; font-weight: 400; line-height: 1.3; }
-.reservation-user { color: #656d76; font-size: 10px; }
+.period-badge { background: #ddf4ff; color: #0969da; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; }
+.time-range { font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; color: #656d76; font-size: 13.5px; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; font-weight: 600; letter-spacing: 0.2px; }
+.reservation-title {
+  color: #24292f;
+  font-weight: 500;
+  line-height: 1.4;
+  font-size: 13.5px; /* 視認性アップ（Win/Mac両対応） */
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+.reservation-user { color: #656d76; font-size: 13.5px; }
 
 .inline-delete-btn { background:#fff; border:1px solid #d1242f; color:#d1242f; padding:2px 6px; border-radius:6px; cursor:pointer; font-size:10px; }
 .inline-delete-btn:hover { background:#d1242f; color:#fff; }
