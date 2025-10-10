@@ -55,8 +55,10 @@ service cloud.firestore {
           || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
           || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
         );
-    // 更新は作成者のみ
-    allow update: if isAuthenticated() && request.auth.uid == resource.data.createdBy;
+    // 更新は作成者 または 管理者
+    allow update: if isAuthenticated() && (
+      request.auth.uid == resource.data.createdBy || isAdmin()
+    );
     // 削除は作成者 または 管理者（uid/email のどちらかが admin_users に存在）
     allow delete: if isAuthenticated() && (
       request.auth.uid == resource.data.createdBy || (

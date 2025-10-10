@@ -14,7 +14,7 @@ import {
 } from '../types/templates';
 import { reservationsService } from '../firebase/firestore';
 import { toDateStr } from '../utils/dateRange';
-import { displayLabel } from '../utils/periodLabel';
+// displayLabel は moveReservation の内部で再計算されるため未使用
 
 export interface ConflictResolutionResult {
   success: boolean;
@@ -350,14 +350,13 @@ export class ConflictResolutionService {
     newLocation: { roomId: string; roomName: string; period: string }
   ): Promise<void> {
     try {
-      // 既存予約を更新
       if (reservation.id) {
-        await reservationsService.updateReservation(reservation.id, {
-          roomId: newLocation.roomId,
-          roomName: newLocation.roomName,
-          period: newLocation.period,
-          periodName: displayLabel(newLocation.period)
-        });
+        await reservationsService.moveReservation(
+          reservation.id,
+          newLocation.roomId,
+          newLocation.roomName,
+          newLocation.period
+        );
       }
     } catch (error) {
       console.error('予約移動エラー:', error);

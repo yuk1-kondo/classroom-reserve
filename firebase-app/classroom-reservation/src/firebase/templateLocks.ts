@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, runTransaction, Timestamp, query, where, writeBatch, Transaction } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, runTransaction, Timestamp, query, where, writeBatch, Transaction } from 'firebase/firestore';
 import { db } from './config';
 import { COLLECTIONS, SLOT_TYPES } from '../constants/collections';
 import { WeeklyTemplate, TemplatePriority } from '../types/templates';
@@ -55,6 +55,7 @@ export async function applyTemplateLocksWithPriority(
     forceOverride?: boolean;
     priority?: TemplatePriority;
     dryRun?: boolean;
+    experimentalTwoPhase?: boolean;
   } = {}
 ): Promise<{
   created: number;
@@ -214,12 +215,135 @@ async function processTemplatePeriod(
   dateStr: string,
   period: string | number,
   currentUserId?: string,
-  options: { forceOverride?: boolean; dryRun?: boolean } = {}
+  options: { forceOverride?: boolean; dryRun?: boolean; experimentalTwoPhase?: boolean } = {}
 ): Promise<{
   success: boolean;
   action: 'overridden' | 'relocated' | 'skipped' | 'notified';
   conflicts: any[];
 }> {
+  // 二段階モード: 競合解決はトランザクション外で実施し、最終のロック作成のみトランザクションで行う
+  if (options.experimentalTwoPhase) {
+    const slotQuery = query(
+      collection(db, RESERVATION_SLOTS_COLLECTION),
+      where('roomId', '==', template.roomId),
+      where('date', '==', dateStr),
+      where('period', '==', String(period))
+    );
+    const snap = await getDocs(slotQuery);
+
+    // スロットが存在しない場合は作成を試みる（最終は tx で再確認）
+    if (snap.empty) {
+      const result = await runTransaction(db, async (tx: Transaction) => {
+        const slotId = makeSlotId(template.roomId, dateStr, String(period));
+        const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+        const nowSnap = await tx.get(slotRef);
+        if (nowSnap.exists()) {
+          // レースで埋まった
+          const data = nowSnap.data();
+          if (data.type === SLOT_TYPES.TEMPLATE_LOCK) {
+            return { success: false, action: 'skipped' as const, conflicts: [] as any[] };
+          }
+          return { success: false, action: 'skipped' as const, conflicts: [data] };
+        }
+        tx.set(slotRef, {
+          roomId: template.roomId,
+          date: dateStr,
+          period: String(period),
+          reservationId: null,
+          type: SLOT_TYPES.TEMPLATE_LOCK,
+          templateId: template.id || null,
+          createdBy: currentUserId || 'template',
+          createdAt: Timestamp.now(),
+          priority: template.priority || 'normal',
+          category: template.category || 'other'
+        });
+        return { success: true, action: 'skipped' as const, conflicts: [] as any[] };
+      });
+      return result;
+    }
+
+    // 既存スロットあり
+    const existing = snap.docs[0].data();
+    if (existing.type === SLOT_TYPES.TEMPLATE_LOCK) {
+      return { success: false, action: 'skipped', conflicts: [] };
+    }
+    if (existing.reservationId) {
+      // 予約と競合 → 予約取得
+      const resDoc = await getDoc(doc(db, COLLECTIONS.RESERVATIONS, String(existing.reservationId)) as any);
+      const existingReservation = resDoc.exists() ? ({ id: resDoc.id, ...(resDoc.data() as any) }) : null;
+      if (existingReservation) {
+        const resolutionResult = await ConflictResolutionService.resolveTemplateConflicts(
+          template,
+          [existingReservation],
+          { forceOverride: options.forceOverride }
+        );
+
+        if (resolutionResult.success && (resolutionResult.action === 'overridden' || resolutionResult.action === 'relocated')) {
+          // 競合解消済み → ロック作成を tx で確定
+          const finalize = await runTransaction(db, async (tx: Transaction) => {
+            const slotId = makeSlotId(template.roomId, dateStr, String(period));
+            const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+            const nowSnap = await tx.get(slotRef);
+            if (nowSnap.exists()) {
+              const data = nowSnap.data() as any;
+              if (data.type !== SLOT_TYPES.TEMPLATE_LOCK) {
+                // まだ予約占有の場合は中断
+                return { success: false, action: 'skipped' as const, conflicts: resolutionResult.conflicts };
+              }
+              // すでにロックなら何もしない
+              return { success: true, action: resolutionResult.action as any, conflicts: resolutionResult.conflicts };
+            }
+            tx.set(slotRef, {
+              roomId: template.roomId,
+              date: dateStr,
+              period: String(period),
+              reservationId: null,
+              type: SLOT_TYPES.TEMPLATE_LOCK,
+              templateId: template.id || null,
+              createdBy: currentUserId || 'template',
+              createdAt: Timestamp.now(),
+              priority: template.priority || 'normal',
+              category: template.category || 'other'
+            });
+            return { success: true, action: resolutionResult.action as any, conflicts: resolutionResult.conflicts };
+          });
+          return finalize;
+        }
+        return { success: false, action: 'skipped', conflicts: resolutionResult.conflicts };
+      }
+      // 予約参照が壊れている場合はロック作成を試行
+      const finalize = await runTransaction(db, async (tx: Transaction) => {
+        const slotId = makeSlotId(template.roomId, dateStr, String(period));
+        const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+        const nowSnap = await tx.get(slotRef);
+        if (nowSnap.exists()) {
+          const data = nowSnap.data() as any;
+          if (data.type !== SLOT_TYPES.TEMPLATE_LOCK) {
+            // 孤立スロットを掃除
+            tx.delete(slotRef);
+          }
+        }
+        tx.set(slotRef, {
+          roomId: template.roomId,
+          date: dateStr,
+          period: String(period),
+          reservationId: null,
+          type: SLOT_TYPES.TEMPLATE_LOCK,
+          templateId: template.id || null,
+          createdBy: currentUserId || 'template',
+          createdAt: Timestamp.now(),
+          priority: template.priority || 'normal',
+          category: template.category || 'other'
+        });
+        return { success: true, action: 'skipped' as const, conflicts: [] as any[] };
+      });
+      return finalize;
+    }
+
+    // その他はスキップ
+    return { success: false, action: 'skipped', conflicts: [] };
+  }
+
   const slotId = makeSlotId(template.roomId, dateStr, String(period));
   const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
   

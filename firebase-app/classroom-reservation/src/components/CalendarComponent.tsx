@@ -40,7 +40,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   const calendarRef = useRef<FullCalendar>(null);
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const isMobile = windowWidth < 600;
-  const [initialView, setInitialView] = useState<string>('timeGridWeek');
+  const [initialView, setInitialView] = useState<string>('dayGridMonth');
   const filterMine = propFilterMine ?? false;
   // 直近取得した日付範囲（無限再取得防止）
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
@@ -76,7 +76,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   }, []);
 
   useEffect(() => {
-    const target = isMobile ? 'dayGridMonth' : 'timeGridWeek';
+    const target = 'dayGridMonth';
     setInitialView(target);
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
@@ -270,14 +270,10 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
         initialView={initialView}
   locale="ja"
   dayCellClassNames={dayCellClassNames}
-        headerToolbar={isMobile ? {
+        headerToolbar={{
           left: 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek'
-        } : {
-          left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          right: 'dayGridMonth'
         }}
         height={isMobile ? 'auto' : 'auto'}
         expandRows={!isMobile}

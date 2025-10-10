@@ -91,10 +91,13 @@ export const roomsService = {
   async getAllRooms(): Promise<Room[]> {
     try {
       const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
-      return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
+      const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
         id: docSnap.id,
         ...docSnap.data()
       } as Room));
+      // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
+      const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
+      return rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
     } catch (error) {
       console.error('教室データ取得エラー:', error);
       throw error;
@@ -154,6 +157,109 @@ export const reservationsService = {
       });
     } catch (error) {
       console.error('予約データ取得エラー:', error);
+      throw error;
+    }
+  },
+
+  // 予約を移動（旧スロット解放 → 新スロット確保 → 本体更新 を同一トランザクションで実施）
+  async moveReservation(
+    reservationId: string,
+    newRoomId: string,
+    newRoomName: string,
+    newPeriod: string
+  ): Promise<void> {
+    try {
+      await runTransaction(db, async (tx: Transaction) => {
+        const resRef = doc(db, RESERVATIONS_COLLECTION, reservationId);
+        const resSnap = await tx.get(resRef);
+        if (!resSnap.exists()) {
+          throw new Error('予約が見つかりません');
+        }
+        const data = resSnap.data() as Reservation;
+        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
+        const oldPeriods = this._periods(data.period);
+        const newPeriods = this._periods(newPeriod);
+
+        // 新スロットの空きを確認（テンプレートロックや孤立スロットは上書き/掃除）
+        for (const p of newPeriods) {
+          const slotId = makeSlotId(newRoomId, dateStr, p);
+          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+          const slotSnap = await tx.get(slotRef);
+          if (slotSnap.exists()) {
+            const slotData = slotSnap.data() as ReservationSlot;
+            if (slotData.type === 'template-lock') {
+              // ロックは上書きして確保
+              tx.delete(slotRef);
+            } else if (!slotData.reservationId) {
+              // 孤立スロットは掃除
+              tx.delete(slotRef);
+            } else {
+              // 参照先予約の存在確認（存在しなければ掃除）
+              const ref = doc(db, RESERVATIONS_COLLECTION, String(slotData.reservationId));
+              const snap = await tx.get(ref);
+              if (!snap.exists()) {
+                tx.delete(slotRef);
+              } else {
+                throw new Error('同じ教室・時限の予約が既に存在します');
+              }
+            }
+          }
+        }
+
+        // 旧スロット開放
+        for (const p of oldPeriods) {
+          const oldSlotId = makeSlotId(data.roomId, dateStr, p);
+          const oldSlotRef = doc(db, RESERVATION_SLOTS_COLLECTION, oldSlotId);
+          tx.delete(oldSlotRef);
+        }
+
+        // 新しい開始/終了時刻と periodName を算出
+        let startTime: Timestamp = data.startTime;
+        let endTime: Timestamp = data.endTime;
+        let periodName: string = data.periodName;
+        if (newPeriods.length === 1) {
+          const dt = createDTFromPeriod(dateStr, newPeriods[0]);
+          if (!dt) throw new Error('新しい時限の時間計算に失敗しました');
+          startTime = Timestamp.fromDate(dt.start);
+          endTime = Timestamp.fromDate(dt.end);
+          periodName = displayLabel(newPeriods[0]);
+        } else if (newPeriods.length > 1) {
+          const startP = newPeriods[0];
+          const endP = newPeriods[newPeriods.length - 1];
+          const dtStart = createDTFromPeriod(dateStr, startP);
+          const dtEnd = createDTFromPeriod(dateStr, endP);
+          if (!dtStart || !dtEnd) throw new Error('新しい時限範囲の時間計算に失敗しました');
+          startTime = Timestamp.fromDate(dtStart.start);
+          endTime = Timestamp.fromDate(dtEnd.end);
+          periodName = formatPeriodDisplay(newPeriod);
+        }
+
+        // 本体更新
+        tx.update(resRef, {
+          roomId: newRoomId,
+          roomName: newRoomName,
+          period: newPeriod,
+          periodName,
+          startTime,
+          endTime
+        });
+
+        // 新スロット確保
+        for (const p of newPeriods) {
+          const newSlotId = makeSlotId(newRoomId, dateStr, p);
+          const newSlotRef = doc(db, RESERVATION_SLOTS_COLLECTION, newSlotId);
+          tx.set(newSlotRef, {
+            roomId: newRoomId,
+            date: dateStr,
+            period: p,
+            reservationId: reservationId,
+            createdBy: data.createdBy || null,
+            createdAt: Timestamp.now()
+          });
+        }
+      });
+    } catch (error) {
+      console.error('予約移動エラー:', error);
       throw error;
     }
   },
@@ -325,15 +431,16 @@ export const reservationsService = {
 
   // 予約を削除
   async deleteReservation(reservationId: string): Promise<void> {
-    try {
-  await runTransaction(db, async (tx: Transaction) => {
+    const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+    const attempt = async () => {
+      await runTransaction(db, async (tx: Transaction) => {
         const resRef = doc(db, RESERVATIONS_COLLECTION, reservationId);
         const snap = await tx.get(resRef);
         if (!snap.exists()) {
           return;
         }
         const data = snap.data() as Reservation;
-  const dateStr = toDateStr((data.startTime as Timestamp).toDate());
+        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
         const periods = this._periods(data.period);
         // 本体削除
         tx.delete(resRef);
@@ -344,10 +451,42 @@ export const reservationsService = {
           tx.delete(slotRef);
         }
       });
-    } catch (error) {
-      console.error('予約削除エラー:', error);
-      throw error;
+    };
+    let lastErr: any = null;
+    for (let i = 0; i < 3; i++) {
+      try {
+        await attempt();
+        return;
+      } catch (error: any) {
+        lastErr = error;
+        const code = (error && (error.code || error?.message)) || '';
+        // リソース枯渇/競合は指数バックオフで再試行
+        if (typeof code === 'string' && (/resource-exhausted/i.test(code) || /aborted/i.test(code) || /Too Many Requests/i.test(code))) {
+          await sleep(400 * Math.pow(2, i));
+          continue;
+        }
+        break;
+      }
     }
+    console.error('予約削除エラー:', lastErr);
+    throw lastErr;
+  },
+
+  // 読み取りを行わず、既知の予約情報を用いて削除（429対策）
+  async deleteReservationWithKnown(reservation: Reservation): Promise<void> {
+    const dateStr = toDateStr((reservation.startTime as Timestamp).toDate());
+    const periods = this._periods(reservation.period);
+    await runTransaction(db, async (tx: Transaction) => {
+      const resRef = doc(db, RESERVATIONS_COLLECTION, String(reservation.id));
+      // 本体削除（存在しなくても no-op 扱い）
+      tx.delete(resRef);
+      // スロット開放
+      for (const p of periods) {
+        const slotId = makeSlotId(reservation.roomId, dateStr, p);
+        const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+        tx.delete(slotRef);
+      }
+    });
   },
 
   // 管理者機能：全ての予約を削除

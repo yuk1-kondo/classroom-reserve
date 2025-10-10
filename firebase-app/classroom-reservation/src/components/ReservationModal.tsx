@@ -26,6 +26,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [error, setError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const confirmDeleteBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editReservationName, setEditReservationName] = useState('');
 
   const loadReservation = useCallback(async () => {
     if (!reservationId) return;
@@ -37,6 +40,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       const reservationData = await reservationsService.getReservationById(reservationId);
       if (reservationData) {
         setReservation(reservationData);
+        setEditTitle(reservationData.title || '');
+        setEditReservationName(reservationData.reservationName || '');
       } else {
         setError('予約が見つかりません');
       }
@@ -62,22 +67,23 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   // 日付フォーマット
   const formatDate = (timestamp: Timestamp): string => {
-    const date = timestamp.toDate();
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    });
+    const d = timestamp.toDate();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const w = ['日','月','火','水','木','金','土'][d.getDay()];
+    // 1行で収まるコンパクト表記（年を含む）
+    return `${y}/${m}/${dd} (${w})`;
   };
 
   // 予約削除
   const handleDelete = async () => {
-    if (!reservation?.id) return;
+    if (!reservation || !reservation.id) return;
 
     try {
       setLoading(true);
-      await reservationsService.deleteReservation(reservation.id);
+      // 読み取りクォータ節約：予約が読み込めている場合はゼロリード版を使用
+      await reservationsService.deleteReservationWithKnown(reservation as Reservation);
       console.log('✅ 予約削除成功');
       
       if (onReservationUpdated) {
@@ -85,12 +91,39 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       }
       
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ 予約削除エラー:', error);
-      setError('予約の削除に失敗しました');
+      const msg = (error && (error.message || error.code)) || '';
+      if (/quota/i.test(String(msg)) || /resource-exhausted/i.test(String(msg))) {
+        setError('通信が混雑しています。少し待ってから再度お試しください。');
+      } else {
+        setError('予約の削除に失敗しました');
+      }
     } finally {
       setLoading(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  // 予約更新（タイトル/予約者名）
+  const handleSave = async () => {
+    if (!reservation || !reservation.id) return;
+    try {
+      setLoading(true);
+      const updates: Partial<Reservation> = {
+        title: editTitle.trim(),
+        reservationName: editReservationName.trim()
+      } as any;
+      await reservationsService.updateReservation(String(reservation.id), updates);
+      // ローカル状態更新
+      setReservation({ ...reservation, ...updates });
+      setIsEditing(false);
+      if (onReservationUpdated) onReservationUpdated();
+    } catch (e) {
+      console.error('予約更新エラー:', e);
+      setError('予約の更新に失敗しました');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,6 +134,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const isCreator = reservation?.createdBy && authService.getCurrentUser()?.uid === reservation?.createdBy;
   // 管理者は常に削除可能。一般ユーザーは作成者のみ。
   const canDelete = isAdmin || (isCreator === true);
+  const canEdit = isAdmin || (isCreator === true);
 
   useEffect(() => {
     if (showDeleteConfirm && confirmDeleteBtnRef.current) {
@@ -156,17 +190,71 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               </div>
               <div className="detail-item">
                 <div className="item-label">予約者</div>
-                <div className="item-value">{reservation.reservationName}</div>
+                <div className="item-value">
+                  {!isEditing ? (
+                    reservation.reservationName
+                  ) : (
+                    <input
+                      type="text"
+                      value={editReservationName}
+                      onChange={(e) => setEditReservationName(e.target.value)}
+                      disabled={loading}
+                      aria-label="予約者名を編集"
+                      placeholder="予約者名"
+                    />
+                  )}
+                </div>
               </div>
               {/* 3行目: 予約内容（全幅） */}
               <div className="detail-item span-2">
                 <div className="item-label">予約内容</div>
-                <div className="item-value">{reservation.title}</div>
+                <div className="item-value">
+                  {!isEditing ? (
+                    reservation.title
+                  ) : (
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      disabled={loading}
+                      aria-label="予約内容を編集"
+                      placeholder="予約内容"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           <div className={`reservation-actions ${showDeleteConfirm ? 'confirm-mode' : ''}`}>
+            {canEdit && !showDeleteConfirm && (
+              !isEditing ? (
+                <button 
+                  className="edit-button"
+                  onClick={() => setIsEditing(true)}
+                  disabled={loading}
+                >
+                  ✏️ 編集
+                </button>
+              ) : (
+                <div className="edit-inline">
+                  <button 
+                    className="confirm-edit-btn"
+                    onClick={handleSave}
+                    disabled={loading || (!editTitle.trim() && !editReservationName.trim())}
+                  >
+                    保存
+                  </button>
+                  <button 
+                    className="cancel-edit-btn"
+                    onClick={() => { setIsEditing(false); setEditTitle(reservation?.title || ''); setEditReservationName(reservation?.reservationName || ''); }}
+                    disabled={loading}
+                  >
+                    取消
+                  </button>
+                </div>
+              )
+            )}
             {canDelete && !showDeleteConfirm && (
               <button 
                 className="delete-button"

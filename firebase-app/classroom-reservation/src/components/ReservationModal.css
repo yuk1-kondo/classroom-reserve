@@ -245,6 +245,34 @@
 
 /* 削除関連 */
 .reservation-actions { margin: 4px 26px 22px 26px; }
+.reservation-actions .edit-button {
+  background: #fff;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  padding: 6px 12px;
+  border-radius: 999px; /* pill */
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-right: 8px;
+}
+.reservation-actions .edit-button:hover { background: #f5f9ff; }
+.reservation-actions .edit-inline { display: inline-flex; gap: 8px; align-items: center; }
+.reservation-actions .confirm-edit-btn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.reservation-actions .cancel-edit-btn {
+  background: #eceff1;
+  color: #37474f;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
 .delete-inline.improved {
   display: grid;
   grid-template-columns: 1fr auto;
