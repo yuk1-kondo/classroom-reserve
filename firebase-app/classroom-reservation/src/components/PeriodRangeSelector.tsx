@@ -1,7 +1,8 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { periodTimeMap, Reservation, PERIOD_ORDER, ReservationSlot } from '../firebase/firestore';
+import { Reservation, PERIOD_ORDER, ReservationSlot, createDateTimeFromPeriod } from '../firebase/firestore';
+import { displayLabel } from '../utils/periodLabel';
 
 interface PeriodRangeSelectorProps {
   periodRange: PeriodRangeState;
@@ -26,17 +27,25 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   selectedRoom,
   selectedDate
 }) => {
-  // 時限フォーマット
+  // 時限フォーマット（曜日に応じた時間帯を反映）
   const formatPeriod = (period: string): string => {
-    const timeInfo = periodTimeMap[period as keyof typeof periodTimeMap];
-    if (!timeInfo) return period;
+    const name = displayLabel(String(period));
+    // 'YYYY/MM/DD' 入力も許容し、ISO 形式へ正規化
+    const ds = (selectedDate || '').replace(/\//g, '-');
+    const dt = ds ? createDateTimeFromPeriod(ds, period) : null;
+    if (!dt) {
+      // フォールバック: after は一般日のデフォルト 15:25 表示（Mon/Wed 以外）
+      if (period === 'after') return `${name} (15:25 -)`;
+      return name;
+    }
+    const toHM = (d: Date) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     if (period === '0') {
-      return `${timeInfo.name} (- ${timeInfo.end})`;
+      return `${name} (- ${toHM(dt.end)})`;
     }
     if (period === 'after') {
-      return `${timeInfo.name} (${timeInfo.start} -)`;
+      return `${name} (${toHM(dt.start)} -)`;
     }
-    return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
+    return `${name} (${toHM(dt.start)} - ${toHM(dt.end)})`;
   };
 
   // 指定時限が予約済みかチェック（スロット参照は負荷増のため行わない）
@@ -97,6 +106,24 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
     return false;
   };
 
+  // 曜日により7限を隠す（Mon/Wed以外）
+  const availableOrder = React.useMemo(() => {
+    if (!selectedDate) return PERIOD_ORDER;
+    try {
+      // 'YYYY/MM/DD' を許容 → '-' に正規化してローカル日付として評価
+      const normalized = String(selectedDate).replace(/\//g, '-');
+      const d = new Date(`${normalized}T00:00:00`);
+      const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
+      // 月・水・土・日は7限を表示（=そのまま）。それ以外は7限を隠す
+      const show7 = dow === 1 || dow === 3 || dow === 0 || dow === 6;
+      if (show7) return PERIOD_ORDER;
+      return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
+    } catch {
+      // パース失敗時は安全側（7限を隠す）
+      return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
+    }
+  }, [selectedDate]);
+
   return (
     <div className="form-group">
       <label>時限:</label>
@@ -132,7 +159,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
             aria-label="時限を選択"
           >
             <option value="">時限を選択</option>
-            {PERIOD_ORDER.map(key => {
+            {availableOrder.map(key => {
               const isReserved = isPeriodReserved(key);
               const optionClass = isReserved ? 'period-option reserved' : 'period-option';
               return (
@@ -158,7 +185,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="開始時限を選択"
               >
                 <option value="">選択</option>
-                {PERIOD_ORDER.map(key => {
+                {availableOrder.map(key => {
                   const isReserved = isPeriodReserved(key);
                   const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (
@@ -183,7 +210,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="終了時限を選択"
               >
                 <option value="">選択</option>
-                {PERIOD_ORDER.map(key => {
+                {availableOrder.map(key => {
                   const isReserved = isPeriodReserved(key);
                   const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (

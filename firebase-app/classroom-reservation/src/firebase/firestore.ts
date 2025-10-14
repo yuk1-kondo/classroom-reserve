@@ -90,14 +90,31 @@ export const roomsService = {
   // 全教室を取得
   async getAllRooms(): Promise<Room[]> {
     try {
-      const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
-      const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      } as Room));
-      // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
-      const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
-      return rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
+      // セッション内メモリキャッシュと同一リクエストの重複排除
+      if ((roomsService as any)._cache && Array.isArray((roomsService as any)._cache)) {
+        return (roomsService as any)._cache as Room[];
+      }
+      if ((roomsService as any)._inflight) {
+        return await (roomsService as any)._inflight;
+      }
+
+      const inflight: Promise<Room[]> = (async () => {
+        const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
+        const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        } as Room));
+        // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
+        const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
+        const filtered = rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
+        (roomsService as any)._cache = filtered;
+        return filtered;
+      })().finally(() => {
+        (roomsService as any)._inflight = null;
+      });
+
+      (roomsService as any)._inflight = inflight;
+      return await inflight;
     } catch (error) {
       console.error('教室データ取得エラー:', error);
       throw error;
@@ -137,24 +154,50 @@ export const reservationsService = {
   // 期間内の予約を取得
   async getReservations(startDate: Date, endDate: Date): Promise<Reservation[]> {
     try {
-      const q = query(
-        collection(db, RESERVATIONS_COLLECTION),
-        where('startTime', '>=', Timestamp.fromDate(startDate)),
-        where('startTime', '<=', Timestamp.fromDate(endDate)),
-        orderBy('startTime', 'asc')
-      );
-      
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-        const data = docSnap.data() as Reservation;
-        return {
+      // セッション内 短TTLキャッシュ + 同時発火重複排除
+      const sMs = Number(startDate?.getTime?.() || 0);
+      const eMs = Number(endDate?.getTime?.() || 0);
+      const key = `${sMs}|${eMs}`;
+      const ttlMs = 30 * 1000; // 30秒
+      const g: any = reservationsService as any;
+      if (!g._rangeCache) g._rangeCache = new Map<string, { at: number; data: Reservation[] }>();
+      if (!g._inflight) g._inflight = new Map<string, Promise<Reservation[]>>();
+      const cached = g._rangeCache.get(key);
+      const now = Date.now();
+      if (cached && (now - cached.at) < ttlMs) {
+        return cached.data as Reservation[];
+      }
+      const pending = g._inflight.get(key);
+      if (pending) {
+        return await pending;
+      }
+
+      const inflight: Promise<Reservation[]> = (async () => {
+        const q = query(
+          collection(db, RESERVATIONS_COLLECTION),
+          where('startTime', '>=', Timestamp.fromDate(startDate)),
+          where('startTime', '<=', Timestamp.fromDate(endDate)),
+          orderBy('startTime', 'asc')
+        );
+        const querySnapshot = await getDocs(q);
+        const list = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+          const data = docSnap.data() as Reservation;
+          return {
             id: docSnap.id,
             ...data,
             // createdBy は UID を保持（過去データで未設定の場合のみ undefined）
             createdBy: data.createdBy || undefined,
             periodName: normalizePeriodName(data.period, data.periodName)
-        };
+          } as Reservation;
+        });
+        g._rangeCache.set(key, { at: Date.now(), data: list });
+        return list;
+      })().finally(() => {
+        try { (reservationsService as any)._inflight.delete(key); } catch {}
       });
+
+      g._inflight.set(key, inflight);
+      return await inflight;
     } catch (error) {
       console.error('予約データ取得エラー:', error);
       throw error;

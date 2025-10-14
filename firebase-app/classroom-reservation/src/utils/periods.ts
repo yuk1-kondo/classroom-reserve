@@ -16,9 +16,25 @@ export const periodTimeMap: Record<PeriodKey, { start: string; end: string; name
   'after': { start: '16:25', end: '18:00', name: '放課後' },
 };
 
+// 曜日依存の時刻テーブル（after 開始時刻を切り替える）
+function getPeriodTimeMapForDate(dateStr: string): Record<PeriodKey, { start: string; end: string; name: string }> {
+  try {
+    const d = new Date(`${dateStr}T00:00:00`);
+    const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
+    // デフォルト: 月/水/土/日は16:25、それ以外(火・木・金)は15:25
+    const defaultStart = (dow === 1 || dow === 3 || dow === 0 || dow === 6) ? '16:25' : '15:25';
+    return {
+      ...periodTimeMap,
+      after: { ...periodTimeMap.after, start: defaultStart }
+    } as any;
+  } catch {
+    return periodTimeMap;
+  }
+}
+
 export function createDateTimeFromPeriod(dateStr: string, period: string | number) {
   const key = String(period) as PeriodKey;
-  const times = periodTimeMap[key];
+  const times = getPeriodTimeMapForDate(dateStr)[key];
   if (!times) return null;
   const startDateTime = new Date(`${dateStr}T${times.start}:00`);
   const endDateTime = new Date(`${dateStr}T${times.end}:00`);

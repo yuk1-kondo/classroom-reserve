@@ -1,12 +1,13 @@
 // 日別予約表示テーブルコンポーネント
 import React, { useState, useEffect } from 'react';
 import { 
-  roomsService, 
-  reservationsService, 
   Room, 
   Reservation,
-  createDateTimeFromPeriod
+  createDateTimeFromPeriod,
+  reservationsService
 } from '../firebase/firestore';
+import { useReservationDataContext } from '../contexts/ReservationDataContext';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { dayRange, toDateStr } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
@@ -37,7 +38,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   onFilterMineChange
 }) => {
   const { isAdmin } = useAuth();
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const { rooms, reservations: reservationsFromCtx } = useReservationDataContext();
+  const { reservations: monthlyReservations } = useMonthlyReservations();
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
   const [sortedReservations, setSortedReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,20 +62,21 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     }
   }, [selectedDate]);
 
-  // 教室データを取得
-  useEffect(() => {
-    const loadRooms = async () => {
-      try {
-        const roomsData = await roomsService.getAllRooms();
-        setRooms(roomsData);
-      } catch (error) {
-        console.error('教室データ取得エラー:', error);
-        setError('教室データの取得に失敗しました');
-      }
-    };
-    
-    loadRooms();
-  }, []);
+  // 曜日により7限を隠す（Mon/Wed以外）: テーブル内のフィルターおよび空き計算でも適用
+  const availablePeriodList = React.useMemo(() => {
+    const list = PERIOD_ORDER as unknown as readonly string[];
+    if (!selectedDate) return list as any;
+    try {
+      const d = new Date((selectedDate as string).replace(/\//g,'-'));
+      const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
+      const show7 = dow === 1 || dow === 3 || dow === 0 || dow === 6;
+      return (show7 ? list : (list as string[]).filter(k => k !== '7')) as any;
+    } catch {
+      return list as any;
+    }
+  }, [selectedDate]);
+
+  // rooms はコンテキストから供給される
 
   // 選択日の予約データを取得（予約本体のみ）
   useEffect(() => {
@@ -87,10 +90,15 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         setLoading(true);
         setError('');
         
+        // 親(日次)が無ければ月次プロバイダからフィルタして使用
+        const source = Array.isArray(reservationsFromCtx) && reservationsFromCtx.length > 0
+          ? reservationsFromCtx
+          : Array.isArray(monthlyReservations) ? monthlyReservations : [];
         const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
-        
-        // 指定日の全予約を取得（ロックは表示しない）
-        const allReservations = await reservationsService.getReservations(startOfDay, endOfDay);
+        const allReservations = source.filter(r => {
+          const st = (r.startTime as any)?.toDate?.() || new Date(r.startTime as any);
+          return st >= startOfDay && st <= endOfDay;
+        });
 
         // 教室名付与と時限順のための補助を統一的に付与（予約＋ロック）
         const mapWithOrder = (reservation: Reservation) => {
@@ -189,7 +197,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         };
 
         const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
-        const periodList = PERIOD_ORDER as readonly string[];
+        const periodList = availablePeriodList as readonly string[];
         const baseDateStr = toDateStr(new Date(selectedDate));
         for (const room of rooms) {
           if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
@@ -315,7 +323,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
             時限:
             <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
               <option value="all">すべて</option>
-              {PERIOD_ORDER.map(p => (
+              {availablePeriodList.map((p: string) => (
                 <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
               ))}
             </select>

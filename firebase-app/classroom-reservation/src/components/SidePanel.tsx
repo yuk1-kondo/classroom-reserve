@@ -3,7 +3,10 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
-import { useReservationData } from '../hooks/useReservationData';
+// import { useReservationData } from '../hooks/useReservationData';
+import { useReservationDataContext } from '../contexts/ReservationDataContext';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
+import { reservationsService, ReservationSlot } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
@@ -36,7 +39,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
-  const { rooms, reservations, slots } = useReservationData(currentUser, selectedDate);
+  const { rooms, reservations: reservationsFromDaily } = useReservationDataContext();
+  const { reservations: monthlyReservations } = useMonthlyReservations();
+  const reservations = React.useMemo(()=>{
+    if (Array.isArray(reservationsFromDaily) && reservationsFromDaily.length > 0) return reservationsFromDaily;
+    return Array.isArray(monthlyReservations) ? monthlyReservations : [];
+  }, [reservationsFromDaily, monthlyReservations]);
+  const [slots, setSlots] = useState<ReservationSlot[]>([]);
   const roomOptions = useMemo(() =>
     rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
   [rooms]);
@@ -52,6 +61,24 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     try { onReservationCreated && onReservationCreated(); } catch {}
   };
   const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
+  // スロットは必要時のみ（表示日付がある時だけ）取得
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!selectedDate) {
+        setSlots([]);
+        return;
+      }
+      try {
+        const list = await reservationsService.getSlotsForDate(selectedDate);
+        if (!cancelled) setSlots(list);
+      } catch {
+        if (!cancelled) setSlots([]);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [selectedDate]);
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
   // 予約作成: 先日付制限の検証を噛ませる

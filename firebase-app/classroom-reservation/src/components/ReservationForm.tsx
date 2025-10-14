@@ -50,6 +50,8 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   maxDateStr,
   limitMonths
 }) => {
+  // カレンダー選択日が無い場合でも、フォームで選んだ日付を曜日判定に使う
+  const effectiveSelectedDate = selectedDate || dateRange.startDate;
   if (!showForm) {
     return (
       <div className="reservation-form-section">
@@ -129,7 +131,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           reservations={reservations}
           slots={slots}
           selectedRoom={formData.selectedRoom}
-          selectedDate={selectedDate}
+          selectedDate={effectiveSelectedDate}
         />
 
         {/* 重複警告メッセージ */}

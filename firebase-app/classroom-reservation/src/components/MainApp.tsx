@@ -8,6 +8,8 @@ import ReservationSheet from './ReservationSheet';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
 import { APP_VERSION } from '../version';
+import { ReservationDataProvider } from '../contexts/ReservationDataContext';
+import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
@@ -88,47 +90,57 @@ export const MainApp: React.FC = () => {
 
       <main className="main-content">
         <div className="calendar-section">
-          <CalendarComponent
-            key={refreshKey}
-            refreshTrigger={refreshKey}
-            selectedDate={selectedDate} // 選択日付を渡す
-            filterMine={filterMine}
-            onFilterMineChange={setFilterMine}
-            onDateClick={handleDateClick}
-            onEventClick={handleEventClick}
-          />
+          <MonthlyReservationsProvider>
+            <CalendarComponent
+              key={refreshKey}
+              refreshTrigger={refreshKey}
+              selectedDate={selectedDate} // 選択日付を渡す
+              filterMine={filterMine}
+              onFilterMineChange={setFilterMine}
+              onDateClick={handleDateClick}
+              onEventClick={handleEventClick}
+            />
+          </MonthlyReservationsProvider>
           
           {/* 日別予約一覧テーブル */}
           {dailyTableDate && (
-            <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
-              <DailyReservationTable 
-                selectedDate={dailyTableDate}
-                showWhenEmpty={true}
-                filterMine={filterMine}
-                onFilterMineChange={setFilterMine}
-                onDateChange={(d)=>{
-                  setDailyTableDate(d);
-                  setSelectedDate(d);
-                }}
-              />
-              {window.innerWidth < 600 && !showSidePanel && (
-                <div className="open-reserve-panel-wrapper">
-                  <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
-                </div>
-              )}
-            </div>
+            <MonthlyReservationsProvider>
+              <ReservationDataProvider date={dailyTableDate}>
+              <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
+                <DailyReservationTable 
+                  selectedDate={dailyTableDate}
+                  showWhenEmpty={true}
+                  filterMine={filterMine}
+                  onFilterMineChange={setFilterMine}
+                  onDateChange={(d)=>{
+                    setDailyTableDate(d);
+                    setSelectedDate(d);
+                  }}
+                />
+                {window.innerWidth < 600 && !showSidePanel && (
+                  <div className="open-reserve-panel-wrapper">
+                    <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
+                  </div>
+                )}
+              </div>
+              </ReservationDataProvider>
+            </MonthlyReservationsProvider>
           )}
         </div>
 
         {showSidePanel && (
           <aside className="side-panel-section">
             <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
-            <SidePanel
-              selectedDate={selectedDate}
-              selectedEventId={selectedEventId}
-              onClose={handleCloseSidePanel}
-              onReservationCreated={handleReservationCreated}
-            />
+            <MonthlyReservationsProvider>
+              <ReservationDataProvider date={selectedDate}>
+                <SidePanel
+                  selectedDate={selectedDate}
+                  selectedEventId={selectedEventId}
+                  onClose={handleCloseSidePanel}
+                  onReservationCreated={handleReservationCreated}
+                />
+              </ReservationDataProvider>
+            </MonthlyReservationsProvider>
           </aside>
         )}
       </main>

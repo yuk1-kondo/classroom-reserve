@@ -5,14 +5,14 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { 
-  roomsService, 
-  reservationsService
+  roomsService
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
 import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { authService } from '../firebase/auth';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 
 interface CalendarComponentProps {
   onDateClick?: (dateStr: string) => void;
@@ -86,13 +86,13 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     }
   }, [isMobile]);
 
-  // 予約データを取得してカレンダーイベントに変換
+  const { reservations, setRange, loading: loadingMonthly, refetch } = useMonthlyReservations();
+
+  // 予約データをカレンダーイベントに変換
   const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
     try {
       setLoading(true);
-      console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
-      const reservations = await reservationsService.getReservations(startDate, endDate);
-      console.log('📅 予約データ取得成功:', reservations.length + '件');
+      console.log('📅 予約データ(コンテキスト)使用:', startDate, 'から', endDate);
       const current = authService.getCurrentUser();
       const filtered = filterMine && current
         ? reservations.filter(r => r.createdBy === current.uid)
@@ -204,7 +204,13 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       return;
     }
     lastFetchedRangeRef.current = { start: startMs, end: endMs };
-    // 実際の取得
+    // バッファ付き範囲（±7日）をプロバイダへ通知
+    const bufferedStart = new Date(dateInfo.start);
+    bufferedStart.setDate(bufferedStart.getDate() - 7);
+    const bufferedEnd = new Date(dateInfo.end);
+    bufferedEnd.setDate(bufferedEnd.getDate() + 7);
+    setRange(bufferedStart, bufferedEnd);
+    // 表示変換は可視範囲で行う
     loadEvents(dateInfo.start, dateInfo.end);
   };
 
@@ -221,9 +227,16 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   // refreshTriggerが変更されたときにイベントを再読み込み
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      refetchEvents();
+      if (lastFetchedRangeRef.current) {
+        refetch();
+        const start = new Date(lastFetchedRangeRef.current.start);
+        const end = new Date(lastFetchedRangeRef.current.end);
+        loadEvents(start, end);
+      } else {
+        refetchEvents();
+      }
     }
-  }, [refreshTrigger, refetchEvents]);
+  }, [refreshTrigger, refetchEvents, refetch, loadEvents]);
 
   // 「自分の予約のみ」切替時に即座に再取得
   useEffect(() => {

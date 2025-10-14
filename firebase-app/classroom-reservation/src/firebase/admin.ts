@@ -31,37 +31,58 @@ export const adminService = {
   // 管理者かどうかチェック（UID優先 + メールIDも許容）
   async isAdmin(uid: string, email?: string | null): Promise<boolean> {
     try {
-      console.log('🔍 管理者権限チェック:', { uid, email });
-      // 1) uid ドキュメント
-      const uidDoc = await getDoc(doc(db, 'admin_users', uid));
-      if (uidDoc.exists()) {
-        console.log('🔍 管理者権限結果: true (by uid)');
-        return true;
+      // セッション内メモ化 + 同時発火の重複排除
+      const key = `${String(uid)}|${String(email || '')}`;
+      const g: any = adminService as any;
+      if (g._isAdminCache && g._isAdminCache.has(key)) {
+        return g._isAdminCache.get(key);
       }
-      // 2) email ドキュメント（メールをドキュメントIDとしても許可）
-      if (email) {
-        const emailDoc = await getDoc(doc(db, 'admin_users', email));
-        if (emailDoc.exists()) {
-          console.log('🔍 管理者権限結果: true (by email)');
-          return true;
-        }
-        // 3) 過去データ互換: メールを生成ID化したキー
-        const legacyId = this.generateUidFromEmail(email);
-        const legacyDoc = await getDoc(doc(db, 'admin_users', legacyId));
-        if (legacyDoc.exists()) {
-          console.log('🔍 管理者権限結果: true (by legacyId-from-email)');
-          return true;
-        }
-        // 4) 全admin_usersをスキャンしてemailフィールドでマッチング（最後の手段）
-        const allAdmins = await this.getAdminUsers();
-        const emailMatch = allAdmins.find(admin => admin.email === email);
-        if (emailMatch) {
-          console.log('🔍 管理者権限結果: true (by email field scan)');
-          return true;
-        }
+      if (g._isAdminInflight && g._isAdminInflight.has(key)) {
+        return await g._isAdminInflight.get(key);
       }
-      console.log('🔍 管理者権限結果: false');
-      return false;
+      if (!g._isAdminCache) g._isAdminCache = new Map<string, boolean>();
+      if (!g._isAdminInflight) g._isAdminInflight = new Map<string, Promise<boolean>>();
+      const inflight: Promise<boolean> = (async () => {
+        console.log('🔍 管理者権限チェック:', { uid, email });
+        // 1) uid ドキュメント
+        const uidDoc = await getDoc(doc(db, 'admin_users', uid));
+        if (uidDoc.exists()) {
+          console.log('🔍 管理者権限結果: true (by uid)');
+          return true;
+        }
+        // 2) email ドキュメント（メールをドキュメントIDとしても許容）
+        if (email) {
+          const emailDoc = await getDoc(doc(db, 'admin_users', email));
+          if (emailDoc.exists()) {
+            console.log('🔍 管理者権限結果: true (by email)');
+            return true;
+          }
+          // 3) 過去データ互換: メールを生成ID化したキー
+          const legacyId = this.generateUidFromEmail(email);
+          const legacyDoc = await getDoc(doc(db, 'admin_users', legacyId));
+          if (legacyDoc.exists()) {
+            console.log('🔍 管理者権限結果: true (by legacyId-from-email)');
+            return true;
+          }
+          // 4) 全admin_usersをスキャンしてemailフィールドでマッチング（最後の手段）
+          const allAdmins = await this.getAdminUsers();
+          const emailMatch = allAdmins.find(admin => admin.email === email);
+          if (emailMatch) {
+            console.log('🔍 管理者権限結果: true (by email field scan)');
+            return true;
+          }
+        }
+        console.log('🔍 管理者権限結果: false');
+        return false;
+      })();
+      g._isAdminInflight.set(key, inflight);
+      try {
+        const result = await inflight;
+        g._isAdminCache.set(key, result);
+        return result;
+      } finally {
+        g._isAdminInflight.delete(key);
+      }
     } catch (error) {
       console.error('❌ 管理者チェックエラー:', error);
       return false;
@@ -224,33 +245,54 @@ export const adminService = {
   // スーパー管理者かどうか
   async isSuperAdmin(uid: string, email?: string | null): Promise<boolean> {
     try {
-      // 固定スーパー管理者（運用都合）
-      if (email && email === SUPER_ADMIN_EMAIL) return true;
-      // uid ドキュメント優先
-      const uidRef = doc(db, 'admin_users', uid);
-      const uidSnap = await getDoc(uidRef);
-      if (uidSnap.exists()) {
-        const data = uidSnap.data() as AdminUser;
-        // 互換性のため tier 未設定(null)はスーパー扱い
-        return (data.tier ?? 'super') === 'super';
+      // セッション内メモ化 + 同時発火の重複排除
+      const key = `${String(uid)}|${String(email || '')}`;
+      const g: any = adminService as any;
+      if (g._isSuperCache && g._isSuperCache.has(key)) {
+        return g._isSuperCache.get(key);
       }
-      if (email) {
-        const emailRef = doc(db, 'admin_users', email);
-        const emailSnap = await getDoc(emailRef);
-        if (emailSnap.exists()) {
-          const data = emailSnap.data() as AdminUser;
+      if (g._isSuperInflight && g._isSuperInflight.has(key)) {
+        return await g._isSuperInflight.get(key);
+      }
+      if (!g._isSuperCache) g._isSuperCache = new Map<string, boolean>();
+      if (!g._isSuperInflight) g._isSuperInflight = new Map<string, Promise<boolean>>();
+      const inflight: Promise<boolean> = (async () => {
+        // 固定スーパー管理者（運用都合）
+        if (email && email === SUPER_ADMIN_EMAIL) return true;
+        // uid ドキュメント優先
+        const uidRef = doc(db, 'admin_users', uid);
+        const uidSnap = await getDoc(uidRef);
+        if (uidSnap.exists()) {
+          const data = uidSnap.data() as AdminUser;
+          // 互換性のため tier 未設定(null)はスーパー扱い
           return (data.tier ?? 'super') === 'super';
         }
-        // 過去データ互換: 生成ID
-        const legacyId = this.generateUidFromEmail(email);
-        const legacyRef = doc(db, 'admin_users', legacyId);
-        const legacySnap = await getDoc(legacyRef);
-        if (legacySnap.exists()) {
-          const data = legacySnap.data() as AdminUser;
-          return (data.tier ?? 'super') === 'super';
+        if (email) {
+          const emailRef = doc(db, 'admin_users', email);
+          const emailSnap = await getDoc(emailRef);
+          if (emailSnap.exists()) {
+            const data = emailSnap.data() as AdminUser;
+            return (data.tier ?? 'super') === 'super';
+          }
+          // 過去データ互換: 生成ID
+          const legacyId = this.generateUidFromEmail(email);
+          const legacyRef = doc(db, 'admin_users', legacyId);
+          const legacySnap = await getDoc(legacyRef);
+          if (legacySnap.exists()) {
+            const data = legacySnap.data() as AdminUser;
+            return (data.tier ?? 'super') === 'super';
+          }
         }
+        return false;
+      })();
+      g._isSuperInflight.set(key, inflight);
+      try {
+        const result = await inflight;
+        g._isSuperCache.set(key, result);
+        return result;
+      } finally {
+        g._isSuperInflight.delete(key);
       }
-      return false;
     } catch (error) {
       console.error('❌ スーパー管理者チェックエラー:', error);
       return false;
