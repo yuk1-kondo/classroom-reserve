@@ -5,9 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { 
-  roomsService,
-  monthOverviewService,
-  reservationsService
+  roomsService
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import './CalendarComponent.css';
@@ -36,7 +34,6 @@ interface CalendarEvent {
 
 export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClick, onEventClick, refreshTrigger, selectedDate, filterMine: propFilterMine, onFilterMineChange }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [dayCounts, setDayCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [lastSelectedDate, setLastSelectedDate] = useState<string>(''); // 最後に選択された日付を保持
@@ -89,7 +86,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     }
   }, [isMobile]);
 
-  const { reservations, setRange, loading: loadingMonthly, refetch } = useMonthlyReservations();
+  const { reservations, setRange, refetch } = useMonthlyReservations();
 
   // 予約データをカレンダーイベントに変換
   const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
@@ -223,25 +220,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     // 表示も可視範囲でイベント化
     loadEvents(dateInfo.start, dateInfo.end);
 
-    // 月サマリー（軽量）を取得
-    (async ()=>{
-      try {
-        const map = await monthOverviewService.getRange(dateInfo.start, dateInfo.end);
-        if (map && Object.keys(map).length > 0) {
-          setDayCounts(map);
-        } else {
-          // フォールバック: サマリー未生成の月は一度だけ可視範囲を直接集計
-          const list = await reservationsService.getReservations(dateInfo.start, dateInfo.end);
-          const counts: Record<string, number> = {};
-          for (const r of list) {
-            const d = (r.startTime as any).toDate ? (r.startTime as any).toDate() : new Date(r.startTime as any);
-            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            counts[key] = (counts[key] || 0) + 1;
-          }
-          setDayCounts(counts);
-        }
-      } catch {}
-    })();
+    // サマリーの取得・表示は撤去（従来のイベント表示に一本化）
   };
 
   // カレンダーを再読み込み
@@ -275,7 +254,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       const end = new Date(lastFetchedRangeRef.current.end);
       loadEvents(start, end);
     }
-  }, [filterMine, refetchEvents]);
+  }, [filterMine, refetchEvents, loadEvents]);
 
   // selectedDateが変更されたときに対象日付に移動
   useEffect(() => {

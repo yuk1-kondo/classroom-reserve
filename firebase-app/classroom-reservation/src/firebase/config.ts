@@ -1,6 +1,6 @@
 // Firebase設定ファイル
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 // Firebase設定（Firebase Consoleから取得）
@@ -27,5 +27,8 @@ export const db = dbInstance;
 
 // Firebase Authenticationを初期化
 export const auth = getAuth(app);
+
+// Expose storage bucket name for bundle downloads
+export const storageBucketName = firebaseConfig.storageBucket;
 
 export default app;

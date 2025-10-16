@@ -24,12 +24,12 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, childre
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRooms = async () => {
+  const loadRooms = React.useCallback(async () => {
     const list = await roomsService.getAllRooms();
     setRooms(list);
-  };
+  }, []);
 
-  const loadReservations = async (d?: string) => {
+  const loadReservations = React.useCallback(async (d?: string) => {
     if (!d) {
       setReservations([]);
       return;
@@ -37,9 +37,9 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, childre
     const { start, end } = dayRange(d);
     const list = await reservationsService.getReservations(start, end);
     setReservations(list);
-  };
+  }, []);
 
-  const reload = async () => {
+  const reload = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -49,7 +49,7 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, childre
     } finally {
       setLoading(false);
     }
-  };
+  }, [date, loadRooms, loadReservations]);
 
   useEffect(() => {
     reload();
@@ -63,7 +63,7 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, childre
     loading,
     error,
     reload
-  }), [date, rooms, reservations, loading, error]);
+  }), [date, rooms, reservations, loading, error, reload]);
 
   return (
     <ReservationDataContext.Provider value={value}>

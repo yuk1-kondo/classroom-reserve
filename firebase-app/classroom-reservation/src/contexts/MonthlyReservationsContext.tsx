@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { reservationsService, Reservation } from '../firebase/firestore';
+import { db, storageBucketName } from '../firebase/config';
+import { loadBundle, namedQuery, getDocs } from 'firebase/firestore';
 
 // 簡易ローカル永続キャッシュ（月単位). localStorage を使用
 const MONTH_CACHE_KEY = 'monthReservationsCache_v1';
@@ -50,9 +52,9 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
   const [loading, setLoading] = useState(false);
   const lastFetchedRef = useRef<string | null>(null);
 
-  const setRange = (start: Date, end: Date) => {
+  const setRange = React.useCallback((start: Date, end: Date) => {
     setRangeState({ start, end });
-  };
+  }, []);
 
   const fetchRange = async (start: Date, end: Date) => {
     setLoading(true);
@@ -72,19 +74,57 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
         setReservations(cached.data);
       }
 
-      // ネットで最新取得して差分適用（stale-while-revalidate）
-      const list = await reservationsService.getReservations(start, end);
-      setReservations(list);
-      cache[monthId] = { at: Date.now(), data: list };
+      // 1) Cloud Storage のバンドルを試す（存在しなければ無視）
+      try {
+        const y = mid.getFullYear();
+        const m = String(mid.getMonth() + 1).padStart(2, '0');
+        const bundleUrl = `https://${storageBucketName}/bundles/reservations_${y}-${m}.bundle`;
+        const res = await fetch(bundleUrl, { cache: 'force-cache' });
+        if (res.ok) {
+          await loadBundle(db as any, res.body as any);
+          const nq = await namedQuery(db as any, `reservations_${y}-${m}`);
+          if (nq) {
+            const snap = await getDocs(nq);
+            const list = snap.docs.map(d => d.data() as Reservation);
+            setReservations(list);
+            cache[monthId] = { at: Date.now(), data: list };
+            writeMonthCache(cache);
+            return;
+          }
+        }
+      } catch {}
+
+      // 1b) JSONフォールバック（Functions未導入時用）
+      try {
+        const y = mid.getFullYear();
+        const m = String(mid.getMonth() + 1).padStart(2, '0');
+        const jsonUrl = `https://${storageBucketName}/bundles/reservations_${y}-${m}.json`;
+        const r2 = await fetch(jsonUrl, { cache: 'force-cache' });
+        if (r2.ok) {
+          const data = await r2.json();
+          const list = Array.isArray(data?.docs) ? (data.docs as Reservation[]) : [];
+          if (list.length > 0) {
+            setReservations(list);
+            cache[monthId] = { at: Date.now(), data: list };
+            writeMonthCache(cache);
+            return;
+          }
+        }
+      } catch {}
+
+      // 2) フォールバック: 既存APIで取得
+      const list2 = await reservationsService.getReservations(start, end);
+      setReservations(list2);
+      cache[monthId] = { at: Date.now(), data: list2 };
       writeMonthCache(cache);
     } finally {
       setLoading(false);
     }
   };
 
-  const refetch = () => {
+  const refetch = React.useCallback(() => {
     if (range) fetchRange(range.start, range.end);
-  };
+  }, [range]);
 
   useEffect(() => {
     if (range) fetchRange(range.start, range.end);
@@ -97,7 +137,7 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
     loading,
     setRange,
     refetch
-  }), [range, reservations, loading]);
+  }), [range, reservations, loading, setRange, refetch]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };
