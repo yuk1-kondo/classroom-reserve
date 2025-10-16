@@ -6,7 +6,6 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "site": "owa-cbs",
     "public": "classroom-reservation/build",
     "ignore": [
       "firebase.json",

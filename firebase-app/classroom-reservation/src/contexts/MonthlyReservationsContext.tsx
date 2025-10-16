@@ -1,0 +1,106 @@
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { reservationsService, Reservation } from '../firebase/firestore';
+
+// 簡易ローカル永続キャッシュ（月単位). localStorage を使用
+const MONTH_CACHE_KEY = 'monthReservationsCache_v1';
+type MonthCache = { [monthId: string]: { at: number; data: Reservation[] } };
+
+function getMonthId(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function readMonthCache(): MonthCache {
+  try {
+    const raw = localStorage.getItem(MONTH_CACHE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function writeMonthCache(cache: MonthCache) {
+  try { localStorage.setItem(MONTH_CACHE_KEY, JSON.stringify(cache)); } catch {}
+}
+
+interface MonthlyReservationsValue {
+  range: { start: Date; end: Date } | null;
+  reservations: Reservation[];
+  loading: boolean;
+  setRange: (start: Date, end: Date) => void;
+  refetch: () => void;
+}
+
+const Ctx = createContext<MonthlyReservationsValue | undefined>(undefined);
+
+export const useMonthlyReservations = (): MonthlyReservationsValue => {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error('useMonthlyReservations must be used within MonthlyReservationsProvider');
+  return ctx;
+};
+
+interface ProviderProps {
+  initialRange?: { start: Date; end: Date } | null;
+  children: React.ReactNode;
+}
+
+export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRange = null, children }) => {
+  const [range, setRangeState] = useState<{ start: Date; end: Date } | null>(initialRange);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const lastFetchedRef = useRef<string | null>(null);
+
+  const setRange = (start: Date, end: Date) => {
+    setRangeState({ start, end });
+  };
+
+  const fetchRange = async (start: Date, end: Date) => {
+    setLoading(true);
+    try {
+      const key = `${start.getTime()}|${end.getTime()}`;
+      if (lastFetchedRef.current === key) {
+        return; // 重複防止
+      }
+      lastFetchedRef.current = key;
+
+      // まず localStorage の月キャッシュから表示（stale可）
+      const cache = readMonthCache();
+      const mid = new Date((start.getTime() + end.getTime()) / 2);
+      const monthId = getMonthId(mid);
+      const cached = cache[monthId];
+      if (cached) {
+        setReservations(cached.data);
+      }
+
+      // ネットで最新取得して差分適用（stale-while-revalidate）
+      const list = await reservationsService.getReservations(start, end);
+      setReservations(list);
+      cache[monthId] = { at: Date.now(), data: list };
+      writeMonthCache(cache);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refetch = () => {
+    if (range) fetchRange(range.start, range.end);
+  };
+
+  useEffect(() => {
+    if (range) fetchRange(range.start, range.end);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range?.start?.getTime?.(), range?.end?.getTime?.()]);
+
+  const value = useMemo<MonthlyReservationsValue>(() => ({
+    range,
+    reservations,
+    loading,
+    setRange,
+    refetch
+  }), [range, reservations, loading]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+};
+
+
+

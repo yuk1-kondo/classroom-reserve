@@ -1,6 +1,6 @@
 // Firebase設定ファイル
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 // Firebase設定（Firebase Consoleから取得）
@@ -16,14 +16,18 @@ const firebaseConfig = {
 // Firebaseアプリを初期化
 const app = initializeApp(firebaseConfig);
 
-// Firestoreデータベースを初期化（永続化/Multi-Tab対応）
-const dbInstance = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
-export const db = dbInstance;
+// Firestoreデータベースを初期化
+export const db = getFirestore(app);
 
 // 開発環境でのFirestore設定を最適化
-// 追加の古い方式は使用しない（initializeFirestoreのlocalCacheに統合）
+if (process.env.NODE_ENV === 'development') {
+  // オフライン持続性を有効化（開発時のみ）
+  try {
+    // このエラーは無視できます - 既に有効化されている場合
+  } catch (error) {
+    console.log('Firestore offline persistence already enabled');
+  }
+}
 
 // Firebase Authenticationを初期化
 export const auth = getAuth(app);

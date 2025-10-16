@@ -51,7 +51,6 @@ export interface Reservation {
 const ROOMS_COLLECTION = 'rooms';
 const RESERVATIONS_COLLECTION = 'reservations';
 const RESERVATION_SLOTS_COLLECTION = 'reservation_slots';
-const MONTH_OVERVIEW_COLLECTION = 'month_overview';
 
 // 予約スロットの型（予約本体 or テンプレロック）
 export interface ReservationSlot {
@@ -62,54 +61,6 @@ export interface ReservationSlot {
   type?: string; // 'template-lock' など
   templateId?: string | null;
 }
-
-// 月ID (YYYY-MM)
-function toMonthIdFromDateStr(dateStr: string): string {
-  return dateStr.slice(0, 7);
-}
-
-// 月サマリー（日別件数）の±1更新（トランザクション内）
-async function updateMonthOverviewInTx(tx: Transaction, dateStr: string, delta: number) {
-  try {
-    const monthId = toMonthIdFromDateStr(dateStr);
-    const ref = doc(db, MONTH_OVERVIEW_COLLECTION, monthId);
-    const snap = await tx.get(ref);
-    const days: Record<string, number> = snap.exists() ? (((snap.data() as any).days) || {}) : {};
-    const prev = Number(days[dateStr] || 0);
-    const next = Math.max(0, prev + delta);
-    const newDays = { ...days, [dateStr]: next };
-    if (snap.exists()) {
-      tx.update(ref, { days: newDays, updatedAt: Timestamp.now() });
-    } else {
-      tx.set(ref, { monthId, days: newDays, updatedAt: Timestamp.now() });
-    }
-  } catch {}
-}
-
-// 月サマリー取得サービス
-export const monthOverviewService = {
-  async getMonth(monthId: string): Promise<Record<string, number>> {
-    try {
-      const ref = doc(db, MONTH_OVERVIEW_COLLECTION, monthId);
-      const s = await getDoc(ref);
-      if (!s.exists()) return {};
-      return ((s.data() as any).days || {}) as Record<string, number>;
-    } catch {
-      return {};
-    }
-  },
-  async getRange(start: Date, end: Date): Promise<Record<string, number>> {
-    const result: Record<string, number> = {};
-    const startMonth = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
-    const endMonth = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}`;
-    const months = new Set<string>([startMonth, endMonth]);
-    for (const m of Array.from(months)) {
-      const days = await this.getMonth(m);
-      Object.assign(result, days);
-    }
-    return result;
-  }
-};
 
 // periodName 正規化（取得/追加両方で利用）
 function normalizePeriodName(period: string, periodName: string): string {
@@ -139,31 +90,14 @@ export const roomsService = {
   // 全教室を取得
   async getAllRooms(): Promise<Room[]> {
     try {
-      // セッション内メモリキャッシュと同一リクエストの重複排除
-      if ((roomsService as any)._cache && Array.isArray((roomsService as any)._cache)) {
-        return (roomsService as any)._cache as Room[];
-      }
-      if ((roomsService as any)._inflight) {
-        return await (roomsService as any)._inflight;
-      }
-
-      const inflight: Promise<Room[]> = (async () => {
-        const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
-        const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as Room));
-        // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
-        const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
-        const filtered = rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
-        (roomsService as any)._cache = filtered;
-        return filtered;
-      })().finally(() => {
-        (roomsService as any)._inflight = null;
-      });
-
-      (roomsService as any)._inflight = inflight;
-      return await inflight;
+      const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
+      const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      } as Room));
+      // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
+      const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
+      return rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
     } catch (error) {
       console.error('教室データ取得エラー:', error);
       throw error;
@@ -203,50 +137,24 @@ export const reservationsService = {
   // 期間内の予約を取得
   async getReservations(startDate: Date, endDate: Date): Promise<Reservation[]> {
     try {
-      // セッション内 短TTLキャッシュ + 同時発火重複排除
-      const sMs = Number(startDate?.getTime?.() || 0);
-      const eMs = Number(endDate?.getTime?.() || 0);
-      const key = `${sMs}|${eMs}`;
-      const ttlMs = 30 * 1000; // 30秒
-      const g: any = reservationsService as any;
-      if (!g._rangeCache) g._rangeCache = new Map<string, { at: number; data: Reservation[] }>();
-      if (!g._inflight) g._inflight = new Map<string, Promise<Reservation[]>>();
-      const cached = g._rangeCache.get(key);
-      const now = Date.now();
-      if (cached && (now - cached.at) < ttlMs) {
-        return cached.data as Reservation[];
-      }
-      const pending = g._inflight.get(key);
-      if (pending) {
-        return await pending;
-      }
-
-      const inflight: Promise<Reservation[]> = (async () => {
-        const q = query(
-          collection(db, RESERVATIONS_COLLECTION),
-          where('startTime', '>=', Timestamp.fromDate(startDate)),
-          where('startTime', '<=', Timestamp.fromDate(endDate)),
-          orderBy('startTime', 'asc')
-        );
-        const querySnapshot = await getDocs(q);
-        const list = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-          const data = docSnap.data() as Reservation;
-          return {
+      const q = query(
+        collection(db, RESERVATIONS_COLLECTION),
+        where('startTime', '>=', Timestamp.fromDate(startDate)),
+        where('startTime', '<=', Timestamp.fromDate(endDate)),
+        orderBy('startTime', 'asc')
+      );
+      
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        const data = docSnap.data() as Reservation;
+        return {
             id: docSnap.id,
             ...data,
             // createdBy は UID を保持（過去データで未設定の場合のみ undefined）
             createdBy: data.createdBy || undefined,
             periodName: normalizePeriodName(data.period, data.periodName)
-          } as Reservation;
-        });
-        g._rangeCache.set(key, { at: Date.now(), data: list });
-        return list;
-      })().finally(() => {
-        try { (reservationsService as any)._inflight.delete(key); } catch {}
+        };
       });
-
-      g._inflight.set(key, inflight);
-      return await inflight;
     } catch (error) {
       console.error('予約データ取得エラー:', error);
       throw error;
@@ -487,9 +395,6 @@ export const reservationsService = {
             createdAt: Timestamp.now()
           });
         }
-
-        // 月サマリー +1
-        await updateMonthOverviewInTx(tx, dateStr, +1);
       });
 
       return newResRef.id;
@@ -545,9 +450,6 @@ export const reservationsService = {
           const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
           tx.delete(slotRef);
         }
-
-        // 月サマリー -1
-        await updateMonthOverviewInTx(tx, dateStr, -1);
       });
     };
     let lastErr: any = null;

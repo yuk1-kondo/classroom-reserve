@@ -5,8 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { 
-  roomsService,
-  monthOverviewService,
+  roomsService, 
   reservationsService
 } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
@@ -14,7 +13,6 @@ import './CalendarComponent.css';
 import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { authService } from '../firebase/auth';
-import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 
 interface CalendarComponentProps {
   onDateClick?: (dateStr: string) => void;
@@ -36,7 +34,6 @@ interface CalendarEvent {
 
 export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClick, onEventClick, refreshTrigger, selectedDate, filterMine: propFilterMine, onFilterMineChange }) => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [dayCounts, setDayCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [lastSelectedDate, setLastSelectedDate] = useState<string>(''); // 最後に選択された日付を保持
@@ -89,19 +86,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     }
   }, [isMobile]);
 
-  const { reservations, setRange, loading: loadingMonthly, refetch } = useMonthlyReservations();
-
-  // 予約データをカレンダーイベントに変換
+  // 予約データを取得してカレンダーイベントに変換
   const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
     try {
       setLoading(true);
-      console.log('📅 予約データ(キャッシュ優先)表示:', startDate, 'から', endDate);
+      console.log('📅 予約データ取得開始:', startDate, 'から', endDate);
+      const reservations = await reservationsService.getReservations(startDate, endDate);
+      console.log('📅 予約データ取得成功:', reservations.length + '件');
       const current = authService.getCurrentUser();
-      // まず現在の reservations を使い、必要ならネット結果で後追い更新
-      const base = Array.isArray(reservations) ? reservations : [];
       const filtered = filterMine && current
-        ? base.filter(r => r.createdBy === current.uid)
-        : base;
+        ? reservations.filter(r => r.createdBy === current.uid)
+        : reservations;
       const calendarEvents: CalendarEvent[] = filtered.map(reservation => {
          const startTime = reservation.startTime instanceof Timestamp 
            ? reservation.startTime.toDate() 
@@ -137,16 +132,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
     } finally {
       setLoading(false);
     }
-  }, [filterMine, reservations]);
-
-  // 予約データ（プロバイダ）更新時に可視範囲で再計算
-  useEffect(() => {
-    if (!calendarRef.current) return;
-    const api = calendarRef.current.getApi();
-    const start = api.view.currentStart;
-    const end = api.view.currentEnd;
-    loadEvents(start, end);
-  }, [reservations, loadEvents]);
+  }, [filterMine]);
 
   // 教室データを取得
   useEffect(() => {
@@ -218,30 +204,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
       return;
     }
     lastFetchedRangeRef.current = { start: startMs, end: endMs };
-    // 従来どおり可視範囲（フル月）をプロバイダへ通知
-    setRange(dateInfo.start, dateInfo.end);
-    // 表示も可視範囲でイベント化
+    // 実際の取得
     loadEvents(dateInfo.start, dateInfo.end);
-
-    // 月サマリー（軽量）を取得
-    (async ()=>{
-      try {
-        const map = await monthOverviewService.getRange(dateInfo.start, dateInfo.end);
-        if (map && Object.keys(map).length > 0) {
-          setDayCounts(map);
-        } else {
-          // フォールバック: サマリー未生成の月は一度だけ可視範囲を直接集計
-          const list = await reservationsService.getReservations(dateInfo.start, dateInfo.end);
-          const counts: Record<string, number> = {};
-          for (const r of list) {
-            const d = (r.startTime as any).toDate ? (r.startTime as any).toDate() : new Date(r.startTime as any);
-            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            counts[key] = (counts[key] || 0) + 1;
-          }
-          setDayCounts(counts);
-        }
-      } catch {}
-    })();
   };
 
   // カレンダーを再読み込み
@@ -257,24 +221,13 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({ onDateClic
   // refreshTriggerが変更されたときにイベントを再読み込み
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      if (lastFetchedRangeRef.current) {
-        refetch();
-        const start = new Date(lastFetchedRangeRef.current.start);
-        const end = new Date(lastFetchedRangeRef.current.end);
-        loadEvents(start, end);
-      } else {
-        refetchEvents();
-      }
+      refetchEvents();
     }
-  }, [refreshTrigger, refetchEvents, refetch, loadEvents]);
+  }, [refreshTrigger, refetchEvents]);
 
-  // 「自分の予約のみ」切替時は既取得データでフィルタだけ適用（ネット再取得しない）
+  // 「自分の予約のみ」切替時に即座に再取得
   useEffect(() => {
-    if (lastFetchedRangeRef.current) {
-      const start = new Date(lastFetchedRangeRef.current.start);
-      const end = new Date(lastFetchedRangeRef.current.end);
-      loadEvents(start, end);
-    }
+    refetchEvents();
   }, [filterMine, refetchEvents]);
 
   // selectedDateが変更されたときに対象日付に移動
