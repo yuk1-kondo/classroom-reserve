@@ -30,14 +30,9 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   // 時限フォーマット（曜日に応じた時間帯を反映）
   const formatPeriod = (period: string): string => {
     const name = displayLabel(String(period));
-    // 'YYYY/MM/DD' 入力も許容し、ISO 形式へ正規化
-    const ds = (selectedDate || '').replace(/\//g, '-');
-    const dt = ds ? createDateTimeFromPeriod(ds, period) : null;
-    if (!dt) {
-      // フォールバック: after は一般日のデフォルト 15:25 表示（Mon/Wed 以外）
-      if (period === 'after') return `${name} (15:25 -)`;
-      return name;
-    }
+    const ds = selectedDate || '';
+    const dt = createDateTimeFromPeriod(ds, period);
+    if (!dt) return name;
     const toHM = (d: Date) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     if (period === '0') {
       return `${name} (- ${toHM(dt.end)})`;
@@ -110,17 +105,13 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   const availableOrder = React.useMemo(() => {
     if (!selectedDate) return PERIOD_ORDER;
     try {
-      // 'YYYY/MM/DD' を許容 → '-' に正規化してローカル日付として評価
-      const normalized = String(selectedDate).replace(/\//g, '-');
-      const d = new Date(`${normalized}T00:00:00`);
-      const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
-      // 月・水・土・日は7限を表示（=そのまま）。それ以外は7限を隠す
-      const show7 = dow === 1 || dow === 3 || dow === 0 || dow === 6;
-      if (show7) return PERIOD_ORDER;
+      const d = new Date(selectedDate);
+      const dow = d.getDay(); // 1:Mon, 3:Wed
+      const monOrWed = dow === 1 || dow === 3;
+      if (monOrWed) return PERIOD_ORDER;
       return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
     } catch {
-      // パース失敗時は安全側（7限を隠す）
-      return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
+      return PERIOD_ORDER;
     }
   }, [selectedDate]);
 

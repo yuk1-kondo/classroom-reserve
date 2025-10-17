@@ -63,20 +63,6 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     }
   }, [selectedDate]);
 
-  // 曜日により7限を隠す（Mon/Wed以外）: テーブル内のフィルターおよび空き計算でも適用
-  const availablePeriodList = React.useMemo(() => {
-    const list = PERIOD_ORDER as unknown as readonly string[];
-    if (!selectedDate) return list as any;
-    try {
-      const d = new Date((selectedDate as string).replace(/\//g,'-'));
-      const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
-      const show7 = dow === 1 || dow === 3 || dow === 0 || dow === 6;
-      return (show7 ? list : (list as string[]).filter(k => k !== '7')) as any;
-    } catch {
-      return list as any;
-    }
-  }, [selectedDate]);
-
   // rooms はコンテキストから供給される
 
   // 選択日の予約データを取得（予約本体のみ）
@@ -206,7 +192,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         };
 
         const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
-        const periodList = availablePeriodList as readonly string[];
+        const periodList = PERIOD_ORDER as readonly string[];
         const baseDateStr = toDateStr(new Date(selectedDate));
         for (const room of rooms) {
           if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
@@ -349,7 +335,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
             時限:
             <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
               <option value="all">すべて</option>
-              {availablePeriodList.map((p: string) => (
+              {PERIOD_ORDER.map(p => (
                 <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
               ))}
             </select>

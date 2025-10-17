@@ -21,8 +21,8 @@ function getPeriodTimeMapForDate(dateStr: string): Record<PeriodKey, { start: st
   try {
     const d = new Date(`${dateStr}T00:00:00`);
     const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
-    // デフォルト: 月/水/土/日は16:25、それ以外(火・木・金)は15:25
-    const defaultStart = (dow === 1 || dow === 3 || dow === 0 || dow === 6) ? '16:25' : '15:25';
+    // デフォルト: 月/水は16:25、それ以外は15:25
+    const defaultStart = (dow === 1 || dow === 3) ? '16:25' : '15:25';
     return {
       ...periodTimeMap,
       after: { ...periodTimeMap.after, start: defaultStart }
