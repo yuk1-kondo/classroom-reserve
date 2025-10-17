@@ -6,7 +6,7 @@ React + TypeScript + Firebase による現代的な教室予約管理システ�
 **https://owa-cbs.web.app**
 
 ## 📅 バージョン
-現在バージョン: **2.0.1 (2025-08-09)**
+現在バージョン: **2.1.0 (2025-10-17)**
 
 ## ✨ 主な機能
 - 📅 FullCalendar.js によるインタラクティブなカレンダー表示 (日 / 週 / 月 切替)
@@ -84,6 +84,45 @@ src/
 - **プロジェクトID**: owa-cbs
 - **ブランチ**: main
 - **最終デプロイ**: 2025-08-09
+
+## 📦 CDN配布: 月次JSON自動生成（毎朝 05:00 JST）
+- **目的**: Firestore 読み取りを最小化するため、当月の予約を Cloud Storage に JSON で配布し、クライアントは CDN から取得後に差分のみを適用します。
+- **生成スケジュール**: 毎日 05:00（Asia/Tokyo）に自動生成し、`bundles/reservations_YYYY-MM.json` として保存。
+- **キャッシュ**: `Cache-Control: public, max-age=86400, immutable`（1日キャッシュ）
+
+### 実装構成
+- Functions（v2, region=asia-northeast1）
+  - 自動: `dailyMonthlyBundleAt5JST`（Scheduler連携）
+  - 手動: `ensureLatestMonthlyBundle`（HTTPS）
+- 出力先: Cloud Storage バケット `owa-cbs.firebasestorage.app` 配下
+  - 例: `https://owa-cbs.firebasestorage.app/bundles/reservations_2025-10.json`
+- クライアント: `MonthlyReservationsContext.tsx`
+  - CDNの月次JSONを読み込み → 表示 → Firestoreの `onSnapshot` で差分適用（SWR）
+
+### デプロイ/設定
+- デプロイ
+```bash
+firebase deploy --only functions
+```
+- Cloud Scheduler は `onSchedule` デプロイで自動作成されます（プロジェクト側で許可が必要な場合はコンソールで有効化）。
+
+### 手動実行（確認用）
+1) Functions の HTTPS URL（`ensureLatestMonthlyBundle`）を Firebase コンソールから確認
+2) 実行
+```bash
+curl -sS "<YOUR_HTTPS_FUNCTION_URL>" | jq .
+```
+期待: `{ ok: true, monthId: "YYYY-MM", count: <件数>, file: "bundles/reservations_YYYY-MM.json" }`
+
+### 動作確認チェックリスト
+- Storage に `bundles/reservations_YYYY-MM.json` が当日付で存在
+- HTTP 手動実行で 200/JSON 応答
+- クライアント起動時に CDN から月次JSON取得後、UI が即時表示（差分はリアルタイム反映）
+
+### トラブルシューティング
+- 生成されない: Firebase コンソール > Scheduler でジョブ実行ログを確認
+- 403/404: バケットのセキュリティ設定とファイルパスを確認（`bundles/` プレフィックス）
+- 反映が遅い: ブラウザキャッシュ（86400秒）を考慮。月跨ぎや緊急更新はファイル名（YYYY-MM）切替でキャッシュバスティング
 
 ## 🗂 データモデル
 | フィールド | 型 | 説明 |
