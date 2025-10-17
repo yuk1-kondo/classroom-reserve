@@ -9,7 +9,8 @@ import {
 import { useReservationDataContext } from '../contexts/ReservationDataContext';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { dayRange, toDateStr } from '../utils/dateRange';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, collection, query as fsQuery, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
 import { PERIOD_ORDER } from '../firebase/firestore';
@@ -240,7 +241,24 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     };
 
     loadDayReservations();
-  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine, refreshKey]);
+
+    // Realtime: 選択日に onSnapshot を張って即反映
+    const sDate = new Date(selectedDate);
+    sDate.setHours(0,0,0,0);
+    const eDate = new Date(selectedDate);
+    eDate.setHours(23,59,59,999);
+    const q = fsQuery(
+      collection(db as any, 'reservations'),
+      where('startTime', '>=', Timestamp.fromDate(sDate)),
+      where('startTime', '<=', Timestamp.fromDate(eDate)),
+      orderBy('startTime', 'asc')
+    ) as any;
+    const unsub = onSnapshot(q, () => {
+      // 既存ロジックを再利用するため、簡易的に refreshKey を進める
+      setRefreshKey(v => v + 1);
+    });
+    return () => { try { unsub(); } catch {} };
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {

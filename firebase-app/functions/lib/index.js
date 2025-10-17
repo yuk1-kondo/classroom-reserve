@@ -1,13 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ensureLatestMonthlyBundle = void 0;
-const functions = require("firebase-functions");
+const https_1 = require("firebase-functions/v2/https");
+const v2_1 = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 admin.initializeApp();
+(0, v2_1.setGlobalOptions)({ region: 'asia-northeast1', memory: '256MiB', timeoutSeconds: 60 });
 const db = admin.firestore();
 const storage = admin.storage();
 // HTTPS Function: 当月の予約を Data Bundle 化して Cloud Storage に保存
-exports.ensureLatestMonthlyBundle = functions.https.onRequest(async (req, res) => {
+exports.ensureLatestMonthlyBundle = (0, https_1.onRequest)(async (req, res) => {
     try {
         const now = new Date();
         const y = now.getFullYear();

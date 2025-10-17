@@ -1,12 +1,14 @@
-import * as functions from 'firebase-functions';
+import { onRequest } from 'firebase-functions/v2/https';
+import { setGlobalOptions } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
+setGlobalOptions({ region: 'asia-northeast1', memory: '256MiB', timeoutSeconds: 60 });
 const db = admin.firestore();
 const storage = admin.storage();
 
 // HTTPS Function: 当月の予約を Data Bundle 化して Cloud Storage に保存
-export const ensureLatestMonthlyBundle = functions.https.onRequest(async (req, res) => {
+export const ensureLatestMonthlyBundle = onRequest(async (req, res) => {
   try {
     const now = new Date();
     const y = now.getFullYear();

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { reservationsService, Reservation } from '../firebase/firestore';
 import { db, storageBucketName } from '../firebase/config';
-import { loadBundle, namedQuery, getDocs } from 'firebase/firestore';
+import { loadBundle, namedQuery, getDocs, collection, query as fsQuery, where, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
 
 // 簡易ローカル永続キャッシュ（月単位). localStorage を使用
 const MONTH_CACHE_KEY = 'monthReservationsCache_v1';
@@ -51,6 +51,7 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
   const lastFetchedRef = useRef<string | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
 
   const setRange = React.useCallback((start: Date, end: Date) => {
     setRangeState({ start, end });
@@ -89,7 +90,7 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
             setReservations(list);
             cache[monthId] = { at: Date.now(), data: list };
             writeMonthCache(cache);
-            return;
+            // 続けてオンラインで最新を取得して反映（SWR）
           }
         }
       } catch {}
@@ -107,7 +108,7 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
             setReservations(list);
             cache[monthId] = { at: Date.now(), data: list };
             writeMonthCache(cache);
-            return;
+            // 続けてオンラインで最新を取得して反映（SWR）
           }
         }
       } catch {}
@@ -129,6 +130,35 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRa
   useEffect(() => {
     if (range) fetchRange(range.start, range.end);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range?.start?.getTime?.(), range?.end?.getTime?.()]);
+
+  // Realtime: 可視範囲に onSnapshot を張り、変更を即反映
+  useEffect(() => {
+    // 既存の購読を解除
+    if (unsubRef.current) {
+      try { unsubRef.current(); } catch {}
+      unsubRef.current = null;
+    }
+    if (!range) return;
+    const q = fsQuery(
+      collection(db as any, 'reservations'),
+      where('startTime', '>=', Timestamp.fromDate(range.start)),
+      where('startTime', '<=', Timestamp.fromDate(range.end)),
+      orderBy('startTime', 'asc')
+    ) as any;
+    const unsub = onSnapshot(q, (snap: any) => {
+      const list = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as any) })) as Reservation[];
+      setReservations(list);
+      // 月キャッシュも更新（SWR整合）
+      try {
+        const monthId = getMonthId(new Date((range.start.getTime() + range.end.getTime()) / 2));
+        const cache = readMonthCache();
+        cache[monthId] = { at: Date.now(), data: list };
+        writeMonthCache(cache);
+      } catch {}
+    });
+    unsubRef.current = unsub;
+    return () => { try { unsub(); } catch {} };
   }, [range?.start?.getTime?.(), range?.end?.getTime?.()]);
 
   const value = useMemo<MonthlyReservationsValue>(() => ({
