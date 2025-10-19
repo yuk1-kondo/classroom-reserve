@@ -334,3 +334,24 @@
   margin-top: 12px;
   text-align: center;
 }
+
+/* プレビュー限定: モバイル用FAB */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  box-shadow: var(--elevation-3);
+  z-index: 1300; /* カレンダー/サイドパネルより前面（モーダルよりは下） */
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 56px;
+  text-align: center;
+  cursor: pointer;
+}
+.fab:active { opacity: 0.9; }

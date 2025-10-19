@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Cloud Storage Security Rules
+service firebase.storage {
+  match /b/{bucket}/o {
+    // bundles/ 配下は公開（読取0を最優先）
+    match /bundles/{allPaths=**} {
+      allow read: if true; // 誰でも読取可能
+      allow write: if false; // 書込は Functions のみ（管理者権限）
+    }
+    
+    // その他のパス（将来の拡張用）
+    match /{allPaths=**} {
+      allow read, write: if false; // デフォルトは全て拒否
+    }
+  }
+}
+

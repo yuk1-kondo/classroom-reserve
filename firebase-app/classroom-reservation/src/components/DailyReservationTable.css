@@ -57,6 +57,9 @@
   padding: 8px 12px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
   border-bottom: 1px solid #d0d7de; /* 外枠と同色 */
+  position: sticky; /* プレビュー: ヘッダー固定 */
+  top: 0;
+  z-index: 20;
 }
 
 .table-header h4 {

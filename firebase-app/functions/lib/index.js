@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dailyMonthlyBundleAt5JST = exports.ensureLatestMonthlyBundle = void 0;
+exports.buildBundleWindow = exports.dailyMonthlyBundleAt5JST = exports.ensureLatestMonthlyBundle = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const v2_1 = require("firebase-functions/v2");
@@ -37,21 +37,32 @@ async function generateMonthlyBundle(targetDate) {
         .where('startTime', '<=', admin.firestore.Timestamp.fromDate(end))
         .orderBy('startTime', 'asc')
         .get();
-    // JSONバンドルとしてCloud Storageへ保存
+    // JSONバンドルとしてCloud Storageへ保存（生成時刻を含める）
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const generatedAt = admin.firestore.Timestamp.now();
     const bucket = storage.bucket();
     const file = bucket.file(`bundles/reservations_${monthId}.json`);
-    await file.save(JSON.stringify({ monthId, docs }), {
+    await file.save(JSON.stringify({ monthId, docs, generatedAt: generatedAt.toMillis() }), {
         contentType: 'application/json',
         resumable: false,
         metadata: { cacheControl: 'public, max-age=86400, immutable' }
     });
-    return { monthId, count: docs.length, file: file.name };
+    return { monthId, count: docs.length, file: file.name, generatedAt: generatedAt.toDate().toISOString() };
 }
 // HTTPS Function: 手動トリガで当月の予約をJSON化して保存
 exports.ensureLatestMonthlyBundle = (0, https_1.onRequest)(async (req, res) => {
     try {
-        const result = await generateMonthlyBundle();
+        // オプション: ?month=YYYY-MM で対象月を指定
+        let result;
+        const m = req.query?.month || '';
+        if (/^\d{4}-\d{2}$/.test(m)) {
+            const [y, mm] = m.split('-').map((s) => parseInt(s, 10));
+            const d = new Date(y, mm - 1, 1);
+            result = await generateMonthlyBundle(d);
+        }
+        else {
+            result = await generateMonthlyBundle();
+        }
         res.status(200).json({ ok: true, ...result });
     }
     catch (e) {
@@ -69,6 +80,38 @@ exports.dailyMonthlyBundleAt5JST = (0, scheduler_1.onSchedule)({ schedule: 'ever
     catch (e) {
         console.error('❌ monthly bundle generation failed:', e);
         throw e;
+    }
+});
+// 追加: 指定基準月から 過去1ヶ月〜先2ヶ月 をまとめて生成
+exports.buildBundleWindow = (0, https_1.onRequest)(async (req, res) => {
+    try {
+        // ?base=YYYY-MM（省略時は当月）
+        const base = req.query?.base || '';
+        let baseDate;
+        if (/^\d{4}-\d{2}$/.test(base)) {
+            const [y, mm] = base.split('-').map((s) => parseInt(s, 10));
+            baseDate = new Date(y, mm - 1, 1);
+        }
+        else {
+            const now = new Date();
+            baseDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        const months = [
+            new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1), // -1
+            new Date(baseDate.getFullYear(), baseDate.getMonth() + 0, 1), // 0
+            new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1), // +1
+            new Date(baseDate.getFullYear(), baseDate.getMonth() + 2, 1), // +2
+        ];
+        const results = [];
+        for (const d of months) {
+            const r = await generateMonthlyBundle(d);
+            results.push(r);
+        }
+        res.status(200).json({ ok: true, results });
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ ok: false, error: e?.message || String(e) });
     }
 });
 //# sourceMappingURL=index.js.map

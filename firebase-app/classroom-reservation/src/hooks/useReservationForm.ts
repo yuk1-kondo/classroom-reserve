@@ -257,17 +257,20 @@ export const useReservationForm = (
       const totalReservations = datesToReserve.length; // 実際に作成される予約件数は日数分
       if (totalReservations > 1) {
         if (periodsToReserve.length > 1) {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間 × ${periodsToReserve.length}時限連続）`);
+          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間 × ${periodsToReserve.length}時限連続）\n\n画面をリロードします...`);
         } else {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間）`);
+          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間）\n\n画面をリロードします...`);
         }
       } else {
         if (periodsToReserve.length > 1) {
-          alert(`予約を作成しました（${periodsToReserve.length}時限連続）`);
+          alert(`予約を作成しました（${periodsToReserve.length}時限連続）\n\n画面をリロードします...`);
         } else {
-          alert('予約を作成しました');
+          alert('予約を作成しました\n\n画面をリロードします...');
         }
       }
+      
+      // 自動リロード（最新データを取得）
+      setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error('予約作成エラー:', error);
       alert('予約の作成に失敗しました');

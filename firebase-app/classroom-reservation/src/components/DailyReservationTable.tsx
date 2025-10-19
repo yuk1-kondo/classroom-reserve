@@ -228,22 +228,22 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
     loadDayReservations();
 
-    // Realtime: 選択日に onSnapshot を張って即反映
-    const sDate = new Date(selectedDate);
-    sDate.setHours(0,0,0,0);
-    const eDate = new Date(selectedDate);
-    eDate.setHours(23,59,59,999);
-    const q = fsQuery(
-      collection(db as any, 'reservations'),
-      where('startTime', '>=', Timestamp.fromDate(sDate)),
-      where('startTime', '<=', Timestamp.fromDate(eDate)),
-      orderBy('startTime', 'asc')
-    ) as any;
-    const unsub = onSnapshot(q, () => {
-      // 既存ロジックを再利用するため、簡易的に refreshKey を進める
-      setRefreshKey(v => v + 1);
-    });
-    return () => { try { unsub(); } catch {} };
+    // Realtime購読を削除（読取削減のため）
+    // 予約変更はブラウザリロードで反映される
+    // const sDate = new Date(selectedDate);
+    // sDate.setHours(0,0,0,0);
+    // const eDate = new Date(selectedDate);
+    // eDate.setHours(23,59,59,999);
+    // const q = fsQuery(
+    //   collection(db as any, 'reservations'),
+    //   where('startTime', '>=', Timestamp.fromDate(sDate)),
+    //   where('startTime', '<=', Timestamp.fromDate(eDate)),
+    //   orderBy('startTime', 'asc')
+    // ) as any;
+    // const unsub = onSnapshot(q, () => {
+    //   setRefreshKey(v => v + 1);
+    // });
+    // return () => { try { unsub(); } catch {} };
   }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
 
   // 日付フォーマット

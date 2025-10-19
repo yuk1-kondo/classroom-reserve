@@ -28,7 +28,7 @@ export const db = dbInstance;
 // Firebase Authenticationを初期化
 export const auth = getAuth(app);
 
-// Expose storage bucket name for bundle downloads
+// Expose storage bucket name for bundle downloads (updated: 2025-10-19)
 export const storageBucketName = firebaseConfig.storageBucket;
 
 export default app;

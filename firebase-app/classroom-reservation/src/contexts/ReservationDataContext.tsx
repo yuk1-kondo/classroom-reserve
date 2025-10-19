@@ -1,69 +1,51 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { roomsService, reservationsService, Room, Reservation } from '../firebase/firestore';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { reservationsService, roomsService, Reservation, Room } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
 
 interface ReservationDataContextValue {
-  date?: string;
   rooms: Room[];
   reservations: Reservation[];
-  loading: boolean;
-  error: string | null;
-  reload: () => Promise<void>;
 }
 
 const ReservationDataContext = createContext<ReservationDataContextValue | undefined>(undefined);
 
 interface ProviderProps {
-  date?: string; // YYYY-MM-DD
   children: React.ReactNode;
+  date: string; // YYYY-MM-DD
 }
 
-export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, children }) => {
+export const ReservationDataProvider: React.FC<ProviderProps> = ({ children, date }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadRooms = React.useCallback(async () => {
-    const list = await roomsService.getAllRooms();
-    setRooms(list);
-  }, []);
-
-  const loadReservations = React.useCallback(async (d?: string) => {
-    if (!d) {
-      setReservations([]);
-      return;
-    }
-    const { start, end } = dayRange(d);
-    const list = await reservationsService.getReservations(start, end);
-    setReservations(list);
-  }, []);
-
-  const reload = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadRooms = useCallback(async () => {
     try {
-      await Promise.all([loadRooms(), loadReservations(date)]);
-    } catch (e: any) {
-      setError(e?.message || '読み取りに失敗しました');
-    } finally {
-      setLoading(false);
+      const list = await roomsService.getAllRooms();
+      setRooms(Array.isArray(list) ? list : []);
+    } catch {
+      setRooms([]);
     }
-  }, [date, loadRooms, loadReservations]);
+  }, []);
+
+  const loadDay = useCallback(async (dateStr: string) => {
+    try {
+      const { start, end } = dayRange(dateStr);
+      const list = await reservationsService.getReservations(start, end);
+      setReservations(Array.isArray(list) ? list : []);
+    } catch {
+      setReservations([]);
+    }
+  }, []);
 
   useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
+    loadRooms();
+  }, [loadRooms]);
 
-  const value = useMemo<ReservationDataContextValue>(() => ({
-    date,
-    rooms,
-    reservations,
-    loading,
-    error,
-    reload
-  }), [date, rooms, reservations, loading, error, reload]);
+  useEffect(() => {
+    if (date) loadDay(date);
+  }, [date, loadDay]);
+
+  const value = useMemo<ReservationDataContextValue>(() => ({ rooms, reservations }), [rooms, reservations]);
 
   return (
     <ReservationDataContext.Provider value={value}>
@@ -72,13 +54,8 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ date, childre
   );
 };
 
-export const useReservationDataContext = (): ReservationDataContextValue => {
+export function useReservationDataContext(): ReservationDataContextValue {
   const ctx = useContext(ReservationDataContext);
-  if (!ctx) {
-    throw new Error('useReservationDataContext must be used within ReservationDataProvider');
-  }
+  if (!ctx) throw new Error('useReservationDataContext must be used within ReservationDataProvider');
   return ctx;
-};
-
-
-
+}

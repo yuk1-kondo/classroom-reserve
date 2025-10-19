@@ -91,6 +91,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       }
       
       onClose();
+      
+      // 自動リロード（最新データを取得）
+      alert('予約を削除しました\n\n画面をリロードします...');
+      setTimeout(() => window.location.reload(), 500);
     } catch (error: any) {
       console.error('❌ 予約削除エラー:', error);
       const msg = (error && (error.message || error.code)) || '';
@@ -119,6 +123,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       setReservation({ ...reservation, ...updates });
       setIsEditing(false);
       if (onReservationUpdated) onReservationUpdated();
+      
+      // 自動リロード（最新データを取得）
+      alert('予約を更新しました\n\n画面をリロードします...');
+      setTimeout(() => window.location.reload(), 500);
     } catch (e) {
       console.error('予約更新エラー:', e);
       setError('予約の更新に失敗しました');

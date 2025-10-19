@@ -1,176 +1,191 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { reservationsService, Reservation } from '../firebase/firestore';
-import { db, storageBucketName } from '../firebase/config';
-import { loadBundle, namedQuery, getDocs, collection, query as fsQuery, where, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
+import { storageBucketName } from '../firebase/config';
+import { Timestamp } from 'firebase/firestore';
 
-// 簡易ローカル永続キャッシュ（月単位). localStorage を使用
-const MONTH_CACHE_KEY = 'monthReservationsCache_v1';
-type MonthCache = { [monthId: string]: { at: number; data: Reservation[] } };
-
-function getMonthId(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function readMonthCache(): MonthCache {
-  try {
-    const raw = localStorage.getItem(MONTH_CACHE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
-function writeMonthCache(cache: MonthCache) {
-  try { localStorage.setItem(MONTH_CACHE_KEY, JSON.stringify(cache)); } catch {}
-}
-
-interface MonthlyReservationsValue {
-  range: { start: Date; end: Date } | null;
+interface MonthlyReservationsContextValue {
   reservations: Reservation[];
-  loading: boolean;
   setRange: (start: Date, end: Date) => void;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 }
 
-const Ctx = createContext<MonthlyReservationsValue | undefined>(undefined);
-
-export const useMonthlyReservations = (): MonthlyReservationsValue => {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useMonthlyReservations must be used within MonthlyReservationsProvider');
-  return ctx;
-};
+const MonthlyReservationsContext = createContext<MonthlyReservationsContextValue | undefined>(undefined);
 
 interface ProviderProps {
-  initialRange?: { start: Date; end: Date } | null;
   children: React.ReactNode;
 }
 
-export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ initialRange = null, children }) => {
-  const [range, setRangeState] = useState<{ start: Date; end: Date } | null>(initialRange);
+export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const lastFetchedRef = useRef<string | null>(null);
-  const unsubRef = useRef<(() => void) | null>(null);
+  const rangeRef = useRef<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const inflightRef = useRef<Promise<void> | null>(null);
 
-  const setRange = React.useCallback((start: Date, end: Date) => {
-    setRangeState({ start, end });
-  }, []);
+  // セッション内バンドルキャッシュ（月ID→配列）
+  const bundleCacheRef = useRef<Map<string, Reservation[]>>(new Map());
 
-  const fetchRange = async (start: Date, end: Date) => {
-    setLoading(true);
-    try {
-      const key = `${start.getTime()}|${end.getTime()}`;
-      if (lastFetchedRef.current === key) {
-        return; // 重複防止
-      }
-      lastFetchedRef.current = key;
-
-      // まず localStorage の月キャッシュから表示（stale可）
-      const cache = readMonthCache();
-      const mid = new Date((start.getTime() + end.getTime()) / 2);
-      const monthId = getMonthId(mid);
-      const cached = cache[monthId];
-      if (cached) {
-        setReservations(cached.data);
-      }
-
-      // 1) Cloud Storage のバンドルを試す（存在しなければ無視）
-      try {
-        const y = mid.getFullYear();
-        const m = String(mid.getMonth() + 1).padStart(2, '0');
-        const bundleUrl = `https://${storageBucketName}/bundles/reservations_${y}-${m}.bundle`;
-        const res = await fetch(bundleUrl, { cache: 'force-cache' });
-        if (res.ok) {
-          await loadBundle(db as any, res.body as any);
-          const nq = await namedQuery(db as any, `reservations_${y}-${m}`);
-          if (nq) {
-            const snap = await getDocs(nq);
-            const list = snap.docs.map(d => d.data() as Reservation);
-            setReservations(list);
-            cache[monthId] = { at: Date.now(), data: list };
-            writeMonthCache(cache);
-            // 続けてオンラインで最新を取得して反映（SWR）
-          }
-        }
-      } catch {}
-
-      // 1b) JSONフォールバック（Functions未導入時用）
-      try {
-        const y = mid.getFullYear();
-        const m = String(mid.getMonth() + 1).padStart(2, '0');
-        const jsonUrl = `https://${storageBucketName}/bundles/reservations_${y}-${m}.json`;
-        const r2 = await fetch(jsonUrl, { cache: 'force-cache' });
-        if (r2.ok) {
-          const data = await r2.json();
-          const list = Array.isArray(data?.docs) ? (data.docs as Reservation[]) : [];
-          if (list.length > 0) {
-            setReservations(list);
-            cache[monthId] = { at: Date.now(), data: list };
-            writeMonthCache(cache);
-            // 続けてオンラインで最新を取得して反映（SWR）
-          }
-        }
-      } catch {}
-
-      // 2) フォールバック: 既存APIで取得
-      const list2 = await reservationsService.getReservations(start, end);
-      setReservations(list2);
-      cache[monthId] = { at: Date.now(), data: list2 };
-      writeMonthCache(cache);
-    } finally {
-      setLoading(false);
+  const tryParseAdminTimestamp = (maybe: any): Timestamp | null => {
+    if (!maybe) return null;
+    // Admin Timestamp -> {_seconds,_nanoseconds} or {seconds,nanoseconds}
+    const s = Number(maybe._seconds ?? maybe.seconds);
+    const ns = Number(maybe._nanoseconds ?? maybe.nanoseconds);
+    if (Number.isFinite(s)) {
+      const ms = s * 1000 + Math.round((ns || 0) / 1e6);
+      return Timestamp.fromMillis(ms);
     }
+    return null;
   };
 
-  const refetch = React.useCallback(() => {
-    if (range) fetchRange(range.start, range.end);
-  }, [range]);
+  const normalizeBundleDoc = (raw: any): Reservation => {
+    const st = tryParseAdminTimestamp((raw as any).startTime) || (raw as any).startTime;
+    const et = tryParseAdminTimestamp((raw as any).endTime) || (raw as any).endTime;
+    return {
+      id: String((raw as any).id || ''),
+      roomId: String((raw as any).roomId || ''),
+      roomName: String((raw as any).roomName || ''),
+      title: String((raw as any).title || ''),
+      reservationName: String((raw as any).reservationName || ''),
+      startTime: st as any,
+      endTime: et as any,
+      period: String((raw as any).period || ''),
+      periodName: String((raw as any).periodName || ''),
+      createdAt: tryParseAdminTimestamp((raw as any).createdAt) || undefined,
+      createdBy: (raw as any).createdBy || undefined
+    } as Reservation;
+  };
 
-  useEffect(() => {
-    if (range) fetchRange(range.start, range.end);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range?.start?.getTime?.(), range?.end?.getTime?.()]);
-
-  // Realtime: 可視範囲に onSnapshot を張り、変更を即反映
-  useEffect(() => {
-    // 既存の購読を解除
-    if (unsubRef.current) {
-      try { unsubRef.current(); } catch {}
-      unsubRef.current = null;
+  const fetchMonthlyBundle = useCallback(async (monthId: string): Promise<{ reservations: Reservation[]; generatedAt: number | null }> => {
+    try {
+      // メモリキャッシュチェック
+      if (bundleCacheRef.current.has(monthId)) {
+        return { reservations: bundleCacheRef.current.get(monthId)!, generatedAt: null };
+      }
+      const bucket = storageBucketName;
+      if (!bucket) return { reservations: [], generatedAt: null };
+      
+      const encodedPath = encodeURIComponent(`bundles/reservations_${monthId}.json`);
+      const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media`;
+      
+      // ブラウザキャッシュを最大限活用（認証なし、公開URL）
+      const res = await fetch(url, { 
+        cache: 'force-cache' // ブラウザキャッシュから取得、なければネットワーク
+      });
+      if (!res.ok) return { reservations: [], generatedAt: null };
+      const json = await res.json();
+      const docs = Array.isArray(json?.docs) ? json.docs : [];
+      const list = docs.map(normalizeBundleDoc);
+      const generatedAt = typeof json?.generatedAt === 'number' ? json.generatedAt : null;
+      
+      // メモリキャッシュに保存
+      bundleCacheRef.current.set(monthId, list);
+      return { reservations: list, generatedAt };
+    } catch {
+      return { reservations: [], generatedAt: null };
     }
-    if (!range) return;
-    const q = fsQuery(
-      collection(db as any, 'reservations'),
-      where('startTime', '>=', Timestamp.fromDate(range.start)),
-      where('startTime', '<=', Timestamp.fromDate(range.end)),
-      orderBy('startTime', 'asc')
-    ) as any;
-    const unsub = onSnapshot(q, (snap: any) => {
-      const list = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as any) })) as Reservation[];
-      setReservations(list);
-      // 月キャッシュも更新（SWR整合）
-      try {
-        const monthId = getMonthId(new Date((range.start.getTime() + range.end.getTime()) / 2));
-        const cache = readMonthCache();
-        cache[monthId] = { at: Date.now(), data: list };
-        writeMonthCache(cache);
-      } catch {}
-    });
-    unsubRef.current = unsub;
-    return () => { try { unsub(); } catch {} };
-  }, [range?.start?.getTime?.(), range?.end?.getTime?.()]);
+  }, []);
 
-  const value = useMemo<MonthlyReservationsValue>(() => ({
-    range,
+  const load = useCallback(async (start: Date | null, end: Date | null) => {
+    if (!start || !end) {
+      setReservations([]);
+      return;
+    }
+    try {
+      // まず月次バンドルを試す（開始・終了で最大2ヶ月）
+      const monthId = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+      const monthId2 = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}`;
+      
+      let combined: Reservation[] = [];
+      let oldestGeneratedAt: number | null = null;
+      
+      const a = await fetchMonthlyBundle(monthId);
+      if (a.reservations.length > 0) {
+        combined = a.reservations;
+        oldestGeneratedAt = a.generatedAt;
+      }
+      if (monthId2 !== monthId) {
+        const b = await fetchMonthlyBundle(monthId2);
+        if (b.reservations.length > 0) {
+          combined = combined.concat(b.reservations);
+          if (b.generatedAt && (!oldestGeneratedAt || b.generatedAt < oldestGeneratedAt)) {
+            oldestGeneratedAt = b.generatedAt;
+          }
+        }
+      }
+      
+      if (combined.length > 0 && oldestGeneratedAt) {
+        // 差分予約を取得（バンドル生成後に作成された予約）
+        const { Timestamp, collection, query, where, orderBy, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        
+        // シンプルなクエリ（createdAtのみ）: startTimeはフロント側でフィルタ
+        const diffQuery = query(
+          collection(db, 'reservations'),
+          where('createdAt', '>', Timestamp.fromMillis(oldestGeneratedAt)),
+          orderBy('createdAt', 'asc')
+        );
+        
+        const diffSnap = await getDocs(diffQuery);
+        const allDiffReservations = diffSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reservation));
+        
+        // フロント側でstartTimeでフィルタ
+        const diffReservations = allDiffReservations.filter(r => {
+          const st: Date = (r.startTime as any)?.toDate?.() || new Date(r.startTime as any);
+          return st >= start && st <= end;
+        });
+        
+        console.log(`📦 バンドル: ${combined.length}件, 🆕 差分（全体）: ${allDiffReservations.length}件, 差分（範囲内）: ${diffReservations.length}件`);
+        
+        // マージ（差分で既存を上書き）
+        const mergedMap = new Map<string, Reservation>();
+        combined.forEach(r => mergedMap.set(r.id!, r));
+        diffReservations.forEach(r => mergedMap.set(r.id!, r));
+        
+        const merged = Array.from(mergedMap.values());
+        const filtered = merged.filter(r => {
+          const st: Date = (r.startTime as any)?.toDate?.() || new Date(r.startTime as any);
+          return st >= start && st <= end;
+        });
+        
+        setReservations(filtered);
+        return;
+      }
+
+      // フォールバック: 直接Firestore
+      const list = await reservationsService.getReservations(start, end);
+      setReservations(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error('予約読み込みエラー:', error);
+      setReservations([]);
+    }
+  }, [fetchMonthlyBundle]);
+
+  const setRange = useCallback((start: Date, end: Date) => {
+    rangeRef.current = { start, end };
+    inflightRef.current = load(start, end);
+  }, [load]);
+
+  const refetch = useCallback(async () => {
+    const { start, end } = rangeRef.current;
+    inflightRef.current = load(start, end);
+    await inflightRef.current;
+  }, [load]);
+
+  const value = useMemo<MonthlyReservationsContextValue>(() => ({
     reservations,
-    loading,
     setRange,
     refetch
-  }), [range, reservations, loading, setRange, refetch]);
+  }), [reservations, setRange, refetch]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <MonthlyReservationsContext.Provider value={value}>
+      {children}
+    </MonthlyReservationsContext.Provider>
+  );
 };
 
+export function useMonthlyReservations(): MonthlyReservationsContextValue {
+  const ctx = useContext(MonthlyReservationsContext);
+  if (!ctx) throw new Error('useMonthlyReservations must be used within MonthlyReservationsProvider');
+  return ctx;
+}
 
 

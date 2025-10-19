@@ -21,6 +21,14 @@ export const MainApp: React.FC = () => {
   const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
+  // プレビュー判定（クリーンパス/クエリ対応）
+  const isPreview = (() => {
+    if (typeof window === 'undefined') return false;
+    const qp = new URLSearchParams(window.location.search);
+    if (qp.get('preview') === '1') return true;
+    const path = window.location.pathname.replace(/\/+$/, '');
+    return path === '/preview' || path === '/ux-preview';
+  })();
 
   // 日付クリック処理
   const handleDateClick = (dateStr: string) => {
@@ -62,6 +70,23 @@ export const MainApp: React.FC = () => {
       setDailyTableDate('');
       setTimeout(() => setDailyTableDate(selectedDate), 100);
     }
+  };
+
+  const ensureTodayIfEmpty = () => {
+    if (!selectedDate) {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const ds = `${y}-${m}-${dd}`;
+      setSelectedDate(ds);
+      setDailyTableDate(ds);
+    }
+  };
+
+  const handleFabClick = () => {
+    ensureTodayIfEmpty();
+    setShowSidePanel(true);
   };
 
   return (
@@ -148,6 +173,18 @@ export const MainApp: React.FC = () => {
       <footer className="main-footer">
         <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
       </footer>
+
+      {/* モバイルFAB（プレビュー限定） */}
+      {isPreview && (
+        <button
+          className="fab only-mobile"
+          aria-label="予約を追加"
+          onClick={handleFabClick}
+          title="予約を追加"
+        >
+          ＋
+        </button>
+      )}
       
       {/* 予約詳細モーダル */}
       <ReservationModal
