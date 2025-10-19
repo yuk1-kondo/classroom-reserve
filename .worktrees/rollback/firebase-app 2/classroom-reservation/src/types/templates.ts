@@ -1,0 +1,99 @@
+// 固定予約機能の型定義
+
+// 優先度の定義
+export type TemplatePriority = 'critical' | 'high' | 'normal';
+
+// カテゴリの定義
+export type TemplateCategory = 'regular_class' | 'club_activity' | 'committee' | 'special_class' | 'other';
+
+// 拡張された週次テンプレート
+export interface WeeklyTemplateExtended {
+  id?: string;
+  name: string;
+  roomId: string;
+  weekday: number; // 後方互換性のため残す
+  weekdays?: number[]; // 新規追加: 複数曜日選択（0=日曜日, 1=月曜日, ..., 6=土曜日）
+  periods: (number | string)[];
+  startDate: string;
+  endDate?: string;
+  createdBy: string;
+  createdAt?: any;
+  updatedBy?: string;
+  updatedAt?: any;
+  enabled: boolean;
+  priority?: TemplatePriority;
+  category?: TemplateCategory;
+  description?: string;
+  teacherName?: string;
+  studentCount?: number;
+  forceOverride?: boolean;
+}
+
+// 後方互換性のためのエイリアス
+export type WeeklyTemplate = WeeklyTemplateExtended;
+
+// 競合情報
+export interface ConflictInfo {
+  date: string;
+  roomId: string;
+  roomName: string;
+  period: string;
+  periodName?: string;
+  action?: string;
+  existingReservation: any;
+  template: WeeklyTemplateExtended;
+  newLocation?: {
+    roomId: string;
+    roomName: string;
+    period: string;
+    periodName?: string;
+  };
+}
+
+// バルク適用結果
+export interface BulkApplyResult {
+  success: boolean;
+  applied: number;
+  conflicts: ConflictInfo[];
+  overridden: number;
+  relocated: number;
+  skipped: number;
+  errors: string[];
+  summary: {
+    total: number;
+    success: number;
+    failed: number;
+    warnings: number;
+  };
+}
+
+// 競合解決オプション
+export interface ConflictResolutionOptions {
+  forceOverride?: boolean;
+  relocateConflicts?: boolean;
+  notifyConflicts?: boolean;
+}
+
+// 自動適用オプション
+export interface AutoApplyOptions {
+  dryRun?: boolean;
+  forceOverride?: boolean;
+  conflictResolution?: ConflictResolutionOptions;
+}
+
+// 自動適用結果
+export interface AutoApplyResult {
+  success: boolean;
+  created: number;
+  skipped: number;
+  conflicts: ConflictInfo[];
+  overridden: number;
+  relocated: number;
+  errors: string[];
+  summary: {
+    total: number;
+    success: number;
+    failed: number;
+    warnings: number;
+  };
+}

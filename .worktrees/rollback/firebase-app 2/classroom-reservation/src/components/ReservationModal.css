@@ -1,0 +1,308 @@
+/* 予約詳細モーダルのスタイル */
+.reservation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.reservation-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow: hidden;
+  position: relative;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* 追加: コンパクトモード */
+.reservation-modal.compact {
+  max-width: 460px;
+  padding-bottom: 4px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reservation-modal-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--color-primary);
+  color: white;
+  position: relative;
+}
+
+.reservation-modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.05);
+}
+
+.close-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reservation-modal-body {
+  padding: 0 20px;
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+}
+
+/* ラベルと値を1行密度上げる */
+.compact-row { padding: 8px 12px; }
+.compact-chip { font-size: 13px; padding: 2px 8px; }
+
+.reservation-actions.confirm-mode { margin-top: 4px; }
+
+/* インライン削除確認 */
+.delete-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff5f2;
+  border: 1px solid var(--color-error);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  justify-content: space-between;
+  animation: fadeIn 0.18s ease;
+}
+.confirm-text { color: #c62828; font-weight: 600; font-size: 13px; }
+.inline-buttons { display: flex; gap: 8px; }
+.confirm-delete-btn {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cancel-delete-btn {
+  background: #eceff1;
+  color: #37474f;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirm-delete-btn:hover:not(:disabled) { background: #b91c1c; }
+.cancel-delete-btn:hover:not(:disabled) { background: #e0e3e5; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px);} to { opacity: 1; transform: translateY(0);} }
+
+/* 新レイアウト */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding: 20px 28px 8px 28px;
+}
+.details-grid .detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.details-grid .item-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: .5px;
+}
+.details-grid .item-value {
+  background: #f7f9fa;
+  border: 1px solid #e2e7ea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+  line-height: 1.2;
+  box-shadow: inset 0 0 0 1px #fff;
+}
+.details-grid .item-value.long {
+  grid-column: span 2;
+}
+.details-grid .detail-item.span-2 { grid-column: span 2; }
+
+@media (max-width: 640px) {
+  .details-grid { 
+    grid-template-columns: 1fr 1fr; 
+    padding: 16px 18px 4px 18px; 
+    gap: 10px 14px;
+  }
+  /* span-2 は引き続き全幅利用 */
+  .details-grid .detail-item.span-2 { grid-column: span 2; }
+  .details-grid .item-value.long { grid-column: span 2; }
+  /* 長い日付の可読性確保 */
+  .details-grid .item-value { 
+    font-size: 12px; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: clip; 
+  }
+  /* 削除確認をPCと同じ横並びに */
+  .delete-inline.improved { 
+    flex-direction: row; 
+    align-items: center; 
+    padding: 12px 14px; 
+  }
+  .inline-buttons { justify-content: flex-end; }
+  /* 余白微調整でブロックをやや上に */
+  .reservation-actions { margin: 0 18px 18px 18px; }
+}
+
+/* モバイル最適化 */
+@media (max-width: 768px) {
+  .reservation-modal {
+    width: 95%;
+    margin: 10px;
+    max-height: 90vh;
+    max-width: none;
+  }
+
+  .reservation-modal.compact { max-height: 80vh; }
+
+  .reservation-modal-header {
+    padding: 20px 16px 16px;
+  }
+
+  .reservation-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .detail-row label {
+    min-width: auto;
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+
+  .reservation-actions {
+    flex-direction: column;
+    margin: 20px 12px 16px;
+  }
+
+  .reservation-modal-body { max-height: calc(80vh - 110px); }
+  .detail-row label { font-size: 12px; }
+  .compact-chip { font-size: 12px; }
+  .delete-button { padding: 10px 18px; font-size: 13px; }
+  .delete-inline { padding: 8px 10px; }
+}
+
+/* 削除関連 */
+.reservation-actions { margin: 4px 26px 22px 26px; }
+.reservation-actions .edit-button {
+  background: #fff;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+  padding: 6px 12px;
+  border-radius: 999px; /* pill */
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-right: 8px;
+}
+.reservation-actions .edit-button:hover { background: #f5f9ff; }
+.reservation-actions .edit-inline { display: inline-flex; gap: 8px; align-items: center; }
+.reservation-actions .confirm-edit-btn {
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.reservation-actions .cancel-edit-btn {
+  background: #eceff1;
+  color: #37474f;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.delete-inline.improved {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d32f2f;
+  background: #fff6f6;
+  border-radius: 12px;
+  width: auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.delete-inline.improved .confirm-left { margin: 0; }
+.delete-inline.improved .inline-buttons { display: flex; gap: 10px; }
+.confirm-left { display: flex; flex-direction: column; gap: 2px; }
+.confirm-text-strong { color: #c62828; font-weight: 700; font-size: 14px; }
+.confirm-sub { color: #b71c1c; font-size: 11px; font-weight: 500; }
+.inline-buttons { display: flex; gap: 8px; align-items: center; }
+
+.label-fix-badge {
+  font-size: 0.7em;
+  margin-left: 8px;
+  color: #fff;
+  background: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .reservation-actions { margin: 4px 18px 20px 18px; }
+  .delete-inline.improved { flex-direction: column; align-items: stretch; }
+  .inline-buttons { justify-content: flex-end; }
+}

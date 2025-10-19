@@ -1,0 +1,185 @@
+/* 桜和高校教室予約システム - シンプルログインデザイン */
+
+.simple-login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+.simple-login-modal {
+  background: white;
+  border-radius: var(--radius-large);
+  box-shadow: var(--elevation-3);
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+}
+
+.simple-login-header {
+  text-align: center;
+  padding: 2rem 2rem 1rem 2rem;
+}
+
+.simple-login-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface);
+}
+
+.simple-login-body {
+  padding: 0 2rem 2rem 2rem;
+}
+
+.login-description {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #666;
+  font-size: 1rem;
+}
+
+.login-description p {
+  margin: 0.5rem 0;
+}
+
+.domain-restriction {
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info);
+  color: var(--color-on-surface);
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.login-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-method {
+  background: var(--color-surface-variant);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--color-outline);
+}
+
+.login-method h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.google-login-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.google-login-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.google-login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.admin-login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-login input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.admin-login input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.admin-login-btn {
+  background: var(--color-error);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-login-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.admin-login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+/* 追加: Googleログインボタンを赤テーマにするオプション */
+.primary-red {
+  background: var(--color-error);
+}
+.primary-red:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.primary-red:disabled {
+  background: #ccc;
+}

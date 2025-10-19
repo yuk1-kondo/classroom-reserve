@@ -1,0 +1,109 @@
+/* 🌸 桜和高校教室予約システム - スクールブランドテーマ */
+:root {
+  /* === カラースキーム C: フラット淡色 + 強調アクセント === */
+  --color-primary: #2d7fd3;            /* アクション主色 (旧primaryを再定義) */
+  --color-primary-light: #e3f3ff;      /* 淡背景用 */
+  --color-primary-dark: #1f5c96;       /* ホバー/強調 */
+  --color-on-primary: #ffffff;
+  --color-brand-text: #1f3047;         /* タイトル/主要テキスト色 */
+  --color-accent: #2d7fd3;             /* 同義 (互換目的) */
+  --color-accent-hover: #256ab2;
+  --color-accent-alt: #e48daa;         /* 桜アクセント */
+  --color-accent-alt-light: #fde8ef;
+
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f4f8;        /* セクション背景 */
+  --color-background: #f5f7fa;         /* 全体背景をやや青み */
+  --color-surface-variant: #fafbfc;
+
+  --color-on-surface: #212a33;
+  --color-on-surface-variant: #5a6773;
+
+  --color-outline: #d9e1e9;            /* 薄い境界線 */
+  --color-outline-variant: #c3ced9;    /* 濃いめ */
+  --color-border-strong: #b4c2cf;
+
+  --color-focus: #497ddf;
+  --focus-ring: 0 0 0 3px rgba(73,125,223,0.45);
+
+  /* 週末色 (控えめ) */
+  --color-saturday: #2d7fd3;
+  --color-saturday-light: #e8f2fb;
+  --color-sunday: #d55a64;
+  --color-sunday-light: #fae9ec;
+
+  /* 状態色再調整 */
+  --color-success: #2f7d4b;
+  --color-success-light: #e6f6ec;
+  --color-warning: #cc8a0e;
+  --color-warning-light: #fdf1da;
+  --color-error: #c9373a;
+  --color-error-light: #fde6e7;
+  --color-info: #2f6fa0;
+  --color-info-light: #e2f1fb;
+
+  /* === シャドウ (現状維持) === */
+  --elevation-1: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.06);
+  --elevation-2: 0 4px 8px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08);
+  --elevation-3: 0 10px 20px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.10);
+  --elevation-4: 0 14px 28px rgba(0,0,0,0.16), 0 10px 10px rgba(0,0,0,0.10);
+
+  /* === 角丸 / スペーシング (現状維持) === */
+  --radius-small: 6px;
+  --radius-medium: 10px;
+  --radius-large: 14px;
+  --radius-extra-large: 18px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* === Breakpoints === */
+  --bp-mobile: 600px;
+  --bp-tablet: 900px;
+  --bp-desktop: 1200px;
+
+  /* === ヘッダー/フッター背景色 (Navy Scheme) === */
+  --color-header-bg: #eef3f8; /* 薄い紺トーン (明度UP) */
+  --color-header-border: #d3dee7; /* 淡境界 */
+  --color-header-text: #1f3047; /* ダークテキスト */
+  --color-footer-bg: #e9f0f6; /* フッターやや濃いめ */
+  --color-footer-border: #c9d6e0;
+}
+
+/* モバイル専用ヘルパー (JS不要で簡易非表示制御) */
+.only-desktop { display: block; }
+.only-mobile { display: none; }
+
+@media (max-width: 599px) {
+  .only-desktop { display: none !important; }
+  .only-mobile { display: block !important; }
+}
+
+body {
+  margin: 0;
+  /* Prefer Noto Sans JP for consistent JP rendering on Windows/macOS */
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* フォーカス可視化 */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 4px;
+}
