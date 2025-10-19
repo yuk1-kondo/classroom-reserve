@@ -2,14 +2,14 @@
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } = require('firebase/firestore');
 
-// Firebase設定
+// Firebase設定（環境変数から注入）
 const firebaseConfig = {
-  apiKey: "AIzaSyCfoxuAOMMfYBA3RfUU99FsZVbYrpyUkh4",
-  authDomain: "owa-cbs.firebaseapp.com",
-  projectId: "owa-cbs",
-  storageBucket: "owa-cbs.firebasestorage.app",
-  messagingSenderId: "943019235591",
-  appId: "1:943019235591:web:e4fe959a4c135524cc0da2"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'owa-cbs.firebaseapp.com',
+  projectId: process.env.FIREBASE_PROJECT_ID || 'owa-cbs',
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'owa-cbs.appspot.com',
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID
 };
 
 // Firebase初期化
