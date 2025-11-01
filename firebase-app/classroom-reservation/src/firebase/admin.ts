@@ -186,6 +186,14 @@ export const adminService = {
       });
       
       console.log('✅ 管理者追加完了:', uid);
+      // 判定キャッシュを無効化
+      try {
+        const g: any = adminService as any;
+        if (g._isAdminCache) g._isAdminCache.clear();
+        if (g._isAdminInflight) g._isAdminInflight.clear();
+        if (g._isSuperCache) g._isSuperCache.clear();
+        if (g._isSuperInflight) g._isSuperInflight.clear();
+      } catch {}
       return true;
     } catch (error) {
       console.error('❌ 管理者追加エラー:', error);
@@ -205,36 +213,62 @@ export const adminService = {
         throw new Error('このユーザーは管理者ではありません');
       }
       
-      // uid ドキュメントを削除
+      // uid ドキュメント
       const uidRef = doc(db, 'admin_users', uid);
       const uidSnap = await getDoc(uidRef);
       let email: string | undefined;
       if (uidSnap.exists()) {
         const d = uidSnap.data() as AdminUser;
         email = d.email;
-        // スーパー管理者は削除不可
-        if (email === SUPER_ADMIN_EMAIL) {
+      }
+      // user_profiles から email を補完
+      if (!email) {
+        try {
+          const prof = await getDoc(doc(db, 'user_profiles', uid));
+          if (prof.exists()) {
+            email = String((prof.data() as any).email || '');
+          }
+        } catch {}
+      }
+      // スーパー管理者チェック
+      if (email === SUPER_ADMIN_EMAIL) {
+        throw new Error('初期管理者は削除できません');
+      }
+      // 最後の保険: SUPER_ADMIN_EMAIL ドキュメントの uid 比較
+      if (!email) {
+        const superRef = doc(db, 'admin_users', SUPER_ADMIN_EMAIL);
+        const superSnap = await getDoc(superRef);
+        if (superSnap.exists() && String((superSnap.data() as any).uid) === uid) {
           throw new Error('初期管理者は削除できません');
         }
-        // 念のため uid がスーパー管理者の uid でも拒否
-        if (!email) {
-          const superRef = doc(db, 'admin_users', SUPER_ADMIN_EMAIL);
-          const superSnap = await getDoc(superRef);
-          if (superSnap.exists()) {
-            const su = superSnap.data() as any;
-            if (String(su.uid) === uid) {
-              throw new Error('初期管理者は削除できません');
-            }
-          }
-        }
       }
+
+      // 1) uid ドキュメント削除
       await deleteDoc(uidRef);
-      // email ドキュメントも削除（存在していれば）
+      // 2) email ドキュメント削除
       if (email) {
         await deleteDoc(doc(db, 'admin_users', email));
+        // 3) legacyId ドキュメント削除
+        const legacyId = this.generateUidFromEmail(email);
+        await deleteDoc(doc(db, 'admin_users', legacyId));
+        // 4) email フィールド一致のドキュメントも念のため削除
+        try {
+          const snap = await getDocs(query(collection(db, 'admin_users'), where('email', '==', email)) as any);
+          for (const d of snap.docs) {
+            await deleteDoc(d.ref);
+          }
+        } catch {}
       }
       
       console.log('✅ 管理者削除完了:', uid);
+      // 判定キャッシュを無効化
+      try {
+        const g: any = adminService as any;
+        if (g._isAdminCache) g._isAdminCache.clear();
+        if (g._isAdminInflight) g._isAdminInflight.clear();
+        if (g._isSuperCache) g._isSuperCache.clear();
+        if (g._isSuperInflight) g._isSuperInflight.clear();
+      } catch {}
       return true;
     } catch (error) {
       console.error('❌ 管理者削除エラー:', error);

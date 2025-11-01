@@ -1,0 +1,175 @@
+.ledger-view {
+  background: var(--color-surface);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--elevation-1);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ledger-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.ledger-nav-buttons {
+  display: inline-flex;
+  gap: var(--spacing-sm);
+}
+
+.ledger-nav-buttons button,
+.ledger-date-picker input[type="date"],
+.ledger-filter-mine input[type="checkbox"] {
+  font-size: 0.9rem;
+}
+
+.ledger-nav-buttons button,
+.ledger-view button {
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ledger-nav-buttons button:hover,
+.ledger-view button:hover {
+  background: var(--color-outline-variant);
+}
+
+.ledger-date-picker,
+.ledger-filter-mine {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.9rem;
+}
+
+.ledger-table-wrapper {
+  overflow-x: auto;
+}
+
+.ledger-table {
+  border-collapse: collapse;
+  width: max(100%, 960px);
+  min-width: 720px;
+  border: 1px solid var(--color-outline);
+}
+
+.ledger-table th,
+.ledger-table td {
+  border: 1px solid var(--color-outline-variant);
+  padding: 8px;
+  vertical-align: top;
+  background: var(--color-surface);
+}
+
+.ledger-period-header {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--color-surface-variant);
+  min-width: 120px;
+}
+
+.ledger-period-cell {
+  background: var(--color-surface-variant);
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.period-label {
+  font-weight: 600;
+}
+
+.period-time {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.ledger-room-header {
+  min-width: 140px;
+  font-size: 0.9rem;
+  background: var(--color-surface-variant);
+  text-align: center;
+}
+
+.ledger-reservation-cell {
+  min-width: 140px;
+  position: relative;
+}
+
+.ledger-empty {
+  display: inline-block;
+  color: var(--color-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+.ledger-reservation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ledger-reservation-item {
+  background: #ffffff;
+  border-radius: var(--radius-small);
+  padding: 6px 8px;
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ledger-reservation-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--color-on-surface);
+}
+
+.ledger-reservation-owner {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+@media (max-width: 900px) {
+  .ledger-view {
+    padding: var(--spacing-md);
+  }
+
+  .ledger-period-header,
+  .ledger-period-cell {
+    min-width: 100px;
+  }
+
+  .ledger-room-header,
+  .ledger-reservation-cell {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ledger-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ledger-nav-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ledger-table {
+    min-width: 640px;
+  }
+}

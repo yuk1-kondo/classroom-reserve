@@ -1,5 +1,5 @@
 // 日別予約表示テーブルコンポーネント
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Room, 
   Reservation,
@@ -9,8 +9,7 @@ import {
 import { useReservationDataContext } from '../contexts/ReservationDataContext';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { dayRange, toDateStr } from '../utils/dateRange';
-import { Timestamp, collection, query as fsQuery, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
 import { PERIOD_ORDER } from '../firebase/firestore';
@@ -40,7 +39,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 }) => {
   const { isAdmin } = useAuth();
   const { rooms, reservations: reservationsFromCtx } = useReservationDataContext();
-  const { reservations: monthlyReservations } = useMonthlyReservations();
+  const { reservations: monthlyReservations, refetch: refetchMonthly } = useMonthlyReservations();
   const [roomStatuses, setRoomStatuses] = useState<RoomReservationStatus[]>([]);
   const [sortedReservations, setSortedReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +51,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [availableRows, setAvailableRows] = useState<Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedDateInputValue = React.useMemo(() => {
     if (!selectedDate) return '';
     const v = String(selectedDate);
@@ -65,6 +65,66 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
   // rooms はコンテキストから供給される
 
+  // 当日の最新を即時再構築（削除直後の反映用）
+  const refreshDayNow = useCallback(async () => {
+    if (!selectedDate || rooms.length === 0) return;
+    try {
+      const list = await reservationsService.getDayReservations(new Date(selectedDate));
+      // mapWithOrder とフィルタは下のエフェクトと同等に適用
+      const mapWithOrder = (reservation: Reservation) => {
+        const room = rooms.find(r => r.id === reservation.roomId);
+        let periodOrder = 0;
+        if (reservation.period === 'lunch') {
+          periodOrder = 4.5;
+        } else if (reservation.period === 'after') {
+          periodOrder = 999;
+        } else {
+          periodOrder = parseInt(reservation.period) || 0;
+        }
+        return { ...reservation, roomName: room?.name || '不明', periodOrder } as any;
+      };
+      const combined0 = list.map(mapWithOrder);
+      const periodMatches = (reservationPeriod: string, target: string): boolean => {
+        if (target === 'all') return true;
+        const p = String(reservationPeriod || '');
+        const t = String(target);
+        if (p === t) return true;
+        if (p.includes(',')) {
+          const arr = p.split(',').map(s => s.trim()).filter(Boolean);
+          return arr.includes(t);
+        }
+        if (/^\d+\s*-\s*\d+$/.test(p)) {
+          const [a,b] = p.split('-').map(s=>parseInt(s.trim(),10));
+          const x = parseInt(t,10);
+          if (!Number.isNaN(a) && !Number.isNaN(b) && !Number.isNaN(x)) {
+            const min = Math.min(a,b); const max = Math.max(a,b);
+            return x >= min && x <= max;
+          }
+        }
+        return false;
+      };
+      const current = authService.getCurrentUser();
+      let combined = combined0.filter(r =>
+        (filterRoomId === 'all' || r.roomId === filterRoomId) &&
+        periodMatches(String(r.period), String(filterPeriod)) &&
+        (!filterMine || (current && r.createdBy === current.uid))
+      );
+      combined.sort((a,b)=>{
+        if (a.periodOrder !== b.periodOrder) return a.periodOrder - b.periodOrder;
+        return a.roomName.localeCompare(b.roomName);
+      });
+      const statuses: RoomReservationStatus[] = [];
+      rooms.forEach(room => {
+        const rs = combined.filter(res => res.roomId === room.id);
+        if (rs.length > 0) statuses.push({ room, reservations: rs as Reservation[], isEmpty: false });
+      });
+      statuses.sort((a,b)=>a.room.name.localeCompare(b.room.name));
+      setRoomStatuses(statuses);
+      setSortedReservations(combined);
+      // availableRows は次のエフェクトの再実行で再計算される
+    } catch {}
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
+
   // 選択日の予約データを取得（予約本体のみ）
   useEffect(() => {
     if (!selectedDate || rooms.length === 0) {
@@ -72,28 +132,26 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       return;
     }
 
+    let cancelled = false;
     const loadDayReservations = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // 親(日次)が無ければ月次プロバイダからフィルタして使用
-        const source = Array.isArray(reservationsFromCtx) && reservationsFromCtx.length > 0
+        // まずはキャッシュ由来で表示し、直後に当日だけFirestoreから最新取得で上書き
+        const sourceDaily = Array.isArray(reservationsFromCtx) && reservationsFromCtx.length > 0
           ? reservationsFromCtx
           : Array.isArray(monthlyReservations) ? monthlyReservations : [];
         const { start: startOfDay, end: endOfDay } = dayRange(selectedDate);
-        let allReservations = source.filter(r => {
+        let allReservations = sourceDaily.filter(r => {
           const st = (r.startTime as any)?.toDate?.() || new Date(r.startTime as any);
           return st >= startOfDay && st <= endOfDay;
         });
-
-        // フォールバック: 月/親キャッシュに当日が無ければ当日だけネット取得（キャッシュ優先のまま差分同期）
-        if (allReservations.length === 0) {
-          try {
-            const list = await reservationsService.getDayReservations(new Date(selectedDate));
-            allReservations = list;
-          } catch {}
-        }
+        try {
+          const list = await reservationsService.getDayReservations(new Date(selectedDate));
+          allReservations = list;
+        } catch {}
+        if (cancelled) return;
 
         // 教室名付与と時限順のための補助を統一的に付与（予約＋ロック）
         const mapWithOrder = (reservation: Reservation) => {
@@ -222,29 +280,13 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadDayReservations();
-
-    // Realtime購読を削除（読取削減のため）
-    // 予約変更はブラウザリロードで反映される
-    // const sDate = new Date(selectedDate);
-    // sDate.setHours(0,0,0,0);
-    // const eDate = new Date(selectedDate);
-    // eDate.setHours(23,59,59,999);
-    // const q = fsQuery(
-    //   collection(db as any, 'reservations'),
-    //   where('startTime', '>=', Timestamp.fromDate(sDate)),
-    //   where('startTime', '<=', Timestamp.fromDate(eDate)),
-    //   orderBy('startTime', 'asc')
-    // ) as any;
-    // const unsub = onSnapshot(q, () => {
-    //   setRefreshKey(v => v + 1);
-    // });
-    // return () => { try { unsub(); } catch {} };
-  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine]);
+    return () => { cancelled = true; if (refreshTimerRef.current) { clearTimeout(refreshTimerRef.current); } };
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine, refreshKey, reservationsFromCtx, monthlyReservations]);
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
@@ -276,11 +318,31 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const handleInlineDelete = async (r: Reservation) => {
     if (!r.id) return;
     try {
+      // まずUIから即時に除去（ネット待ちによるタイムラグを解消）
+      setConfirmingId(null);
+      const removedId = String(r.id);
+      setSortedReservations(prev => prev.filter(x => String(x.id) !== removedId));
+      setRoomStatuses(prev => {
+        const next = prev.map(st => ({
+          room: st.room,
+          reservations: st.reservations.filter(x => String(x.id) !== removedId) as Reservation[],
+          isEmpty: false
+        })).filter(st => st.reservations.length > 0);
+        return next.map(st => ({ ...st, isEmpty: st.reservations.length === 0 }));
+      });
+
+      // サーバー削除（整合のための正式処理）
       setLoading(true);
       await reservationsService.deleteReservation(r.id);
-      setConfirmingId(null);
-      // 再読込トリガー
-      setRefreshKey(v => v + 1);
+      // 月次キャッシュも更新
+      try { await refetchMonthly(); } catch {}
+      // 即時に当日の最新で再構築（確実即時反映）
+      await refreshDayNow();
+      // デバウンス付きの正式再読込（連続削除をまとめる）
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        setRefreshKey(v => v + 1);
+      }, 500);
     } catch (e) {
       console.error('インライン削除失敗', e);
       alert('削除に失敗しました');

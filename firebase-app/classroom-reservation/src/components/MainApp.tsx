@@ -1,5 +1,5 @@
 // メインアプリケーションコンポーネント
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
@@ -31,14 +31,19 @@ export const MainApp: React.FC = () => {
   })();
 
   // 日付クリック処理
+  const handleDateNavigate = useCallback((dateStr: string) => {
+    const normalized = dateStr;
+    setSelectedDate(normalized);
+    setDailyTableDate(normalized);
+  }, []);
+
   const handleDateClick = (dateStr: string) => {
     if (!currentUser) {
       alert('予約機能を利用するにはログインが必要です');
       return;
     }
     console.log('📅 日付クリック:', dateStr);
-    setSelectedDate(dateStr);
-    setDailyTableDate(dateStr);
+    handleDateNavigate(dateStr);
     setSelectedEventId('');
     if (window.innerWidth >= 600) {
       setShowSidePanel(true);
@@ -122,6 +127,7 @@ export const MainApp: React.FC = () => {
               selectedDate={selectedDate} // 選択日付を渡す
               filterMine={filterMine}
               onFilterMineChange={setFilterMine}
+              onDateNavigate={handleDateNavigate}
               onDateClick={handleDateClick}
               onEventClick={handleEventClick}
             />
@@ -138,8 +144,7 @@ export const MainApp: React.FC = () => {
                   filterMine={filterMine}
                   onFilterMineChange={setFilterMine}
                   onDateChange={(d)=>{
-                    setDailyTableDate(d);
-                    setSelectedDate(d);
+                    handleDateNavigate(d);
                   }}
                 />
                 {window.innerWidth < 600 && !showSidePanel && (

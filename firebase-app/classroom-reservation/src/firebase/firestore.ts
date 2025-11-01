@@ -17,6 +17,7 @@ import {
   DocumentData,
   Transaction
 } from 'firebase/firestore';
+import { getDocsFromServer } from 'firebase/firestore';
 import { db } from './config';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
 import { PERIOD_ORDER as PERIOD_ORDER_CONST, periodTimeMap as PERIOD_TIME_MAP, createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
@@ -44,6 +45,7 @@ export interface Reservation {
   period: string;
   periodName: string;
   createdAt?: Timestamp;
+  updatedAt?: Timestamp;
   createdBy?: string;
 }
 
@@ -201,7 +203,7 @@ export const reservationsService = {
     return period.includes(',') ? period.split(',').map(p => p.trim()).filter(Boolean) : [period];
   },
   // 期間内の予約を取得
-  async getReservations(startDate: Date, endDate: Date): Promise<Reservation[]> {
+  async getReservations(startDate: Date, endDate: Date, opts?: { noCache?: boolean; fromServer?: boolean }): Promise<Reservation[]> {
     try {
       // セッション内 短TTLキャッシュ + 同時発火重複排除
       const sMs = Number(startDate?.getTime?.() || 0);
@@ -211,14 +213,16 @@ export const reservationsService = {
       const g: any = reservationsService as any;
       if (!g._rangeCache) g._rangeCache = new Map<string, { at: number; data: Reservation[] }>();
       if (!g._inflight) g._inflight = new Map<string, Promise<Reservation[]>>();
-      const cached = g._rangeCache.get(key);
-      const now = Date.now();
-      if (cached && (now - cached.at) < ttlMs) {
-        return cached.data as Reservation[];
-      }
-      const pending = g._inflight.get(key);
-      if (pending) {
-        return await pending;
+      if (!opts?.noCache) {
+        const cached = g._rangeCache.get(key);
+        const now = Date.now();
+        if (cached && (now - cached.at) < ttlMs) {
+          return cached.data as Reservation[];
+        }
+        const pending = g._inflight.get(key);
+        if (pending) {
+          return await pending;
+        }
       }
 
       const inflight: Promise<Reservation[]> = (async () => {
@@ -228,8 +232,8 @@ export const reservationsService = {
           where('startTime', '<=', Timestamp.fromDate(endDate)),
           orderBy('startTime', 'asc')
         );
-        const querySnapshot = await getDocs(q);
-        const list = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        const querySnapshot: any = opts?.fromServer ? await getDocsFromServer(q as any) : await getDocs(q);
+        const list = (querySnapshot.docs as Array<QueryDocumentSnapshot<DocumentData>>).map((docSnap) => {
           const data = docSnap.data() as Reservation;
           return {
             id: docSnap.id,
@@ -239,13 +243,16 @@ export const reservationsService = {
             periodName: normalizePeriodName(data.period, data.periodName)
           } as Reservation;
         });
+        // noCache でもキャッシュは最新で更新しておく
         g._rangeCache.set(key, { at: Date.now(), data: list });
         return list;
       })().finally(() => {
         try { (reservationsService as any)._inflight.delete(key); } catch {}
       });
 
-      g._inflight.set(key, inflight);
+      if (!opts?.noCache) {
+        g._inflight.set(key, inflight);
+      }
       return await inflight;
     } catch (error) {
       console.error('予約データ取得エラー:', error);
@@ -333,7 +340,8 @@ export const reservationsService = {
           period: newPeriod,
           periodName,
           startTime,
-          endTime
+          endTime,
+          updatedAt: Timestamp.now()
         });
 
         // 新スロット確保
@@ -425,7 +433,8 @@ export const reservationsService = {
       const fixed = {
         ...reservation,
         periodName: normalizePeriodName(reservation.period, reservation.periodName),
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       };
       // スロット一意性を保証するためトランザクションを使用
   const newResRef = doc(collection(db, RESERVATIONS_COLLECTION)); // 先にIDを確保
@@ -517,7 +526,10 @@ export const reservationsService = {
   // 予約を更新
   async updateReservation(reservationId: string, updates: Partial<Reservation>): Promise<void> {
     try {
-      await updateDoc(doc(db, RESERVATIONS_COLLECTION, reservationId), updates);
+      await updateDoc(doc(db, RESERVATIONS_COLLECTION, reservationId), {
+        ...updates,
+        updatedAt: Timestamp.now()
+      });
     } catch (error) {
       console.error('予約更新エラー:', error);
       throw error;
@@ -710,7 +722,7 @@ export const reservationsService = {
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
       
-      return await this.getReservations(startOfDay, endOfDay);
+      return await this.getReservations(startOfDay, endOfDay, { noCache: true, fromServer: true });
     } catch (error) {
       console.error('日別予約取得エラー:', error);
       throw error;

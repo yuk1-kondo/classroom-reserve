@@ -3,24 +3,51 @@ import { initializeApp } from 'firebase/app';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// Firebase設定（環境変数から注入）
-function req(name: string): string {
+// Firebase 設定の取得
+function getEnvOrNull(name: string): string | null {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing env: ${name}`);
-  return v;
+  return v ? String(v) : null;
 }
 
-const firebaseConfig = {
-  apiKey: req('REACT_APP_FIREBASE_API_KEY'),
-  authDomain: req('REACT_APP_FIREBASE_AUTH_DOMAIN'),
-  projectId: req('REACT_APP_FIREBASE_PROJECT_ID'),
-  storageBucket: req('REACT_APP_FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: req('REACT_APP_FIREBASE_MESSAGING_SENDER_ID'),
-  appId: req('REACT_APP_FIREBASE_APP_ID')
-};
+function getConfigFromEnv(): Record<string, string> | null {
+  const cfg = {
+    apiKey: getEnvOrNull('REACT_APP_FIREBASE_API_KEY'),
+    authDomain: getEnvOrNull('REACT_APP_FIREBASE_AUTH_DOMAIN'),
+    projectId: getEnvOrNull('REACT_APP_FIREBASE_PROJECT_ID'),
+    storageBucket: getEnvOrNull('REACT_APP_FIREBASE_STORAGE_BUCKET'),
+    messagingSenderId: getEnvOrNull('REACT_APP_FIREBASE_MESSAGING_SENDER_ID'),
+    appId: getEnvOrNull('REACT_APP_FIREBASE_APP_ID')
+  } as Record<string, string | null> as any;
+  const ok = cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.storageBucket && cfg.messagingSenderId && cfg.appId;
+  return ok ? (cfg as any) : null;
+}
+
+function getConfigFromHostingSync(): Record<string, string> | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    // Firebase Hosting が提供する初期化エンドポイント
+    const url = '/__/firebase/init.json';
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false); // 同期リクエスト（初期化時のみ）
+    xhr.send(null);
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const json = JSON.parse(xhr.responseText);
+      // 形式: { projectId, appId, apiKey, authDomain, storageBucket, ... }
+      if (json && json.apiKey && json.projectId && json.appId) {
+        return json;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+const firebaseConfig = getConfigFromEnv() || getConfigFromHostingSync();
+if (!firebaseConfig) {
+  throw new Error('Firebase config is missing. Set REACT_APP_FIREBASE_* or host on Firebase Hosting.');
+}
 
 // Firebaseアプリを初期化
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig as any);
 
 // Firestoreデータベースを初期化（永続化/Multi-Tab対応）
 const dbInstance = initializeFirestore(app, {
@@ -35,6 +62,6 @@ export const db = dbInstance;
 export const auth = getAuth(app);
 
 // Expose storage bucket name for bundle downloads (updated: 2025-10-19)
-export const storageBucketName = firebaseConfig.storageBucket;
+export const storageBucketName = (firebaseConfig as any).storageBucket;
 
 export default app;
