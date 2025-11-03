@@ -16,8 +16,6 @@ export const MainApp: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefilledRoomId, setPrefilledRoomId] = useState<string>('');
@@ -33,32 +31,8 @@ export const MainApp: React.FC = () => {
 
   // 日付クリック処理
   const handleDateNavigate = useCallback((dateStr: string) => {
-    const normalized = dateStr;
-    setSelectedDate(normalized);
-    setDailyTableDate(normalized);
+    setSelectedDate(dateStr);
   }, []);
-
-  const handleDateClick = (dateStr: string) => {
-    if (!currentUser) {
-      alert('予約機能を利用するにはログインが必要です');
-      return;
-    }
-    console.log('📅 日付クリック:', dateStr);
-    handleDateNavigate(dateStr);
-    setSelectedEventId('');
-    if (window.innerWidth >= 600) {
-      setShowSidePanel(true);
-    } else {
-      setShowSheet(true);
-    }
-  };
-
-  // イベントクリック処理
-  const handleEventClick = (eventId: string) => {
-    console.log('📅 イベントクリック:', eventId);
-    setSelectedEventId(eventId);
-    setShowReservationModal(true);
-  };
 
   // サイドパネル閉じる
   const handleCloseSidePanel = () => {
@@ -69,31 +43,19 @@ export const MainApp: React.FC = () => {
     setPrefilledPeriod('');
   };
 
-  // 予約作成後の処理
+  // 予約作成後の処理（リロードで最新データを取得）
   const handleReservationCreated = () => {
-    // カレンダーを強制的に再読み込み
-    setRefreshKey(prev => prev + 1);
-    // 日別表示テーブルも更新
-    if (dailyTableDate) {
-      setDailyTableDate('');
-      setTimeout(() => setDailyTableDate(selectedDate), 100);
-    }
+    window.location.reload();
   };
 
-  const ensureTodayIfEmpty = () => {
+  const handleFabClick = () => {
     if (!selectedDate) {
       const d = new Date();
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      const ds = `${y}-${m}-${dd}`;
-      setSelectedDate(ds);
-      setDailyTableDate(ds);
+      setSelectedDate(`${y}-${m}-${dd}`);
     }
-  };
-
-  const handleFabClick = () => {
-    ensureTodayIfEmpty();
     setShowSidePanel(true);
   };
 
@@ -143,14 +105,10 @@ export const MainApp: React.FC = () => {
         <div className="calendar-section">
           <MonthlyReservationsProvider>
             <CalendarComponent
-              key={refreshKey}
-              refreshTrigger={refreshKey}
-              selectedDate={selectedDate} // 選択日付を渡す
+              selectedDate={selectedDate}
               filterMine={filterMine}
               onFilterMineChange={setFilterMine}
               onDateNavigate={handleDateNavigate}
-              onDateClick={handleDateClick}
-              onEventClick={handleEventClick}
               onLedgerCellClick={handleLedgerCellClick}
               onReservationClick={handleReservationClick}
             />
@@ -205,7 +163,7 @@ export const MainApp: React.FC = () => {
 
       {/* 予約シート（モバイル用） */}
       <ReservationSheet
-        date={dailyTableDate}
+        date={selectedDate}
         open={showSheet}
         onClose={()=>setShowSheet(false)}
         onOpenSidePanel={()=>{ setShowSheet(false); setShowSidePanel(true); }}
