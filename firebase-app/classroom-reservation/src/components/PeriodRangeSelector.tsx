@@ -25,6 +25,13 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   selectedRoom,
   selectedDate
 }) => {
+  // 複数時限モードに切り替えた時、単一時限の値を開始時限に設定
+  React.useEffect(() => {
+    if (periodRange.isRangeMode && selectedPeriod && !periodRange.startPeriod) {
+      setPeriodRange(prev => ({ ...prev, startPeriod: selectedPeriod }));
+    }
+  }, [periodRange.isRangeMode, selectedPeriod, periodRange.startPeriod, setPeriodRange]);
+
   // 時限フォーマット（曜日に応じた時間帯を反映）
   const formatPeriod = (period: string): string => {
     const name = displayLabel(String(period));

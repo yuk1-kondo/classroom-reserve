@@ -49,12 +49,10 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const reservationsForDate = useMemo(() => {
     const target = normalizedDate;
-    const filtered = reservations.filter(r => {
+    return reservations.filter(r => {
       const startTime = r.startTime instanceof Timestamp ? r.startTime.toDate() : new Date(r.startTime as any);
       return toDateStr(startTime) === target;
     });
-    console.log(`📊 DailyLedgerView: ${target}の予約数 =`, filtered.length, '/ 全予約数 =', reservations.length);
-    return filtered;
   }, [reservations, normalizedDate]);
 
   const cellMap = useMemo(() => mapReservationsToCells(reservationsForDate, rooms, filterMine), [reservationsForDate, rooms, filterMine]);
