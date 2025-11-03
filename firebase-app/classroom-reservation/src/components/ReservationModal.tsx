@@ -1,5 +1,6 @@
 // 予約詳細・編集モーダルコンポーネント
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { reservationsService, Reservation } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
 import { useAuth } from '../hooks/useAuth';
@@ -93,7 +94,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       onClose();
       
       // 自動リロード（最新データを取得）
-      alert('予約を削除しました\n\n画面をリロードします...');
+      toast.success('予約を削除しました');
       setTimeout(() => window.location.reload(), 500);
     } catch (error: any) {
       console.error('❌ 予約削除エラー:', error);
@@ -125,7 +126,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       if (onReservationUpdated) onReservationUpdated();
       
       // 自動リロード（最新データを取得）
-      alert('予約を更新しました\n\n画面をリロードします...');
+      toast.success('予約を更新しました');
       setTimeout(() => window.location.reload(), 500);
     } catch (e) {
       console.error('予約更新エラー:', e);

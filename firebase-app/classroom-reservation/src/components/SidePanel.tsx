@@ -1,5 +1,6 @@
 // リファクタリング版サイドパネルコンポーネント - 予約作成・表示用
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
@@ -82,7 +83,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     const result = validateDatesWithinMax(dates, maxDateStr);
     if (!result.ok) {
       const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
-      alert(msg);
+      toast.error(msg, { duration: 4000 });
       return;
     }
     await formHook.handleCreateReservation();

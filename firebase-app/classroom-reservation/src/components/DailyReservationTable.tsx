@@ -1,5 +1,6 @@
 // 日別予約表示テーブルコンポーネント
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Room, 
   Reservation,
@@ -52,6 +53,24 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 教室リストのソート（useMemoで最適化）
+  const sortedRooms = React.useMemo(() => {
+    const customOrder = [
+      '小演習室1','小演習室2','小演習室3','小演習室4','小演習室5','小演習室6',
+      '大演習室1','大演習室2','大演習室3','大演習室4','大演習室5','大演習室6',
+      'サテライト','会議室','社会科教室','グローバル教室①','グローバル教室②',
+      'LL教室','モノラボ','視聴覚教室','多目的室'
+    ];
+    return [...rooms].sort((a,b)=>{
+      const ia = customOrder.indexOf(a.name);
+      const ib = customOrder.indexOf(b.name);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [rooms]);
+  
   const selectedDateInputValue = React.useMemo(() => {
     if (!selectedDate) return '';
     const v = String(selectedDate);
@@ -345,7 +364,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       }, 500);
     } catch (e) {
       console.error('インライン削除失敗', e);
-      alert('削除に失敗しました');
+      toast.error('削除に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -372,25 +391,9 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
             教室:
             <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)}>
               <option value="all">すべて</option>
-              {(() => {
-                const customOrder = [
-                  '小演習室1','小演習室2','小演習室3','小演習室4','小演習室5','小演習室6',
-                  '大演習室1','大演習室2','大演習室3','大演習室4','大演習室5','大演習室6',
-                  'サテライト','会議室','社会科教室','グローバル教室①','グローバル教室②',
-                  'LL教室','モノラボ','視聴覚教室','多目的室'
-                ];
-                const sorted = [...rooms].sort((a,b)=>{
-                  const ia = customOrder.indexOf(a.name);
-                  const ib = customOrder.indexOf(b.name);
-                  if (ia !== -1 && ib !== -1) return ia - ib;
-                  if (ia !== -1) return -1;
-                  if (ib !== -1) return 1;
-                  return a.name.localeCompare(b.name);
-                });
-                return sorted.map(r => (
-                  <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
-                ));
-              })()}
+              {sortedRooms.map(r => (
+                <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
+              ))}
             </select>
           </label>
           <label>

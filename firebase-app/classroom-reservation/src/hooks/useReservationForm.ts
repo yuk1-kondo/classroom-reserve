@@ -1,5 +1,6 @@
 // 予約フォーム状態管理用カスタムフック
 import { useCallback, useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { reservationsService, Reservation, createDateTimeFromPeriod } from '../firebase/firestore';
 import { AuthUser } from '../firebase/auth';
 import { Timestamp } from 'firebase/firestore';
@@ -131,7 +132,7 @@ export const useReservationForm = (
   // 予約作成
   const handleCreateReservation = async (): Promise<void> => {
     if (!currentUser) {
-      alert('予約を作成するにはログインが必要です');
+      toast.error('予約を作成するにはログインが必要です');
       return;
     }
 
@@ -140,7 +141,7 @@ export const useReservationForm = (
 
     if (datesToReserve.length === 0 || !formData.selectedRoom || periodsToReserve.length === 0 || 
         !formData.title.trim() || !formData.reservationName.trim()) {
-      alert('すべての項目を入力してください');
+      toast.error('すべての項目を入力してください');
       return;
     }
 
@@ -152,7 +153,7 @@ export const useReservationForm = (
     if (conflictResult.hasConflict) {
       const message = `${conflictResult.message}\n\n${conflictResult.details.join('\n')}`;
       debug('❌ 重複検出:', message);
-      alert(message);
+      toast.error(message, { duration: 5000 });
       return;
     }
     
@@ -162,7 +163,7 @@ export const useReservationForm = (
       setLoading(true);
       const room = rooms.find(r => r.id === formData.selectedRoom);
       if (!room) {
-        alert('教室が見つかりません');
+        toast.error('教室が見つかりません');
         return;
       }
 
@@ -253,15 +254,15 @@ export const useReservationForm = (
       const totalReservations = datesToReserve.length; // 実際に作成される予約件数は日数分
       if (totalReservations > 1) {
         if (periodsToReserve.length > 1) {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間 × ${periodsToReserve.length}時限連続）\n\n画面をリロードします...`);
+          toast.success(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間 × ${periodsToReserve.length}時限連続）`);
         } else {
-          alert(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間）\n\n画面をリロードします...`);
+          toast.success(`${totalReservations}件の予約を作成しました（${datesToReserve.length}日間）`);
         }
       } else {
         if (periodsToReserve.length > 1) {
-          alert(`予約を作成しました（${periodsToReserve.length}時限連続）\n\n画面をリロードします...`);
+          toast.success(`予約を作成しました（${periodsToReserve.length}時限連続）`);
         } else {
-          alert('予約を作成しました\n\n画面をリロードします...');
+          toast.success('予約を作成しました');
         }
       }
       
@@ -269,7 +270,7 @@ export const useReservationForm = (
       setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error('予約作成エラー:', error);
-      alert('予約の作成に失敗しました');
+      toast.error('予約の作成に失敗しました');
     } finally {
       setLoading(false);
     }

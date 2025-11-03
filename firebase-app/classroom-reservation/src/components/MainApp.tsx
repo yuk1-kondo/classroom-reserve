@@ -1,5 +1,7 @@
 // メインアプリケーションコンポーネント
 import React, { useCallback, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
@@ -71,7 +73,7 @@ export const MainApp: React.FC = () => {
   // 台帳ビューのセルクリック処理
   const handleLedgerCellClick = useCallback((roomId: string, period: string, date: string) => {
     if (!currentUser) {
-      alert('予約機能を利用するにはログインが必要です');
+      toast.error('予約機能を利用するにはログインが必要です');
       return;
     }
     setSelectedDate(date);
@@ -89,6 +91,31 @@ export const MainApp: React.FC = () => {
 
   return (
     <div className="main-app">
+      {/* Toast通知コンポーネント */}
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#fff',
+            color: '#363636',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       <header className="main-header">
         <h1>
           <img
