@@ -23,6 +23,7 @@ interface CalendarComponentProps {
   onReservationClick?: (reservationId: string) => void;
   onDateClick?: (dateStr: string) => void;
   onEventClick?: (eventId: string) => void;
+  refreshTrigger?: number;
 }
 
 interface CalendarEvent {
@@ -72,7 +73,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   onLedgerCellClick,
   onReservationClick,
   onDateClick,
-  onEventClick
+  onEventClick,
+  refreshTrigger
 }) => {
   const { isAdmin, currentUser } = useAuth();
   const [displayView, setDisplayView] = useState<CalendarViewType>('ledger');
@@ -81,10 +83,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const filterMine = propFilterMine ?? false;
-  const { reservations, setRange } = useMonthlyReservations();
+  const { reservations, setRange, refetch } = useMonthlyReservations();
   const calendarRef = useRef<FullCalendar>(null);
   const lastFetchedRangeRef = useRef<{ start: string; end: string } | null>(null);
   const currentUserUid = currentUser?.uid || '';
+  
+  // refreshTriggerが変更されたらデータを再取得
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   useEffect(() => {
     if (selectedDate) {

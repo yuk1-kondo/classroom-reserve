@@ -164,7 +164,7 @@ export const MainApp: React.FC = () => {
 
       <main className="main-content">
         <div className="calendar-section">
-          <MonthlyReservationsProvider key={`calendar-${refreshKey}`}>
+          <MonthlyReservationsProvider>
             <CalendarComponent
               selectedDate={selectedDate}
               filterMine={filterMine}
@@ -174,6 +174,7 @@ export const MainApp: React.FC = () => {
               onReservationClick={handleReservationClick}
               onDateClick={handleDateClick}
               onEventClick={handleEventClick}
+              refreshTrigger={refreshKey}
             />
           </MonthlyReservationsProvider>
         </div>
