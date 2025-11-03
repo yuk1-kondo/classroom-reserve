@@ -4,7 +4,7 @@ import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { applyTemplateLocks, removeTemplateLocks } from '../../firebase/templateLocks';
 import { applyTemplateReservations } from '../../firebase/templateReservations';
 import './RecurringTemplatesModal.css';
-import CsvBulkReservations from './CsvBulkReservations';
+// import CsvBulkReservations from './CsvBulkReservations';
 
 interface Props {
   open: boolean;
@@ -69,7 +69,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
     setMessage('ロックを削除中...');
     try {
       const res = await removeTemplateLocks(rangeStart, rangeEnd);
-      setMessage(`✅ ロック削除完了: 削除 ${res.removed}`);
+      setMessage(`✅ ロック削除完了: 削除 ${res.deleted}`);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
@@ -127,10 +127,10 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>ロック生成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
             </div>
-            </div>
-            {message && <div className="msg">{message}</div>}
-            <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>
           </div>
+          {message && <div className="msg">{message}</div>}
+          <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>
+          
           <div className="rtm-pane">
             <h4>テンプレート適用（実予約生成）</h4>
             <div className="form-row">
