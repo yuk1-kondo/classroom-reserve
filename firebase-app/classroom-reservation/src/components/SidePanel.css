@@ -290,6 +290,8 @@
   padding: 24px;
   border-radius: 8px;
   border: 1px solid #ddd;
+  transition: box-shadow var(--transition-normal),
+              border-color var(--transition-normal);
 }
 
 .reservation-form h5 {
@@ -349,7 +351,9 @@
   border-radius: 4px;
   font-size: 0.9em;
   box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--transition-fast), 
+              box-shadow var(--transition-fast),
+              background-color var(--transition-fast);
 }
 
 .form-group input[type="checkbox"] {
@@ -402,6 +406,55 @@
 .form-group input:disabled {
   background-color: #e9ecef;
   opacity: 0.6;
+}
+
+/* === フォームバリデーション === */
+.form-group.has-error select,
+.form-group.has-error input {
+  border-color: var(--color-error);
+  background-color: var(--color-error-light);
+}
+
+.form-group.has-error select:focus,
+.form-group.has-error input:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(201, 55, 58, 0.15);
+}
+
+.form-group.has-success select,
+.form-group.has-success input {
+  border-color: var(--color-success);
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: slideDown var(--transition-fast);
+}
+
+.success-message {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: slideDown var(--transition-fast);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 予約オプション */

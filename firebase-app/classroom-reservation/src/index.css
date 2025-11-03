@@ -49,7 +49,7 @@
   --elevation-4: 0 14px 28px rgba(0,0,0,0.16), 0 10px 10px rgba(0,0,0,0.10);
   --elevation-header: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 
-  /* === 角丸 / スペーシング (現状維持) === */
+  /* === 角丸 / スペーシング === */
   --radius-small: 6px;
   --radius-medium: 10px;
   --radius-large: 14px;
@@ -60,6 +60,14 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
+
+  /* === トランジション（アニメーション） === */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
   /* === Breakpoints === */
   --bp-mobile: 600px;
