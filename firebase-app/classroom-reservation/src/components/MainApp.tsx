@@ -35,6 +35,18 @@ export const MainApp: React.FC = () => {
     setSelectedDate(dateStr);
   }, []);
 
+  // カレンダーの日付クリック処理
+  const handleDateClick = useCallback((dateStr: string) => {
+    setSelectedDate(dateStr);
+    setShowSidePanel(true);
+  }, []);
+
+  // カレンダーのイベントクリック処理
+  const handleEventClick = useCallback((eventId: string) => {
+    setSelectedEventId(eventId);
+    setShowReservationModal(true);
+  }, []);
+
   // サイドパネル閉じる
   const handleCloseSidePanel = () => {
     setShowSidePanel(false);
@@ -108,6 +120,8 @@ export const MainApp: React.FC = () => {
               onDateNavigate={handleDateNavigate}
               onLedgerCellClick={handleLedgerCellClick}
               onReservationClick={handleReservationClick}
+              onDateClick={handleDateClick}
+              onEventClick={handleEventClick}
             />
           </MonthlyReservationsProvider>
         </div>
