@@ -20,6 +20,7 @@ type DailyLedgerViewProps = LedgerViewProps;
 export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange, onCellClick, onReservationClick }) => {
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const { reservations, setRange } = useMonthlyReservations();
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +57,17 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
   }, [reservations, normalizedDate]);
 
   const cellMap = useMemo(() => mapReservationsToCells(reservationsForDate, rooms, filterMine), [reservationsForDate, rooms, filterMine]);
+
+  // データが揃ったらローディングを解除
+  useEffect(() => {
+    if (rooms.length > 0 && reservations.length >= 0) {
+      // 少し待ってから表示（データが完全に準備されるまで）
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [rooms.length, reservations.length]);
 
   const handleDateChange = useCallback((next: string) => {
     if (!onDateChange) return;
@@ -100,7 +112,14 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
           />
         </label>
       </div>
-      <div className="ledger-table-wrapper" ref={tableWrapperRef} onWheel={handleWheel}>
+      
+      {loading ? (
+        <div className="ledger-loading">
+          <div className="loading-spinner"></div>
+          <p>台帳を読み込んでいます...</p>
+        </div>
+      ) : (
+        <div className="ledger-table-wrapper" ref={tableWrapperRef} onWheel={handleWheel}>
         <table className="ledger-table">
           <thead>
             <tr>
@@ -166,7 +185,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
     </div>
   );
 };
