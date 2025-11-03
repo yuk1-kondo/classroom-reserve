@@ -6,13 +6,9 @@ import { Timestamp } from 'firebase/firestore';
 import { Room } from '../firebase/firestore';
 import { useConflictDetection } from './useConflictDetection';
 import { displayLabel } from '../utils/periodLabel';
+import type { ReservationFormData } from '../types/forms';
 
-export interface FormData {
-  selectedRoom: string;
-  selectedPeriod: string;
-  title: string;
-  reservationName: string;
-}
+export type FormData = ReservationFormData;
 
 export interface DateRangeState {
   startDate: string;

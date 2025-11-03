@@ -13,15 +13,9 @@ import {
   sortRoomsWithOrder,
   mapReservationsToCells
 } from '../utils/ledger';
+import type { LedgerViewProps } from '../types/ledger';
 
-interface DailyLedgerViewProps {
-  date: string;
-  filterMine?: boolean;
-  onFilterMineChange?: (value: boolean) => void;
-  onDateChange?: (dateStr: string) => void;
-  onCellClick?: (roomId: string, period: string) => void;
-  onReservationClick?: (reservationId: string) => void;
-}
+type DailyLedgerViewProps = LedgerViewProps;
 
 export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange, onCellClick, onReservationClick }) => {
   const normalizedDate = normalizeDateInput(date);

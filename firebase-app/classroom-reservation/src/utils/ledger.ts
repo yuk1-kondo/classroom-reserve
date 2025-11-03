@@ -4,6 +4,7 @@ import { Reservation, Room } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
 import { toDateStr } from './dateRange';
 import { ROOM_DISPLAY_ORDER, ROOM_CATEGORIES, ROOM_CATEGORY_CLASSES } from '../constants/rooms';
+import type { LedgerCellReservation } from '../types/ledger';
 
 /**
  * 日付文字列を正規化
@@ -69,17 +70,6 @@ export function sortRoomsWithOrder(rooms: Room[]): Room[] {
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.name.localeCompare(b.name, 'ja');
   });
-}
-
-/**
- * 台帳セル用の予約データ型
- */
-export interface LedgerCellReservation {
-  id: string;
-  title: string;
-  reservationName: string;
-  period: string;
-  roomId: string;
 }
 
 /**
