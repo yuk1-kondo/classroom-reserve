@@ -42,11 +42,12 @@
   --color-info: #2f6fa0;
   --color-info-light: #e2f1fb;
 
-  /* === シャドウ (現状維持) === */
+  /* === シャドウ === */
   --elevation-1: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.06);
   --elevation-2: 0 4px 8px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08);
   --elevation-3: 0 10px 20px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.10);
   --elevation-4: 0 14px 28px rgba(0,0,0,0.16), 0 10px 10px rgba(0,0,0,0.10);
+  --elevation-header: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 
   /* === 角丸 / スペーシング (現状維持) === */
   --radius-small: 6px;

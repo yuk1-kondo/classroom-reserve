@@ -14,10 +14,12 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--color-surface);
+  background: #ffffff;
   border-bottom: 1px solid var(--color-outline);
   color: var(--color-on-surface);
-  box-shadow: none;
+  box-shadow: var(--elevation-header);
+  position: relative;
+  z-index: 10;
 }
 
 .main-header h1 {

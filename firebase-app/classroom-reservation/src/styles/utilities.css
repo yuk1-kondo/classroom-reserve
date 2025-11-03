@@ -3,10 +3,10 @@
 /* === ボタン共通スタイル === */
 .btn {
   padding: 10px 16px;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -17,6 +17,7 @@
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
+  box-shadow: var(--elevation-2);
 }
 
 .btn:disabled {
@@ -25,31 +26,41 @@
 }
 
 /* ボタンバリエーション */
+/* Primary: 主要アクション（予約作成等） */
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
+  font-weight: 600;
+  padding: 12px 24px;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--color-primary-dark);
 }
 
+/* Secondary: 補助アクション（キャンセル等） */
 .btn-secondary {
-  background: var(--color-secondary);
-  color: var(--color-on-secondary);
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-outline);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--color-secondary-dark);
+  background: var(--color-surface-variant);
+  border-color: var(--color-outline-variant);
 }
 
+/* Danger: 危険なアクション（削除等） */
 .btn-danger {
-  background: #dc3545;
-  color: white;
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #c82333;
+  background: var(--color-error);
+  color: white;
+  border-color: var(--color-error);
 }
 
 .btn-success {

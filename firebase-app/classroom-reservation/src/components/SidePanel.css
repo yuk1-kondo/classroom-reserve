@@ -261,29 +261,33 @@
 
 .create-button {
   width: 100%;
-  padding: 12px;
-  background: #333;
+  padding: 14px;
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 5px;
-  font-size: 0.95em;
+  border-radius: 6px;
+  font-size: 1em;
   cursor: pointer;
-  transition: background-color 0.2s;
-  font-weight: 500;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  box-shadow: var(--elevation-1);
 }
 
 .create-button:hover:not(:disabled) {
-  background: #555;
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-2);
 }
 
 .create-button:disabled {
   background: #999;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .reservation-form {
   background: #f5f5f5;
-  padding: 20px;
+  padding: 24px;
   border-radius: 8px;
   border: 1px solid #ddd;
 }
@@ -296,7 +300,7 @@
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 24px;
 }
 
 /* 予約期間プレビュー */
@@ -340,7 +344,7 @@
 .form-group input[type="text"],
 .form-group input[type="date"] {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 0.9em;
