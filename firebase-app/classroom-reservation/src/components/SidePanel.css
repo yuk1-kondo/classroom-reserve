@@ -785,24 +785,10 @@
   align-items: end;
 }
 
-/* 画面が狭いときは縦並びにして選択肢の文字を切らさない */
-@media (max-width: 1200px) {
-  .period-inputs {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
 .period-input-group {
   display: flex;
   flex-direction: column;
   flex: 1;
-}
-
-/* 選択肢のテキストが省略されないように幅を確保 */
-.period-input-group select {
-  width: 100%;
-  min-width: 320px;
 }
 
 .period-input-group label {
