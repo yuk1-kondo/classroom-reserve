@@ -3,7 +3,7 @@ import './DailyLedgerView.css';
 import { roomsService, Room } from '../firebase/firestore';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { Timestamp } from 'firebase/firestore';
-import { PERIOD_ORDER, periodTimeMap } from '../utils/periods';
+import { getPeriodOrderForDate, getPeriodTimeMapForDate } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
 import { addDaysToDateString, getTodayString } from '../utils/dateUtils';
 import { handleError } from '../utils/errorHandling';
@@ -65,6 +65,10 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const displayRooms = rooms;
 
+  // 曜日に応じた時限順序と時刻マップを取得
+  const periodOrder = useMemo(() => getPeriodOrderForDate(normalizedDate), [normalizedDate]);
+  const periodTimeMapForDate = useMemo(() => getPeriodTimeMapForDate(normalizedDate), [normalizedDate]);
+
   // マウスホイールでの横スクロールをサポート
   const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     if (!tableWrapperRef.current) return;
@@ -107,8 +111,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
             </tr>
           </thead>
           <tbody>
-            {PERIOD_ORDER.map(periodKey => {
-              const meta = periodTimeMap[periodKey];
+            {periodOrder.map(periodKey => {
+              const meta = periodTimeMapForDate[periodKey];
               const label = meta?.name || periodKey;
               return (
                 <tr key={periodKey}>

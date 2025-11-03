@@ -16,16 +16,35 @@ export const periodTimeMap: Record<PeriodKey, { start: string; end: string; name
   'after': { start: '16:25', end: '18:00', name: '放課後' },
 };
 
-// 曜日依存の時刻テーブル（after 開始時刻を切り替える）
-function getPeriodTimeMapForDate(dateStr: string): Record<PeriodKey, { start: string; end: string; name: string }> {
+// 曜日依存の時限順序（7限の有無を切り替える）
+export function getPeriodOrderForDate(dateStr: string): readonly PeriodKey[] {
   try {
     const d = new Date(`${dateStr}T00:00:00`);
     const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
-    // デフォルト: 月/水は16:25、それ以外は15:25
-    const defaultStart = (dow === 1 || dow === 3) ? '16:25' : '15:25';
+    // 火曜(2)、木曜(4)、金曜(5)は6限までで7限なし
+    const has7thPeriod = dow !== 2 && dow !== 4 && dow !== 5;
+    if (has7thPeriod) {
+      return PERIOD_ORDER;
+    }
+    // 7限を除外
+    return PERIOD_ORDER.filter(p => p !== '7');
+  } catch {
+    return PERIOD_ORDER;
+  }
+}
+
+// 曜日依存の時刻テーブル（after 開始時刻を切り替える）
+export function getPeriodTimeMapForDate(dateStr: string): Record<PeriodKey, { start: string; end: string; name: string }> {
+  try {
+    const d = new Date(`${dateStr}T00:00:00`);
+    const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
+    // 火曜(2)、木曜(4)、金曜(5)は6限終了後すぐ放課後（15:45開始）
+    // 月曜(1)、水曜(3)は7限後の放課後（16:25開始）
+    // 土日(0,6)は7限後の放課後（16:25開始）
+    const afterStart = (dow === 2 || dow === 4 || dow === 5) ? '15:45' : '16:25';
     return {
       ...periodTimeMap,
-      after: { ...periodTimeMap.after, start: defaultStart }
+      after: { ...periodTimeMap.after, start: afterStart }
     } as any;
   } catch {
     return periodTimeMap;
