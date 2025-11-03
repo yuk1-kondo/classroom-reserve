@@ -124,7 +124,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
                     const reservationsForCell = cellMap.get(String(room.id || ''))?.get(String(periodKey)) || [];
                     const handleCellClick = () => {
                       if (reservationsForCell.length === 0 && onCellClick && room.id) {
-                        onCellClick(room.id, periodKey);
+                        onCellClick(room.id, periodKey, normalizedDate);
                       }
                     };
                     return (

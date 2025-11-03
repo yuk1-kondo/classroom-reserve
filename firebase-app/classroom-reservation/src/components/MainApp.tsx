@@ -69,11 +69,12 @@ export const MainApp: React.FC = () => {
   };
 
   // 台帳ビューのセルクリック処理
-  const handleLedgerCellClick = useCallback((roomId: string, period: string) => {
+  const handleLedgerCellClick = useCallback((roomId: string, period: string, date: string) => {
     if (!currentUser) {
       alert('予約機能を利用するにはログインが必要です');
       return;
     }
+    setSelectedDate(date);
     setPrefilledRoomId(roomId);
     setPrefilledPeriod(period);
     setShowSidePanel(true);

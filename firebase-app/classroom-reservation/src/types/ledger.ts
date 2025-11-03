@@ -28,7 +28,7 @@ export interface LedgerViewProps {
   filterMine?: boolean;
   onFilterMineChange?: (value: boolean) => void;
   onDateChange?: (dateStr: string) => void;
-  onCellClick?: (roomId: string, period: string) => void;
+  onCellClick?: (roomId: string, period: string, date: string) => void;
   onReservationClick?: (reservationId: string) => void;
 }
 

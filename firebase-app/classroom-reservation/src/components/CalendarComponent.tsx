@@ -18,7 +18,7 @@ interface CalendarComponentProps {
   filterMine?: boolean;
   onFilterMineChange?: (v: boolean) => void;
   onDateNavigate?: (dateStr: string, origin?: 'calendar' | 'ledger') => void;
-  onLedgerCellClick?: (roomId: string, period: string) => void;
+  onLedgerCellClick?: (roomId: string, period: string, date: string) => void;
   onReservationClick?: (reservationId: string) => void;
   onDateClick?: (dateStr: string) => void;
   onEventClick?: (eventId: string) => void;
@@ -153,6 +153,16 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       loadEvents(start, end);
     }
   }, [displayView, loadEvents]);
+
+  // reservationsが更新されたらイベントを再生成
+  useEffect(() => {
+    if (displayView === 'dayGridMonth' && lastFetchedRangeRef.current) {
+      const { start, end } = lastFetchedRangeRef.current;
+      const startDate = new Date(`${start}T00:00:00`);
+      const endDate = new Date(`${end}T23:59:59`);
+      loadEvents(startDate, endDate);
+    }
+  }, [reservations, filterMine, displayView, loadEvents]);
 
   // FullCalendarの日付クリック
   const handleDateClick = useCallback((arg: any) => {
