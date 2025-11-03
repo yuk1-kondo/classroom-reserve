@@ -5,6 +5,7 @@ import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { Timestamp } from 'firebase/firestore';
 import { PERIOD_ORDER, periodTimeMap } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
+import { addDaysToDateString, getTodayString } from '../utils/dateUtils';
 import {
   normalizeDateInput,
   classifyRoom,
@@ -78,9 +79,9 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
     <div className="ledger-view">
       <div className="ledger-toolbar">
         <div className="ledger-nav-buttons">
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() - 86400000)))}>&lt; 前日</button>
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date()))}>今日</button>
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() + 86400000)))}>翌日 &gt;</button>
+          <button type="button" onClick={() => handleDateChange(addDaysToDateString(normalizedDate, -1))}>&lt; 前日</button>
+          <button type="button" onClick={() => handleDateChange(getTodayString())}>今日</button>
+          <button type="button" onClick={() => handleDateChange(addDaysToDateString(normalizedDate, 1))}>翌日 &gt;</button>
         </div>
         <label className="ledger-date-picker">
           日付

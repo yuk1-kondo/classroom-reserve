@@ -3,6 +3,7 @@
 import { Reservation, Room } from '../firebase/firestore';
 import { authService } from '../firebase/auth';
 import { toDateStr } from './dateRange';
+import { ROOM_DISPLAY_ORDER, ROOM_CATEGORIES, ROOM_CATEGORY_CLASSES } from '../constants/rooms';
 
 /**
  * 日付文字列を正規化
@@ -47,47 +48,21 @@ export function expandPeriod(raw: string): string[] {
  * 教室名からCSSクラス名を取得
  */
 export function classifyRoom(roomName: string): string {
-  if (!roomName) return 'room-cat-default';
-  if (/^小演習室/.test(roomName)) return 'room-cat-small';
-  if (/^大演習室/.test(roomName)) return 'room-cat-large';
-  if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
-  if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
-  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
-  return 'room-cat-default';
+  if (!roomName) return ROOM_CATEGORY_CLASSES.DEFAULT;
+  if (ROOM_CATEGORIES.SMALL_SEMINAR.test(roomName)) return ROOM_CATEGORY_CLASSES.SMALL_SEMINAR;
+  if (ROOM_CATEGORIES.LARGE_SEMINAR.test(roomName)) return ROOM_CATEGORY_CLASSES.LARGE_SEMINAR;
+  if (ROOM_CATEGORIES.PURPLE.test(roomName)) return ROOM_CATEGORY_CLASSES.PURPLE;
+  if (ROOM_CATEGORIES.BLUE.test(roomName)) return ROOM_CATEGORY_CLASSES.BLUE;
+  if (ROOM_CATEGORIES.RED.test(roomName)) return ROOM_CATEGORY_CLASSES.RED;
+  return ROOM_CATEGORY_CLASSES.DEFAULT;
 }
-
-/**
- * 教室の表示順序
- */
-export const LEDGER_ROOM_ORDER = [
-  'サテライト',
-  '会議室',
-  '会議室（小）',
-  '社会科教室',
-  'グローバル教室①',
-  'グローバル教室②',
-  'LL教室',
-  'モノラボ',
-  '視聴覚教室',
-  '多目的室',
-  '大演習室1',
-  '大演習室2',
-  '大演習室3',
-  '大演習室4',
-  '小演習室1',
-  '小演習室2',
-  '小演習室3',
-  '小演習室4',
-  '小演習室5',
-  '小演習室6'
-];
 
 /**
  * 教室を指定順序でソート
  */
 export function sortRoomsWithOrder(rooms: Room[]): Room[] {
   const orderMap = new Map<string, number>();
-  LEDGER_ROOM_ORDER.forEach((name, index) => orderMap.set(name, index));
+  ROOM_DISPLAY_ORDER.forEach((name, index) => orderMap.set(name, index));
   return [...rooms].sort((a, b) => {
     const aOrder = orderMap.has(a.name) ? orderMap.get(a.name)! : Number.MAX_SAFE_INTEGER;
     const bOrder = orderMap.has(b.name) ? orderMap.get(b.name)! : Number.MAX_SAFE_INTEGER;

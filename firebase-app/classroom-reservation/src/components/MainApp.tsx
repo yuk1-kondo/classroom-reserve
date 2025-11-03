@@ -9,6 +9,7 @@ import './MainApp.css';
 import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
+import { getTodayString } from '../utils/dateUtils';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
@@ -50,11 +51,7 @@ export const MainApp: React.FC = () => {
 
   const handleFabClick = () => {
     if (!selectedDate) {
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      setSelectedDate(`${y}-${m}-${dd}`);
+      setSelectedDate(getTodayString());
     }
     setShowSidePanel(true);
   };
