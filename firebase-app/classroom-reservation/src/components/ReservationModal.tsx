@@ -103,12 +103,11 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       await reservationsService.deleteReservationWithKnown(reservation as Reservation);
       console.log('✅ 予約削除成功');
       
-      if (onReservationUpdated) {
-        onReservationUpdated();
-      }
-      
       toast.success('予約を削除しました');
       onClose();
+      
+      // 削除後は画面をリロードして最新状態を反映
+      setTimeout(() => window.location.reload(), 300);
     } catch (error: any) {
       console.error('❌ 予約削除エラー:', error);
       const msg = (error && (error.message || error.code)) || '';
@@ -137,9 +136,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       setReservation({ ...reservation, ...updates });
       setIsEditing(false);
       toast.success('予約を更新しました');
-      if (onReservationUpdated) {
-        onReservationUpdated();
-      }
+      
+      // 更新後は画面をリロードして最新状態を反映
+      setTimeout(() => window.location.reload(), 300);
     } catch (e) {
       console.error('予約更新エラー:', e);
       setError('予約の更新に失敗しました');

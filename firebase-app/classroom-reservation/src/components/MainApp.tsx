@@ -34,7 +34,6 @@ export const MainApp: React.FC = () => {
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefilledRoomId, setPrefilledRoomId] = useState<string>('');
   const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
-  const [refreshKey, setRefreshKey] = useState<number>(0);
   
   // プレビュー判定（クリーンパス/クエリ対応）
   const isPreview = (() => {
@@ -81,10 +80,9 @@ export const MainApp: React.FC = () => {
     setPrefilledPeriod('');
   };
 
-  // 予約作成/更新/削除後の処理（データを再取得）
+  // 予約作成後の処理（画面をリロード）
   const handleReservationCreated = useCallback(() => {
-    // Providerを再マウントしてデータを再取得
-    setRefreshKey(prev => prev + 1);
+    window.location.reload();
   }, []);
 
   const handleFabClick = () => {
@@ -174,7 +172,6 @@ export const MainApp: React.FC = () => {
               onReservationClick={handleReservationClick}
               onDateClick={handleDateClick}
               onEventClick={handleEventClick}
-              refreshTrigger={refreshKey}
             />
           </MonthlyReservationsProvider>
         </div>
@@ -182,7 +179,7 @@ export const MainApp: React.FC = () => {
         {showSidePanel && (
           <aside className="side-panel-section">
             <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
-            <MonthlyReservationsProvider key={`side-${refreshKey}`}>
+            <MonthlyReservationsProvider>
               <ReservationDataProvider date={selectedDate}>
                 <SidePanel
                   selectedDate={selectedDate}

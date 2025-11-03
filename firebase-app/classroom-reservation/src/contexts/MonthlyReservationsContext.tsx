@@ -103,13 +103,16 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
   }, [load]);
 
   const refetch = useCallback(async () => {
+    console.log('🔄 MonthlyReservations: refetch開始');
     const { start, end } = rangeRef.current;
+    console.log('📅 現在の範囲:', { start, end });
     // キャッシュをクリアして強制的にフル取得（削除された予約を反映）
     baseMonthIdRef.current = null;
     baseFetchedAtMsRef.current = null;
     inflightRef.current = load(start, end);
     await inflightRef.current;
-  }, [load]);
+    console.log('✅ MonthlyReservations: refetch完了, 予約数:', reservations.length);
+  }, [load, reservations.length]);
 
   const value = useMemo<MonthlyReservationsContextValue>(() => ({
     reservations,
