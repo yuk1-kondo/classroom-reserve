@@ -107,3 +107,6 @@ code {
   box-shadow: var(--focus-ring);
   border-radius: 4px;
 }
+
+/* ユーティリティクラスのインポート */
+@import './styles/utilities.css';
