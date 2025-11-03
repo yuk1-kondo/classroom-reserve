@@ -1,0 +1,323 @@
+/* 🌸 カレンダーコンポーネント - マテリアルデザイン */
+.calendar-container {
+  position: relative;
+  width: 100%;
+  /* 親の高さに依存しないようautoにしてページ全体でスクロール */
+  height: auto;
+  min-height: 0;
+}
+
+.calendar-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: var(--color-surface);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--elevation-3);
+  font-size: 16px;
+  color: var(--color-on-surface);
+}
+
+.calendar-error {
+  position: absolute;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 1000;
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--elevation-1);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ツールバー: インラインスタイルの外出し */
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.calendar-toolbar .mine-label {
+  font-size: 0.9em;
+}
+
+.calendar-toolbar .mine-checkbox {
+  margin-left: 6px;
+}
+
+/* FullCalendar のマテリアルデザイン調整 */
+.fc {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: var(--color-surface);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--elevation-1);
+  /* 小さい画面で内容が切り取られないようにする */
+  overflow: visible;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+/* ツールバーのボタン間隔調整 */
+.fc-toolbar {
+  padding: var(--spacing-md) var(--spacing-lg);
+  gap: var(--spacing-lg);
+}
+
+.fc-toolbar-chunk {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* ナビゲーションボタンの間隔を調整 */
+.fc-button-group .fc-button {
+  margin: 0 var(--spacing-xs);
+}
+
+.fc-button-group .fc-button:first-child {
+  margin-left: 0;
+}
+
+.fc-button-group .fc-button:last-child {
+  margin-right: 0;
+}
+
+.fc-button {
+  background-color: var(--color-surface);
+  border-color: var(--color-outline);
+  color: var(--color-on-surface);
+  box-shadow: none;
+}
+
+.fc-button:hover {
+  background-color: var(--color-surface-variant);
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface);
+}
+
+.fc-button:focus { box-shadow: var(--focus-ring); }
+
+/* Segmented active state */
+.fc-button.fc-button-active,
+.fc-button:active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Segment look */
+.fc-button-group .fc-button { border-radius: 6px; }
+
+.fc-event {
+  border-radius: var(--radius-small);
+  padding: var(--event-padding, 2px 4px);
+  font-size: var(--event-font-size, 11px);
+  line-height: 1.2;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-1);
+}
+
+.fc-timegrid-slot-label {
+  font-size: 0.85em;
+  color: var(--color-on-surface-variant);
+}
+
+.fc-timegrid-slot {
+  border-color: var(--color-outline-variant);
+}
+
+/* === 土日のヘッダーカラー（視認性向上） === */
+.fc-col-header-cell {
+  background-color: var(--color-surface-variant);
+  color: var(--color-on-surface);
+}
+
+/* 既存の day クラス指定は残す */
+.fc-day-sat {
+  background-color: var(--color-saturday-light);
+}
+
+.fc-day-sun {
+  background-color: var(--color-sunday-light);
+}
+
+.fc-daygrid-day-number {
+  color: var(--color-on-surface);
+  font-weight: 500;
+}
+
+.fc-today {
+  background-color: var(--color-primary-50) !important;
+}
+
+.fc-now-indicator {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+/* 週末スタイル再定義: 土曜=青系強調, 日曜=赤系強調 */
+:root {
+  --sat-bg: #e3f2ff;
+  --sat-text: #0d60c7;
+  --sun-bg: #ffe4e6;
+  --sun-text: #d3002f;
+}
+
+/* ▼ 不要になった nth-child ベースの再定義は削除（timeGrid で列ずれを起こすため）
+.fc-col-header-cell:nth-child(1) { 
+  background: var(--sun-bg) !important;
+  color: var(--sun-text) !important;
+  font-weight: 600;
+}
+.fc-col-header-cell:nth-child(7) { 
+  background: var(--sat-bg) !important;
+  color: var(--sat-text) !important;
+  font-weight: 600;
+}
+*/
+
+/* === Weekend header override (class based) === */
+.fc-col-header-cell.fc-day-sun { background: var(--sun-bg) !important; color: var(--sun-text) !important; font-weight: 600; }
+.fc-col-header-cell.fc-day-sat { background: var(--sat-bg) !important; color: var(--sat-text) !important; font-weight: 600; }
+.fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
+.fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion { color: inherit !important; }
+/* Ensure day view (single column) also applies */
+.fc-timegrid-col.fc-day-sun, .fc-timegrid-col.fc-day-sat { background: inherit; }
+
+/* 日付セル本体背景 (dayGrid) */
+.fc-day-sun { background: var(--sun-bg) !important; }
+.fc-day-sat { background: var(--sat-bg) !important; }
+
+/* 日曜数字を赤 / 土曜数字を青 */
+.fc-day-sun .fc-daygrid-day-number { color: var(--sun-text) !important; }
+.fc-day-sat .fc-daygrid-day-number { color: var(--sat-text) !important; }
+
+/* timeGrid (週/日) の列背景 */
+.fc-timegrid-col.fc-day-sun { background: var(--sun-bg) !important; }
+.fc-timegrid-col.fc-day-sat { background: var(--sat-bg) !important; }
+
+/* 旧: 週末の今日強調 (inset box-shadow) -> レイアウトずれのため置換
+.fc-day-sun.fc-day-today, .fc-day-sat.fc-day-today { box-shadow: inset 0 0 0 2px #ff9800; }
+*/
+
+/* === 今日ハイライト再調整 (Week の欠け解消) === */
+/* 直前で導入した border 方式を撤回し擬似要素方式に戻す */
+.fc-col-header-cell.fc-day-today,
+.fc-timegrid-col.fc-day-today { position: relative; }
+
+/* ヘッダー: 下方向へ 2px オーバーラップ */
+.fc-col-header-cell.fc-day-today::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: -2px; /* 下へ延長 */
+  border: 2px solid #ff9800;
+  border-bottom: 0; /* 下はボディ側が描く */
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 2px 2px 0 0;
+  z-index: 5;
+}
+/* ボディ列: 上方向へ 2px オーバーラップ */
+.fc-timegrid-col.fc-day-today::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -2px; bottom: 0; /* 上へ延長 */
+  border: 2px solid #ff9800;
+  border-top: 0; /* 上はヘッダー側が描く */
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 0 0 2px 2px;
+  z-index: 4;
+}
+/* dayGrid (月) は一枚セルなので outline 維持 */
+.fc-daygrid-day.fc-day-today { outline:2px solid #ff9800; outline-offset:-2px; }
+
+/* モバイル表示調整 */
+.is-mobile-cal .fc-col-header-cell-cushion {
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.is-mobile-cal .fc-daygrid-day-number {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.is-mobile-cal .fc-toolbar-title {
+  font-size: 1.1em;
+}
+
+.is-mobile-cal .fc-daygrid-day-frame {
+  min-height: 58px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .fc-toolbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .fc-button {
+    font-size: 0.8em;
+    padding: 4px 8px;
+  }
+  
+  .legend-items {
+    justify-content: center;
+  }
+  
+  .legend-item {
+    font-size: 10px;
+  }
+}
+
+/* 画面高さが低い端末向けの調整 */
+@media (max-height: 800px) {
+  .fc-toolbar { padding: 8px 12px; }
+  .fc-toolbar-title { font-size: 1.2em; }
+  .is-mobile-cal .fc-daygrid-day-frame { min-height: 50px; }
+}
+
+/* === 教室カテゴリごとの配色 === */
+.room-cat-small  { background:#10B981 !important; border-color:#0E946C !important; color:#fff !important; }
+.room-cat-large  { background:#F59E0B !important; border-color:#C47E08 !important; color:#111 !important; }
+.room-cat-purple { background:#8B5CF6 !important; border-color:#6D28D9 !important; color:#fff !important; }
+.room-cat-blue   { background:#3B82F6 !important; border-color:#2563EB !important; color:#fff !important; }
+.room-cat-red    { background:#EF4444 !important; border-color:#DC2626 !important; color:#fff !important; }
+.room-cat-default{ background:#9CA3AF !important; border-color:#6B7280 !important; color:#fff !important; }
+
+@media (max-height: 700px) {
+  .fc-toolbar { padding: 6px 10px; }
+  .fc-toolbar-title { font-size: 1.05em; }
+  .fc-button { font-size: 0.8em; padding: 3px 8px; }
+}
+
+/* 上限超過の無効日を視覚的に薄く */
+.fc .fc-daygrid-day.fc-day-overlimit,
+.fc .fc-timegrid-col.fc-day-overlimit {
+  opacity: 0.45;
+}

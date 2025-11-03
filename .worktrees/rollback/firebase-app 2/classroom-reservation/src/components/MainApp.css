@@ -1,0 +1,336 @@
+/* 🌸 メインアプリケーション - マテリアルデザイン */
+.main-app {
+  display: flex;
+  flex-direction: column;
+  /* 画面高固定をやめ、必要に応じて縦スクロール可能に */
+  min-height: 100vh;
+  height: auto;
+  background-color: var(--color-background);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-outline);
+  color: var(--color-on-surface);
+  box-shadow: none;
+}
+
+.main-header h1 {
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  color: var(--color-header-text);
+}
+
+.main-header .header-logo {
+  margin-right: 8px;
+  vertical-align: middle;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px; /* optional subtle rounding */
+  box-shadow: 0 0 0 0 rgba(0,0,0,0); /* placeholder for future */
+}
+
+/* 統一: ボタンスタイル (旧二重定義除去) */
+.toggle-panel-button {
+  background: #ffffff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-outline-variant);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.18s ease;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.toggle-panel-button:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.header-info {
+  /* 再確認: flex維持 */
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+/* 調整: 白背景上でボタンの視認性を少し改善 */
+/* remove alternate white-on-blue variant */
+
+/* 旧: 水色背景バッジ → シンプルなテキストのみへ */
+.system-info {
+  background: none !important; /* バックグラウンド除去 */
+  color: var(--color-on-surface-variant); /* ピンク上でコントラスト最適化 */
+  opacity: 0.9;
+  padding: 0 !important; /* 余白消して行高で揃える */
+  font-weight: 600;
+  border: none;
+  box-shadow: none;
+}
+
+.toggle-panel-button {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.toggle-panel-button:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  /* カレンダーが隠れないように縦スクロールを許可 */
+  overflow: auto;
+}
+
+.calendar-section {
+  flex: 1;
+  padding: var(--spacing-lg);
+  /* 内部のFullCalendarや日別テーブルがはみ出す場合にスクロール可 */
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-panel-section {
+  width: 400px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-outline);
+  box-shadow: var(--elevation-2);
+  z-index: 100;
+}
+
+.main-footer {
+  background: var(--color-footer-bg);
+  border-top: 1px solid var(--color-footer-border);
+  color: var(--color-on-surface-variant);
+  text-align: center;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  box-shadow: none; /* フラット化 */
+}
+
+.main-footer p {
+  margin: 0;
+  opacity: 0.85;
+  font-weight: 500;
+  color: inherit; /* テキストカラー継承 */
+}
+
+/* カレンダーコンテナの調整 */
+.calendar-section .calendar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.calendar-section .fc {
+  flex: 1;
+  height: auto !important;
+}
+
+.daily-table-container {
+  margin-top: 20px;
+  /* レスポンシブ対応のため最小幅を設定 */
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1024px) {
+  .side-panel-section {
+    width: 350px;
+  }
+  
+  .main-header {
+    padding: 15px 20px;
+  }
+  
+  .main-header h1 {
+    font-size: 1.5em;
+  }
+  
+  .calendar-section {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
+  /* 高さ固定を撤回し、自動で必要な高さを確保（ページ全体スクロールに任せる） */
+  .calendar-section {
+    height: auto;
+    min-height: 320px;
+  }
+  
+  .daily-table-container {
+    margin-right: 0; /* モバイルでは右マージンを削除 */
+  }
+  
+  .side-panel-section {
+    width: 100%;
+    height: 40vh;
+    border-left: none;
+    border-top: 1px solid #e9ecef;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .main-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .header-info {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .toggle-panel-button {
+    order: -1;
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .side-panel-section {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    border-left: none;
+    border-top: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.25);
+    background: var(--color-surface);
+    z-index: 120;
+    animation: slideUp 0.28s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(8%); opacity:0;} to { transform: translateY(0); opacity:1;} }
+  .main-content { overflow: visible; }
+  
+  .mobile-close-panel {
+    display: block;
+    width: 100%;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    padding: 12px 16px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+  .mobile-close-panel:active { opacity: 0.85; }
+}
+
+@media (max-width: 480px) {
+  .main-header {
+    padding: 12px 15px;
+  }
+  
+  .main-header h1 {
+    font-size: 1.3em;
+  }
+  
+  .calendar-section {
+    padding: 10px;
+  }
+  
+  .toggle-panel-button {
+    padding: 8px 12px;
+    font-size: 0.8em;
+  }
+  
+  .system-info {
+    font-size: 0.8em;
+    padding: 0 !important;
+  }
+}
+
+/* アニメーション */
+.side-panel-section {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ダークモード対応 (無効化: 常にライトトーンを維持) */
+/*
+@media (prefers-color-scheme: dark) {
+  .main-app { background-color: #1a1a1a; color: #e0e0e0; }
+  .main-header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
+  .side-panel-section { background: #2c2c2c; border-left-color: #404040; }
+  .main-footer { background: var(--color-surface) !important; color: var(--color-on-surface-variant) !important; }
+}
+*/
+/* 代替: ダークモードでもライト配色固定（ヘッダーもフラットのまま） */
+@media (prefers-color-scheme: dark) {
+  .main-app, .side-panel-section, .main-footer, .calendar-section .fc { 
+    background: var(--color-background) !important; 
+    color: var(--color-on-surface) !important; 
+  }
+  .main-header { 
+    background: var(--color-surface) !important; 
+    border-bottom: 1px solid var(--color-outline) !important;
+    color: var(--color-on-surface) !important; 
+    box-shadow: none !important;
+  }
+}
+
+.open-reserve-panel-btn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-medium);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.open-reserve-panel-btn:active {
+  opacity: 0.85;
+}
+
+.open-reserve-panel-wrapper {
+  margin-top: 12px;
+  text-align: center;
+}

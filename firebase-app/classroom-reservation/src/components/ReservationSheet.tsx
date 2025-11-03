@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import DailyReservationTable from './DailyReservationTable';
 import './ReservationSheet.css';
+import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
+import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 
 interface ReservationSheetProps {
   date?: string;
@@ -72,7 +74,11 @@ const ReservationSheet: React.FC<ReservationSheetProps> = ({ date, open, onClose
         </div>
         <div className="sheet-content">
           {date && (
+            <MonthlyReservationsProvider>
+              <ReservationDataProvider date={date}>
             <DailyReservationTable selectedDate={date} showWhenEmpty={true} />
+              </ReservationDataProvider>
+            </MonthlyReservationsProvider>
           )}
         </div>
         <div className="sheet-footer">

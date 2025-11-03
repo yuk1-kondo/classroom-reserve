@@ -1,0 +1,40 @@
+.csvb-wrap {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.csvb-help {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.csvb-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.csvb-inline-check {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.csvb-message {
+  margin-top: 8px;
+}
+
+.csvb-preview { margin-top: 12px; }
+.csvb-preview-title { font-weight: 600; margin-bottom: 6px; }
+.csvb-preview-scroll { max-height: 220px; overflow: auto; border: 1px solid #eee; }
+
+.csvb-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.csvb-th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+.csvb-td { padding: 6px 8px; border-bottom: 1px solid #f5f5f5; }
+.csvb-status.ok { color: #090; }
+.csvb-status.error { color: #c00; }
+
+

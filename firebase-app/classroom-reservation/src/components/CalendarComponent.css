@@ -1,3 +1,22 @@
+.fc-day-has-res .fc-daygrid-day-number::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #1e88e5;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.fc-day-badge {
+  background: #1e88e5;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  margin-left: 6px;
+}
 /* 🌸 カレンダーコンポーネント - マテリアルデザイン */
 .calendar-container {
   position: relative;
@@ -35,6 +54,52 @@
   box-shadow: var(--elevation-1);
   font-size: 14px;
   line-height: 1.4;
+}
+
+/* ツールバー: インラインスタイルの外出し */
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.calendar-view-switch {
+  display: inline-flex;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  padding: 4px;
+}
+
+.view-switch-button {
+  background: transparent;
+  border: none;
+  color: var(--color-on-surface-variant);
+  font-size: 0.85em;
+  padding: 6px 12px;
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-switch-button:hover {
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface);
+}
+
+.view-switch-button.is-active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.calendar-toolbar .mine-label {
+  font-size: 0.9em;
+}
+
+.calendar-toolbar .mine-checkbox {
+  margin-left: 6px;
 }
 
 /* FullCalendar のマテリアルデザイン調整 */
@@ -265,6 +330,17 @@
     justify-content: center;
   }
   
+  .calendar-toolbar {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .calendar-view-switch {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
   .fc-button {
     font-size: 0.8em;
     padding: 4px 8px;
@@ -304,4 +380,21 @@
 .fc .fc-daygrid-day.fc-day-overlimit,
 .fc .fc-timegrid-col.fc-day-overlimit {
   opacity: 0.45;
+}
+
+/* 予約状況セクション */
+.daily-reservation-section {
+  margin-top: var(--spacing-xl, 24px);
+  padding-top: var(--spacing-lg, 16px);
+  border-top: 2px solid var(--color-outline-variant, #e0e0e0);
+}
+
+.daily-reservation-section .section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-on-surface, #1a1a1a);
+  margin-bottom: var(--spacing-md, 12px);
+  padding-left: var(--spacing-sm, 8px);
+  border-left: 4px solid var(--color-primary, #1e88e5);
+  text-align: left;
 }

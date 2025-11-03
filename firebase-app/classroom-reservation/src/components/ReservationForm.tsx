@@ -1,6 +1,6 @@
 // 予約作成フォームコンポーネント
-import React from 'react';
-import { Room, Reservation, ReservationSlot } from '../firebase/firestore';
+import React, { useMemo } from 'react';
+import { Room, Reservation } from '../firebase/firestore';
 import { FormData, DateRangeState, PeriodRangeState } from '../hooks/useReservationForm';
 import { ConflictCheckState } from '../hooks/useConflictDetection';
 import { DateRangeSelector } from './DateRangeSelector';
@@ -23,7 +23,6 @@ interface ReservationFormProps {
   conflictCheck: ConflictCheckState;
   onCreateReservation: () => void;
   reservations?: Reservation[];
-  slots?: ReservationSlot[];
   selectedDate?: string;
   // 予約制限: 最大日付（YYYY-MM-DD）と表示用月数
   maxDateStr?: string;
@@ -45,11 +44,35 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   conflictCheck,
   onCreateReservation,
   reservations = [],
-  slots = [],
   selectedDate,
   maxDateStr,
   limitMonths
 }) => {
+  // カレンダー選択日が無い場合でも、フォームで選んだ日付を曜日判定に使う
+  const effectiveSelectedDate = selectedDate || dateRange.startDate;
+  
+  // 教室リストのソート（useMemoで最適化）
+  const sortedRooms = useMemo(() => {
+    const customOrder = [
+      '小演習室1', '小演習室2', '小演習室3', '小演習室4', '小演習室5', '小演習室6',
+      '大演習室1', '大演習室2', '大演習室3', '大演習室4', '大演習室5', '大演習室6',
+      'サテライト', '会議室', '社会科教室', 'グローバル教室①', 'グローバル教室②',
+      'LL教室', 'モノラボ', '視聴覚教室', '多目的室'
+    ];
+    
+    return [...rooms].sort((a, b) => {
+      const indexA = customOrder.indexOf(a.name);
+      const indexB = customOrder.indexOf(b.name);
+      
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [rooms]);
+  
   if (!showForm) {
     return (
       <div className="reservation-form-section">
@@ -87,35 +110,9 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
             aria-label="教室を選択"
           >
             <option value="">教室を選択</option>
-            {(() => {
-              // カスタム順序で並び替え
-              const customOrder = [
-                '小演習室1', '小演習室2', '小演習室3', '小演習室4', '小演習室5', '小演習室6',
-                '大演習室1', '大演習室2', '大演習室3', '大演習室4', '大演習室5', '大演習室6',
-                'サテライト', '会議室', '社会科教室', 'グローバル教室①', 'グローバル教室②',
-                'LL教室', 'モノラボ', '視聴覚教室', '多目的室'
-              ];
-              
-              const sortedRooms = [...rooms].sort((a, b) => {
-                const indexA = customOrder.indexOf(a.name);
-                const indexB = customOrder.indexOf(b.name);
-                
-                // 両方が順序リストにある場合
-                if (indexA !== -1 && indexB !== -1) {
-                  return indexA - indexB;
-                }
-                // aのみが順序リストにある場合
-                if (indexA !== -1) return -1;
-                // bのみが順序リストにある場合
-                if (indexB !== -1) return 1;
-                // 両方とも順序リストにない場合はアルファベット順
-                return a.name.localeCompare(b.name);
-              });
-              
-              return sortedRooms.map(room => (
-                <option key={room.id} value={room.id}>{room.name}</option>
-              ));
-            })()}
+            {sortedRooms.map(room => (
+              <option key={room.id} value={room.id}>{room.name}</option>
+            ))}
           </select>
         </div>
 
@@ -127,9 +124,8 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           onPeriodChange={(period) => updateFormData('selectedPeriod', period)}
           loading={loading}
           reservations={reservations}
-          slots={slots}
           selectedRoom={formData.selectedRoom}
-          selectedDate={selectedDate}
+          selectedDate={effectiveSelectedDate}
         />
 
         {/* 重複警告メッセージ */}

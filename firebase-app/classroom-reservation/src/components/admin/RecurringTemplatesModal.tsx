@@ -4,6 +4,7 @@ import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { applyTemplateLocks, removeTemplateLocks } from '../../firebase/templateLocks';
 import { applyTemplateReservations } from '../../firebase/templateReservations';
 import './RecurringTemplatesModal.css';
+import CsvBulkReservations from './CsvBulkReservations';
 
 interface Props {
   open: boolean;
@@ -63,12 +64,12 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
       alert('削除期間を正しく指定してください');
       return;
     }
-    if (!window.confirm('指定期間のテンプレロックを削除します。よろしいですか？')) return;
+    if (!window.confirm(`期間 ${rangeStart} 〜 ${rangeEnd} のテンプレートロックを削除します。よろしいですか？`)) return;
     setBusyRemove(true);
-    setMessage('テンプレートロックを削除中...');
+    setMessage('ロックを削除中...');
     try {
       const res = await removeTemplateLocks(rangeStart, rangeEnd);
-      setMessage(`✅ ロック削除完了: ${res.deleted} 件`);
+      setMessage(`✅ ロック削除完了: 削除 ${res.removed}`);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
@@ -115,16 +116,17 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             <h4>テンプレート適用（ロック生成）</h4>
             <div className="form-row">
               <label>開始日</label>
-              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
+              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} title="テンプレート適用の開始日" />
             </div>
             <div className="form-row">
               <label>終了日</label>
-              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} />
+              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} title="テンプレート適用の終了日" />
             </div>
             <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
             <div className="actions" style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleApplyLocks} disabled={!isAdmin || busy}>ロック生成</button>
               <button onClick={handleRemoveLocks} disabled={!isAdmin || busyRemove}>ロック削除</button>
+            </div>
             </div>
             {message && <div className="msg">{message}</div>}
             <div className="note">注: ロックは予約スロットに作成され、通常の予約作成をブロックします。</div>
@@ -145,7 +147,6 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
             </div>
             {messageReserve && <div className="msg">{messageReserve}</div>}
           </div>
-
         </div>
       </div>
     </div>

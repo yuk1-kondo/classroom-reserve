@@ -5,7 +5,15 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
+    "site": "owa-cbs",
     "public": "classroom-reservation/build",
     "ignore": [
       "firebase.json",

@@ -1,7 +1,8 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { periodTimeMap, Reservation, PERIOD_ORDER, ReservationSlot } from '../firebase/firestore';
+import { Reservation, PERIOD_ORDER, createDateTimeFromPeriod } from '../firebase/firestore';
+import { displayLabel } from '../utils/periodLabel';
 
 interface PeriodRangeSelectorProps {
   periodRange: PeriodRangeState;
@@ -10,7 +11,6 @@ interface PeriodRangeSelectorProps {
   onPeriodChange: (period: string) => void;
   loading: boolean;
   reservations?: Reservation[];
-  slots?: ReservationSlot[];
   selectedRoom?: string;
   selectedDate?: string;
 }
@@ -22,86 +22,76 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   onPeriodChange,
   loading,
   reservations = [],
-  slots = [],
   selectedRoom,
   selectedDate
 }) => {
-  // 時限フォーマット
+  // 複数時限モードに切り替えた時、単一時限の値を開始時限に設定
+  React.useEffect(() => {
+    if (periodRange.isRangeMode && selectedPeriod && !periodRange.startPeriod) {
+      setPeriodRange(prev => ({ ...prev, startPeriod: selectedPeriod }));
+    }
+  }, [periodRange.isRangeMode, selectedPeriod, periodRange.startPeriod, setPeriodRange]);
+
+  // 時限フォーマット（曜日に応じた時間帯を反映）
   const formatPeriod = (period: string): string => {
-    const timeInfo = periodTimeMap[period as keyof typeof periodTimeMap];
-    if (!timeInfo) return period;
+    const name = displayLabel(String(period));
+    const ds = selectedDate || '';
+    const dt = createDateTimeFromPeriod(ds, period);
+    if (!dt) return name;
+    const toHM = (d: Date) => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     if (period === '0') {
-      return `${timeInfo.name} (- ${timeInfo.end})`;
+      return `${name} (- ${toHM(dt.end)})`;
     }
     if (period === 'after') {
-      return `${timeInfo.name} (${timeInfo.start} -)`;
+      return `${name} (${toHM(dt.start)} -)`;
     }
-    return `${timeInfo.name} (${timeInfo.start} - ${timeInfo.end})`;
+    return `${name} (${toHM(dt.start)} - ${toHM(dt.end)})`;
   };
 
-  // 指定時限が予約済みかチェック
+  // 指定時限が予約済みかチェック（スロット参照は負荷増のため行わない）
   const isPeriodReserved = (period: string): boolean => {
     if (!selectedRoom || !selectedDate) {
-      console.log('🔍 isPeriodReserved: selectedRoom または selectedDate が未設定', { selectedRoom, selectedDate });
       return false;
     }
     
-    console.log('🔍 isPeriodReserved チェック開始:', { 
-      period, 
-      selectedRoom, 
-      selectedDate, 
-      reservationsCount: reservations.length 
-    });
-    
   const isReserved = reservations.some(reservation => {
-      console.log('🔍 予約チェック:', {
-        reservationId: reservation.id,
-        reservationRoomId: reservation.roomId,
-        reservationPeriod: reservation.period,
-        reservationTitle: reservation.title
-      });
-      
       if (reservation.roomId !== selectedRoom) {
-        console.log('  → 教室が異なる');
         return false;
       }
       
       // 予約日をチェック
       const reservationDate = reservation.startTime.toDate().toDateString();
       const checkDate = new Date(selectedDate).toDateString();
-      console.log('🔍 日付チェック:', { reservationDate, checkDate });
       
       if (reservationDate !== checkDate) {
-        console.log('  → 日付が異なる');
         return false;
       }
       
       // 時限をチェック
       if (!reservation.period.includes(',')) {
-        const match = reservation.period === period;
-        console.log('🔍 単一時限チェック:', { reservationPeriod: reservation.period, targetPeriod: period, match });
-        return match;
+        return reservation.period === period;
       } else {
         const reservedPeriods = reservation.period.split(',').map(p => p.trim());
-        const match = reservedPeriods.includes(period);
-        console.log('🔍 複数時限チェック:', { reservedPeriods, targetPeriod: period, match });
-        return match;
+        return reservedPeriods.includes(period);
       }
     });
     
-    if (isReserved) {
-      console.log('🔍 isPeriodReserved 結果: 予約で占有', { period, isReserved });
-      return true;
-    }
-    // スロット（ロック/他予約）による占有
-    const isLocked = slots.some(slot => {
-      return slot.roomId === selectedRoom 
-        && slot.date === selectedDate 
-        && String(slot.period) === String(period);
-    });
-    console.log('🔍 isPeriodReserved 結果: スロット占有', { period, isLocked });
-    return isLocked;
+    return isReserved;
   };
+
+  // 曜日により7限を隠す（Mon/Wed以外）
+  const availableOrder = React.useMemo(() => {
+    if (!selectedDate) return PERIOD_ORDER;
+    try {
+      const d = new Date(selectedDate);
+      const dow = d.getDay(); // 1:Mon, 3:Wed
+      const monOrWed = dow === 1 || dow === 3;
+      if (monOrWed) return PERIOD_ORDER;
+      return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
+    } catch {
+      return PERIOD_ORDER;
+    }
+  }, [selectedDate]);
 
   return (
     <div className="form-group">
@@ -138,7 +128,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
             aria-label="時限を選択"
           >
             <option value="">時限を選択</option>
-            {PERIOD_ORDER.map(key => {
+            {availableOrder.map(key => {
               const isReserved = isPeriodReserved(key);
               const optionClass = isReserved ? 'period-option reserved' : 'period-option';
               return (
@@ -164,7 +154,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="開始時限を選択"
               >
                 <option value="">選択</option>
-                {PERIOD_ORDER.map(key => {
+                {availableOrder.map(key => {
                   const isReserved = isPeriodReserved(key);
                   const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (
@@ -189,7 +179,7 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
                 aria-label="終了時限を選択"
               >
                 <option value="">選択</option>
-                {PERIOD_ORDER.map(key => {
+                {availableOrder.map(key => {
                   const isReserved = isPeriodReserved(key);
                   const optionClass = isReserved ? 'period-option reserved' : 'period-option';
                   return (

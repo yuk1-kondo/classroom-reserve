@@ -1,0 +1,360 @@
+/* 管理者権限管理コンポーネントのスタイル */
+.admin-user-manager {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* ヘッダー */
+.admin-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.admin-header h3 {
+  color: #d32f2f;
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.admin-header p {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* 管理者バッジ */
+.first-admin-badge,
+.regular-admin-badge {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.first-admin-badge {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+}
+
+.regular-admin-badge {
+  background: #e2e3e5;
+  border: 1px solid #d6d8db;
+  color: #6c757d;
+}
+
+/* アクセス拒否 */
+.access-denied {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.access-denied h3 {
+  color: #d32f2f;
+  margin: 0 0 12px 0;
+}
+
+.access-denied p {
+  color: #666;
+  margin: 0;
+}
+
+/* メッセージ */
+.error-message,
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  color: #c62828;
+}
+
+.success-message {
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  color: #2e7d32;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 管理者追加セクション */
+.add-admin-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #e9ecef;
+}
+
+.add-admin-section h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.add-admin-form {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.email-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.email-input:focus {
+  outline: none;
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.1);
+}
+
+.email-input:disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.add-admin-btn {
+  padding: 10px 20px;
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.add-admin-btn:hover:not(:disabled) {
+  background: #b71c1c;
+}
+
+.add-admin-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.form-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* 管理者リストセクション */
+.admin-list-section {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-list-section h4 {
+  margin: 0;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.loading-message,
+.empty-message {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* 管理者リスト */
+.admin-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.admin-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.admin-user-item:last-child {
+  border-bottom: none;
+}
+
+.admin-user-item:hover {
+  background: #f8f9fa;
+}
+
+.admin-user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-email {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.admin-uid {
+  font-size: 0.8rem;
+  color: #666;
+  font-family: monospace;
+}
+
+.admin-assigned-date {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.remove-admin-btn {
+  padding: 8px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.remove-admin-btn:hover:not(:disabled) {
+  background: #d32f2f;
+}
+
+.remove-admin-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.no-permission-text {
+  font-size: 0.8rem;
+  color: #999;
+  font-style: italic;
+  padding: 8px 12px;
+}
+
+/* 統計情報 */
+.admin-stats {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.admin-stats p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* --- ReservationLimitSettings styles (migrated from inline) --- */
+.rls-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.rls-title {
+  margin: 0 0 8px 0;
+}
+.rls-loading { font-size: 12px; color: #666; }
+.rls-error { font-size: 12px; color: #b91c1c; }
+.rls-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.rls-label { display: flex; align-items: center; gap: 6px; }
+.rls-info { margin-top: 8px; font-size: 12px; color: #374151; }
+.rls-hint { color: #6b7280; }
+.rls-actions { display: flex; gap: 8px; margin-top: 10px; }
+.rls-note { font-size: 12px; color: #6b7280; }
+.rls-msg { font-size: 12px; }
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .admin-user-manager {
+    padding: 16px;
+  }
+  
+  .add-admin-form {
+    flex-direction: column;
+  }
+  
+  .admin-user-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .admin-user-info {
+    width: 100%;
+  }
+  
+  .remove-admin-btn {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header h3 {
+    font-size: 1.3rem;
+  }
+  
+  .add-admin-section,
+  .admin-list-section {
+    padding: 16px;
+  }
+  
+  .admin-user-item {
+    padding: 12px 16px;
+  }
+}

@@ -5,12 +5,23 @@
   border: 1px solid #d4dbe2; /* 統一ライン色 */
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   overflow: hidden; /* 横スクロール抑止 */
   box-shadow: 0 1px 2px rgba(0,0,0,0.06); /* 影わずかに弱め */
   /* レスポンシブ対応のため最小幅を設定 */
   min-width: 0;
   box-sizing: border-box;
+}
+
+/* フィルター行 */
+.daily-reservation-table .filters {
+  display: flex;
+  gap: 8px;
+  margin: 8px 12px;
+}
+
+.daily-reservation-table .filters label select {
+  margin-left: 6px;
 }
 
 .daily-reservation-table * {
@@ -24,8 +35,6 @@
   width: 100%;
   /* ヘッダー固定のため高さ制限を解除 */
   max-height: none;
-  /* モバイルでのスムーズスクロール */
-  -webkit-overflow-scrolling: touch;
   border: none; /* 二重ボーダー回避で幅超過防止 */
 }
 
@@ -40,11 +49,15 @@
 /* ヘッダー */
 .table-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 12px;
   padding: 8px 12px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
   border-bottom: 1px solid #d0d7de; /* 外枠と同色 */
+  position: sticky; /* プレビュー: ヘッダー固定 */
+  top: 0;
+  z-index: 20;
 }
 
 .table-header h4 {
@@ -64,13 +77,28 @@
   font-size: 11px;
 }
 
+/* ヘッダー直下のインラインメッセージ余白 */
+.loading-inline,
+.error-inline,
+.no-reservations-inline {
+  padding: 0 12px 6px;
+}
+
+/* サブタブ */
+.subtabs { display:flex; gap:8px; }
+.tabs-padding { padding: 0 12px 6px; }
+.subtabs .tab {
+  background:#fff; border:1px solid #d0d7de; color:#24292f; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px;
+}
+.subtabs .tab.active { background:#0969da; color:#fff; border-color:#0969da; }
+
 /* エクセル風テーブル */
 .excel-table {
   width: 100% !important;
   min-width: 0 !important; /* 強制固定 */
   border-collapse: separate; /* collapse を使わず重複回避 */
   border-spacing: 0; /* 余白なし */
-  font-size: 11px;
+  font-size: 12px;
   background: white;
   table-layout: fixed; /* 列幅固定して折返し */
   border: none;
@@ -85,7 +113,7 @@
   border: none; /* 既存クリア */
   border-right: 1px solid #d4dbe2;
   border-bottom: 1px solid #d4dbe2;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   /* ヘッダー固定 */
   position: sticky;
@@ -101,7 +129,7 @@
   vertical-align: middle; /* 中央揃え */
   text-align: center; /* 中央揃え */
   background: white;
-  font-size: 11px;
+  font-size: 12px;
   white-space: normal; /* 折り返し許可 */
   word-break: break-word;
 }
@@ -126,236 +154,72 @@
 .excel-table tbody tr:last-child td { border-bottom: none; }
 
 /* 列幅設定 */
-.col-room {
-  width: 12%;
-  min-width: 0;
-  font-weight: 500;
-  color: #24292f;
-}
-
-.col-period {
-  width: 10%;
-  min-width: 0;
-  text-align: center;
-  font-weight: 500;
-  color: #0969da;
-}
-
-.col-time {
-  width: 18%;
-  min-width: 0;
-  text-align: center;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  color: #656d76;
-}
-
-.col-title {
-  width: 46%;
-  min-width: 0;
-  color: #24292f;
-}
-
-.col-user {
-  width: 14%;
-  min-width: 0;
-  color: #656d76;
-}
+.col-room { width: 12%; min-width: 0; font-weight: 500; color: #24292f; }
+.col-period { width: 10%; min-width: 0; text-align: center; font-weight: 500; color: #0969da; }
+.col-time { width: 18%; min-width: 0; text-align: center; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; color: #656d76; }
+.col-title { width: 38%; min-width: 0; color: #24292f; }
+.col-user { width: 14%; min-width: 0; color: #656d76; }
+.col-actions { width: 8%; min-width: 72px; }
 
 /* セル内容 */
-.room-name {
-  font-weight: 500;
-  color: #24292f;
-}
-
-.period-badge {
-  background: #ddf4ff;
-  color: #0969da;
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.time-range {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  color: #656d76;
-  font-size: 10px;
-}
-
+.room-name { font-weight: 500; color: #24292f; }
+.period-badge { background: #ddf4ff; color: #0969da; padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; }
+.time-range { font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; color: #656d76; font-size: 13.5px; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; font-weight: 600; letter-spacing: 0.2px; }
 .reservation-title {
   color: #24292f;
-  font-weight: 400;
-  line-height: 1.3;
+  font-weight: 500;
+  line-height: 1.4;
+  font-size: 13.5px; /* 視認性アップ（Win/Mac両対応） */
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
 }
+.reservation-user { color: #656d76; font-size: 13.5px; }
 
-.reservation-user {
-  color: #656d76;
-  font-size: 10px;
-}
+.inline-delete-btn { background:#fff; border:1px solid #d1242f; color:#d1242f; padding:2px 6px; border-radius:6px; cursor:pointer; font-size:10px; }
+.inline-delete-btn:hover { background:#d1242f; color:#fff; }
+.inline-confirm { display:flex; gap:6px; justify-content:center; }
+.inline-confirm .confirm { background:#d1242f; color:#fff; border:none; padding:2px 6px; border-radius:6px; font-size:10px; cursor:pointer; }
+.inline-confirm .cancel { background:#fff; border:1px solid #d0d7de; padding:2px 6px; border-radius:6px; font-size:10px; cursor:pointer; }
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .daily-reservation-table {
-    font-size: 10px;
-    margin: 0;
-    border-radius: 4px;
-  }
-  
-  .table-header {
-    padding: 6px 10px;
-  }
-  
-  .table-header h4 {
-    font-size: 12px;
-  }
-  
-  .excel-table {
-    font-size: 10px;
-    min-width: 0 !important;
-    width: 100% !important; /* モバイルでの横スクロール対応 */
-  }
-  
-  .excel-table thead th {
-    padding: 6px 4px;
-    font-size: 10px;
-  }
-  
-  .excel-table tbody td {
-    padding: 4px 4px;
-    font-size: 10px;
-  }
-  
-  .col-room {
-    width: 14%;
-  }
-  
-  .col-period {
-    width: 12%;
-  }
-  
-  .col-time {
-    width: 20%;
-  }
-  
-  .col-user {
-    width: 16%;
-  }
-  
-  .col-title {
-    width: 38%;
-  }
-  
-  .period-badge {
-    font-size: 9px;
-    padding: 1px 3px;
-  }
-  
-  .time-range {
-    font-size: 9px;
-  }
-  
-  .reservation-user {
-    font-size: 9px;
-  }
+  .daily-reservation-table { font-size: 10px; margin: 0; border-radius: 4px; }
+  .table-header { padding: 6px 10px; }
+  .table-header h4 { font-size: 12px; }
+  .excel-table { font-size: 10px; min-width: 0 !important; width: 100% !important; }
+  .excel-table thead th { padding: 6px 4px; font-size: 10px; }
+  .excel-table tbody td { padding: 4px 4px; font-size: 10px; }
+  .col-room { width: 14%; }
+  .col-period { width: 12%; }
+  .col-time { width: 20%; }
+  .col-user { width: 16%; }
+  .col-title { width: 34%; }
 }
 
 @media (max-width: 480px) {
-  .daily-reservation-table {
-    border-radius: 2px;
-  }
-  
-  .table-header {
-    padding: 4px 8px;
-  }
-  
-  .table-header h4 {
-    font-size: 11px;
-  }
-  
-  .excel-table {
-    font-size: 9px;
-    min-width: 0 !important;
-    width: 100% !important; /* 小画面での最小幅 */
-  }
-  
-  .excel-table thead th {
-    padding: 4px 2px;
-    font-size: 9px;
-  }
-  
-  .excel-table tbody td {
-    padding: 3px 2px;
-    font-size: 9px;
-  }
-  
-  .col-room {
-    width: 16%;
-  }
-  
-  .col-period {
-    width: 14%;
-  }
-  
-  .col-time {
-    width: 22%;
-  }
-  
-  .col-user {
-    width: 18%;
-  }
-  
-  .col-title {
-    width: 30%;
-  }
-  
-  .period-badge {
-    font-size: 8px;
-    padding: 1px 2px;
-  }
-  
-  .time-range {
-    font-size: 8px;
-  }
-  
-  .reservation-user {
-    font-size: 8px;
-  }
+  .daily-reservation-table { border-radius: 2px; }
+  .table-header { padding: 4px 8px; }
+  .table-header h4 { font-size: 11px; }
+  .excel-table { font-size: 9px; min-width: 0 !important; width: 100% !important; }
+  .excel-table thead th { padding: 4px 2px; font-size: 9px; }
+  .excel-table tbody td { padding: 3px 2px; font-size: 9px; }
+  .col-room { width: 16%; }
+  .col-period { width: 14%; }
+  .col-time { width: 22%; }
+  .col-user { width: 18%; }
+  .col-title { width: 30%; }
 }
 
 /* 印刷対応 */
 @media print {
-  .daily-reservation-table {
-    box-shadow: none;
-    border: 1px solid #000;
-    font-size: 10px;
-  }
-  
-  .table-header {
-    background: white !important;
-    border-bottom: 1px solid #000;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
+  .daily-reservation-table { box-shadow: none; border: 1px solid #000; font-size: 10px; }
+  .table-header { background: white !important; border-bottom: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .excel-table thead th,
-  .excel-table tbody td {
-    border-right: 1px solid #000 !important;
-    border-bottom: 1px solid #000 !important;
-  }
+  .excel-table tbody td { border-right: 1px solid #000 !important; border-bottom: 1px solid #000 !important; }
   .excel-table thead th:last-child,
   .excel-table tbody td:last-child { border-right: none !important; }
   .excel-table tbody tr:last-child td { border-bottom: none !important; }
 }
 
-.reservation-sheet .excel-table {
-  width: 100% !important;
-  table-layout: fixed;
-  min-width: 0;
-}
-
+.reservation-sheet .excel-table { width: 100% !important; table-layout: fixed; min-width: 0; }
 .reservation-sheet .excel-table thead th,
-.reservation-sheet .excel-table tbody td {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.reservation-sheet .excel-table tbody td { overflow: hidden; text-overflow: ellipsis; }

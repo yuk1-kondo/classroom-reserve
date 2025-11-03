@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "owa-cbs"
-  }
+  },
+  "targets": {
+    "owa-cbs": {
+      "hosting": {
+        "owa-cbs": [
+          "owa-cbs"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
