@@ -44,59 +44,32 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   // 指定時限が予約済みかチェック（スロット参照は負荷増のため行わない）
   const isPeriodReserved = (period: string): boolean => {
     if (!selectedRoom || !selectedDate) {
-      console.log('🔍 isPeriodReserved: selectedRoom または selectedDate が未設定', { selectedRoom, selectedDate });
       return false;
     }
     
-    console.log('🔍 isPeriodReserved チェック開始:', { 
-      period, 
-      selectedRoom, 
-      selectedDate, 
-      reservationsCount: reservations.length 
-    });
-    
   const isReserved = reservations.some(reservation => {
-      console.log('🔍 予約チェック:', {
-        reservationId: reservation.id,
-        reservationRoomId: reservation.roomId,
-        reservationPeriod: reservation.period,
-        reservationTitle: reservation.title
-      });
-      
       if (reservation.roomId !== selectedRoom) {
-        console.log('  → 教室が異なる');
         return false;
       }
       
       // 予約日をチェック
       const reservationDate = reservation.startTime.toDate().toDateString();
       const checkDate = new Date(selectedDate).toDateString();
-      console.log('🔍 日付チェック:', { reservationDate, checkDate });
       
       if (reservationDate !== checkDate) {
-        console.log('  → 日付が異なる');
         return false;
       }
       
       // 時限をチェック
       if (!reservation.period.includes(',')) {
-        const match = reservation.period === period;
-        console.log('🔍 単一時限チェック:', { reservationPeriod: reservation.period, targetPeriod: period, match });
-        return match;
+        return reservation.period === period;
       } else {
         const reservedPeriods = reservation.period.split(',').map(p => p.trim());
-        const match = reservedPeriods.includes(period);
-        console.log('🔍 複数時限チェック:', { reservedPeriods, targetPeriod: period, match });
-        return match;
+        return reservedPeriods.includes(period);
       }
     });
     
-    if (isReserved) {
-      console.log('🔍 isPeriodReserved 結果: 予約で占有', { period, isReserved });
-      return true;
-    }
-    // スロット読み取りは行わず、予約ベースのみで判定（429対策）
-    return false;
+    return isReserved;
   };
 
   // 曜日により7限を隠す（Mon/Wed以外）

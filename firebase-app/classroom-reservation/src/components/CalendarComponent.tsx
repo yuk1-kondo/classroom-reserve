@@ -9,6 +9,7 @@ import DailyLedgerView from './DailyLedgerView';
 import DailyReservationTable from './DailyReservationTable';
 import { toDateStr } from '../utils/dateRange';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
+import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 import { Timestamp } from 'firebase/firestore';
 import { formatPeriodDisplay } from '../utils/periodLabel';
 import { useAuth } from '../hooks/useAuth';
@@ -274,15 +275,17 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       )}
 
       {displayView === 'daily' && isAdmin && (
-        <DailyReservationTable
-          selectedDate={dailyTableDate}
-          onDateChange={(date) => {
-            setDailyTableDate(date);
-            onDateNavigate?.(date);
-          }}
-          filterMine={filterMine}
-          onFilterMineChange={onFilterMineChange}
-        />
+        <ReservationDataProvider date={dailyTableDate}>
+          <DailyReservationTable
+            selectedDate={dailyTableDate}
+            onDateChange={(date) => {
+              setDailyTableDate(date);
+              onDateNavigate?.(date);
+            }}
+            filterMine={filterMine}
+            onFilterMineChange={onFilterMineChange}
+          />
+        </ReservationDataProvider>
       )}
     </div>
   );
