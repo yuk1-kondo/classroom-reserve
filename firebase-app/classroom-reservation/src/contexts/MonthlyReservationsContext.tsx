@@ -104,6 +104,9 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
 
   const refetch = useCallback(async () => {
     const { start, end } = rangeRef.current;
+    // キャッシュをクリアして強制的にフル取得（削除された予約を反映）
+    baseMonthIdRef.current = null;
+    baseFetchedAtMsRef.current = null;
     inflightRef.current = load(start, end);
     await inflightRef.current;
   }, [load]);

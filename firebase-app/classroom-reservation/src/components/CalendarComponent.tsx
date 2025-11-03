@@ -253,7 +253,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
           {isAdmin && (
             <div className="daily-reservation-section">
               <h3 className="section-title">予約状況</h3>
-              <ReservationDataProvider date={dailyTableDate}>
+              <ReservationDataProvider date={dailyTableDate} key={`daily-table-${refreshTrigger || 0}`}>
                 <DailyReservationTable
                   selectedDate={dailyTableDate}
                   onDateChange={(date) => {

@@ -317,7 +317,9 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
     loadDayReservations();
     return () => { cancelled = true; if (refreshTimerRef.current) { clearTimeout(refreshTimerRef.current); } };
-  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine, refreshKey, reservationsFromCtx, monthlyReservations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, rooms, filterRoomId, filterPeriod, filterMine, refreshKey]);
+  // reservationsFromCtx, monthlyReservationsは依存から除外（無限ループ防止）
 
   // 日付フォーマット
   const formatDate = (dateStr: string): string => {
