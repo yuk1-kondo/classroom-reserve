@@ -1,5 +1,5 @@
 // メインアプリケーションコンポーネント
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import CalendarComponent from './CalendarComponent';
@@ -15,7 +15,18 @@ import { getTodayString } from '../utils/dateUtils';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  
+  // URLパラメータから初期日付を取得
+  const getInitialDate = (): string => {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      return dateParam;
+    }
+    return '';
+  };
+  
+  const [selectedDate, setSelectedDate] = useState<string>(getInitialDate());
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
@@ -23,6 +34,8 @@ export const MainApp: React.FC = () => {
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefilledRoomId, setPrefilledRoomId] = useState<string>('');
   const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+  
   // プレビュー判定（クリーンパス/クエリ対応）
   const isPreview = (() => {
     if (typeof window === 'undefined') return false;
@@ -31,6 +44,16 @@ export const MainApp: React.FC = () => {
     const path = window.location.pathname.replace(/\/+$/, '');
     return path === '/preview' || path === '/ux-preview';
   })();
+  
+  // 日付が変更されたらURLを更新
+  useEffect(() => {
+    if (selectedDate) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('date', selectedDate);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [selectedDate]);
 
   // 日付クリック処理
   const handleDateNavigate = useCallback((dateStr: string) => {
@@ -58,10 +81,11 @@ export const MainApp: React.FC = () => {
     setPrefilledPeriod('');
   };
 
-  // 予約作成後の処理（リロードで最新データを取得）
-  const handleReservationCreated = () => {
-    window.location.reload();
-  };
+  // 予約作成/更新/削除後の処理（データを再取得）
+  const handleReservationCreated = useCallback(() => {
+    // Providerを再マウントしてデータを再取得
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   const handleFabClick = () => {
     if (!selectedDate) {
@@ -140,7 +164,7 @@ export const MainApp: React.FC = () => {
 
       <main className="main-content">
         <div className="calendar-section">
-          <MonthlyReservationsProvider>
+          <MonthlyReservationsProvider key={`calendar-${refreshKey}`}>
             <CalendarComponent
               selectedDate={selectedDate}
               filterMine={filterMine}
@@ -157,7 +181,7 @@ export const MainApp: React.FC = () => {
         {showSidePanel && (
           <aside className="side-panel-section">
             <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
-            <MonthlyReservationsProvider>
+            <MonthlyReservationsProvider key={`side-${refreshKey}`}>
               <ReservationDataProvider date={selectedDate}>
                 <SidePanel
                   selectedDate={selectedDate}
