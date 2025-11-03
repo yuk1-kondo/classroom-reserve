@@ -93,7 +93,7 @@ export const MainApp: React.FC = () => {
     <div className="main-app">
       {/* Toast通知コンポーネント */}
       <Toaster 
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {

@@ -227,16 +227,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
             </button>
           </div>
         )}
-
-        <label className="mine-label">
-          自分の予約のみ
-          <input
-            type="checkbox"
-            className="mine-checkbox"
-            checked={filterMine}
-            onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
-          />
-        </label>
       </div>
 
       {displayView === 'ledger' && (
