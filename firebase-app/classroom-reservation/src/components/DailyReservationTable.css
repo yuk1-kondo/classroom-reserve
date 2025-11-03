@@ -35,8 +35,6 @@
   width: 100%;
   /* ヘッダー固定のため高さ制限を解除 */
   max-height: none;
-  /* モバイルでのスムーズスクロール */
-  -webkit-overflow-scrolling: touch;
   border: none; /* 二重ボーダー回避で幅超過防止 */
 }
 
