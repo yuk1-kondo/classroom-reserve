@@ -1,7 +1,7 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { Reservation, PERIOD_ORDER, ReservationSlot, createDateTimeFromPeriod } from '../firebase/firestore';
+import { Reservation, PERIOD_ORDER, createDateTimeFromPeriod } from '../firebase/firestore';
 import { displayLabel } from '../utils/periodLabel';
 
 interface PeriodRangeSelectorProps {
@@ -11,7 +11,6 @@ interface PeriodRangeSelectorProps {
   onPeriodChange: (period: string) => void;
   loading: boolean;
   reservations?: Reservation[];
-  slots?: ReservationSlot[];
   selectedRoom?: string;
   selectedDate?: string;
 }
@@ -23,7 +22,6 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   onPeriodChange,
   loading,
   reservations = [],
-  slots = [],
   selectedRoom,
   selectedDate
 }) => {

@@ -1,6 +1,6 @@
 // 予約作成フォームコンポーネント
 import React from 'react';
-import { Room, Reservation, ReservationSlot } from '../firebase/firestore';
+import { Room, Reservation } from '../firebase/firestore';
 import { FormData, DateRangeState, PeriodRangeState } from '../hooks/useReservationForm';
 import { ConflictCheckState } from '../hooks/useConflictDetection';
 import { DateRangeSelector } from './DateRangeSelector';
@@ -23,7 +23,6 @@ interface ReservationFormProps {
   conflictCheck: ConflictCheckState;
   onCreateReservation: () => void;
   reservations?: Reservation[];
-  slots?: ReservationSlot[];
   selectedDate?: string;
   // 予約制限: 最大日付（YYYY-MM-DD）と表示用月数
   maxDateStr?: string;
@@ -45,7 +44,6 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   conflictCheck,
   onCreateReservation,
   reservations = [],
-  slots = [],
   selectedDate,
   maxDateStr,
   limitMonths
@@ -129,7 +127,6 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           onPeriodChange={(period) => updateFormData('selectedPeriod', period)}
           loading={loading}
           reservations={reservations}
-          slots={slots}
           selectedRoom={formData.selectedRoom}
           selectedDate={effectiveSelectedDate}
         />

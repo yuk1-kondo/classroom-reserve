@@ -6,7 +6,6 @@ import SimpleLogin from './SimpleLogin';
 // import { useReservationData } from '../hooks/useReservationData';
 import { useReservationDataContext } from '../contexts/ReservationDataContext';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
-import { reservationsService, ReservationSlot } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
@@ -49,7 +48,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     if (Array.isArray(reservationsFromDaily) && reservationsFromDaily.length > 0) return reservationsFromDaily;
     return Array.isArray(monthlyReservations) ? monthlyReservations : [];
   }, [reservationsFromDaily, monthlyReservations]);
-  const [slots, setSlots] = useState<ReservationSlot[]>([]);
   const roomOptions = useMemo(() =>
     rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
   [rooms]);
@@ -75,24 +73,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     }
   }, [prefilledRoomId, prefilledPeriod, formHook]);
   
-  // スロットは必要時のみ（表示日付がある時だけ）取得
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!selectedDate) {
-        setSlots([]);
-        return;
-      }
-      try {
-        const list = await reservationsService.getSlotsForDate(selectedDate);
-        if (!cancelled) setSlots(list);
-      } catch {
-        if (!cancelled) setSlots([]);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [selectedDate]);
+  // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
   // 予約作成: 先日付制限の検証を噛ませる
@@ -214,7 +195,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             conflictCheck={conflictCheck}
             onCreateReservation={handleCreateWithLimit}
             reservations={reservations}
-            slots={slots}
             selectedDate={selectedDate}
             maxDateStr={maxDateStr}
             limitMonths={limitMonths}
