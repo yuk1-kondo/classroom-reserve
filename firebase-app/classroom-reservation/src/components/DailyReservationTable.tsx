@@ -153,6 +153,14 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
     let cancelled = false;
     const loadDayReservations = async () => {
+      // タイムアウト設定（15秒）
+      const timeoutId = setTimeout(() => {
+        if (!cancelled) {
+          setLoading(false);
+          setError('データの読み込みがタイムアウトしました。画面を更新してください。');
+        }
+      }, 15000);
+      
       try {
         setLoading(true);
         setError('');
@@ -170,7 +178,10 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           const list = await reservationsService.getDayReservations(new Date(selectedDate));
           allReservations = list;
         } catch {}
-        if (cancelled) return;
+        if (cancelled) {
+          clearTimeout(timeoutId);
+          return;
+        }
 
         // 教室名付与と時限順のための補助を統一的に付与（予約＋ロック）
         const mapWithOrder = (reservation: Reservation) => {
@@ -299,6 +310,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         console.error('予約データ取得エラー:', error);
         setError('予約データの取得に失敗しました');
       } finally {
+        clearTimeout(timeoutId);
         if (!cancelled) setLoading(false);
       }
     };

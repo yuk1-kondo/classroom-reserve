@@ -37,8 +37,16 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     setLoading(true);
     setError('');
     
+    // タイムアウト設定（10秒）
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      setError('データの読み込みがタイムアウトしました。再度お試しください。');
+    }, 10000);
+    
     try {
       const reservationData = await reservationsService.getReservationById(reservationId);
+      clearTimeout(timeoutId); // 成功したらタイムアウトをキャンセル
+      
       if (reservationData) {
         setReservation(reservationData);
         setEditTitle(reservationData.title || '');
@@ -47,6 +55,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         setError('予約が見つかりません');
       }
     } catch (error) {
+      clearTimeout(timeoutId); // エラー時もタイムアウトをキャンセル
       console.error('予約取得エラー:', error);
       setError('予約データの取得に失敗しました');
     } finally {
@@ -58,6 +67,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   useEffect(() => {
     if (isOpen && reservationId) {
       loadReservation();
+    } else if (!isOpen) {
+      // モーダルが閉じられた時に状態をリセット
+      setReservation(null);
+      setLoading(false);
+      setError('');
+      setShowDeleteConfirm(false);
+      setIsEditing(false);
     }
   }, [isOpen, reservationId, loadReservation]);
 
