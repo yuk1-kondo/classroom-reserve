@@ -3,7 +3,6 @@ import React, { useCallback, useState } from 'react';
 import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
-import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
@@ -21,6 +20,8 @@ export const MainApp: React.FC = () => {
   const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
+  const [prefilledRoomId, setPrefilledRoomId] = useState<string>('');
+  const [prefilledPeriod, setPrefilledPeriod] = useState<string>('');
   // プレビュー判定（クリーンパス/クエリ対応）
   const isPreview = (() => {
     if (typeof window === 'undefined') return false;
@@ -64,6 +65,8 @@ export const MainApp: React.FC = () => {
     setShowSidePanel(false);
     setSelectedDate('');
     setSelectedEventId('');
+    setPrefilledRoomId('');
+    setPrefilledPeriod('');
   };
 
   // 予約作成後の処理
@@ -93,6 +96,24 @@ export const MainApp: React.FC = () => {
     ensureTodayIfEmpty();
     setShowSidePanel(true);
   };
+
+  // 台帳ビューのセルクリック処理
+  const handleLedgerCellClick = useCallback((roomId: string, period: string) => {
+    if (!currentUser) {
+      alert('予約機能を利用するにはログインが必要です');
+      return;
+    }
+    setPrefilledRoomId(roomId);
+    setPrefilledPeriod(period);
+    setShowSidePanel(true);
+  }, [currentUser]);
+
+  // 台帳ビューの予約クリック処理
+  const handleReservationClick = useCallback((reservationId: string) => {
+    console.log('📅 予約クリック:', reservationId);
+    setSelectedEventId(reservationId);
+    setShowReservationModal(true);
+  }, []);
 
   return (
     <div className="main-app">
@@ -130,32 +151,10 @@ export const MainApp: React.FC = () => {
               onDateNavigate={handleDateNavigate}
               onDateClick={handleDateClick}
               onEventClick={handleEventClick}
+              onLedgerCellClick={handleLedgerCellClick}
+              onReservationClick={handleReservationClick}
             />
           </MonthlyReservationsProvider>
-          
-          {/* 日別予約一覧テーブル */}
-          {dailyTableDate && (
-            <MonthlyReservationsProvider>
-              <ReservationDataProvider date={dailyTableDate}>
-              <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
-                <DailyReservationTable 
-                  selectedDate={dailyTableDate}
-                  showWhenEmpty={true}
-                  filterMine={filterMine}
-                  onFilterMineChange={setFilterMine}
-                  onDateChange={(d)=>{
-                    handleDateNavigate(d);
-                  }}
-                />
-                {window.innerWidth < 600 && !showSidePanel && (
-                  <div className="open-reserve-panel-wrapper">
-                    <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
-                  </div>
-                )}
-              </div>
-              </ReservationDataProvider>
-            </MonthlyReservationsProvider>
-          )}
         </div>
 
         {showSidePanel && (
@@ -168,6 +167,8 @@ export const MainApp: React.FC = () => {
                   selectedEventId={selectedEventId}
                   onClose={handleCloseSidePanel}
                   onReservationCreated={handleReservationCreated}
+                  prefilledRoomId={prefilledRoomId}
+                  prefilledPeriod={prefilledPeriod}
                 />
               </ReservationDataProvider>
             </MonthlyReservationsProvider>

@@ -29,13 +29,17 @@ interface SidePanelProps {
   selectedEventId?: string;
   onClose?: () => void;
   onReservationCreated?: () => void;
+  prefilledRoomId?: string;
+  prefilledPeriod?: string;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
   selectedDate,
   selectedEventId,
   onClose,
-  onReservationCreated
+  onReservationCreated,
+  prefilledRoomId,
+  prefilledPeriod
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
@@ -61,6 +65,16 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     try { onReservationCreated && onReservationCreated(); } catch {}
   };
   const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
+  
+  // 台帳ビューからの事前入力を反映
+  useEffect(() => {
+    if (prefilledRoomId && prefilledPeriod) {
+      formHook.updateFormData('selectedRoom', prefilledRoomId);
+      formHook.updateFormData('selectedPeriod', prefilledPeriod);
+      formHook.setShowForm(true);
+    }
+  }, [prefilledRoomId, prefilledPeriod, formHook]);
+  
   // スロットは必要時のみ（表示日付がある時だけ）取得
   useEffect(() => {
     let cancelled = false;

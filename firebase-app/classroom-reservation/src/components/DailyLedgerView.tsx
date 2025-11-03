@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './DailyLedgerView.css';
 import { roomsService, Reservation, Room } from '../firebase/firestore';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
@@ -12,6 +12,8 @@ interface DailyLedgerViewProps {
   filterMine?: boolean;
   onFilterMineChange?: (value: boolean) => void;
   onDateChange?: (dateStr: string) => void;
+  onCellClick?: (roomId: string, period: string) => void;
+  onReservationClick?: (reservationId: string) => void;
 }
 
 interface LedgerCellReservation {
@@ -149,10 +151,11 @@ const mapReservationsToCells = (
   return cellMap;
 };
 
-export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange }) => {
+export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange, onCellClick, onReservationClick }) => {
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
   const { reservations, setRange } = useMonthlyReservations();
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -190,6 +193,16 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const displayRooms = rooms;
 
+  // マウスホイールでの横スクロールをサポート
+  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (!tableWrapperRef.current) return;
+    // Shiftキーが押されていない場合、縦スクロールを横スクロールに変換
+    if (!event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      tableWrapperRef.current.scrollBy({ left: event.deltaY, behavior: 'auto' });
+      event.preventDefault();
+    }
+  }, []);
+
   return (
     <div className="ledger-view">
       <div className="ledger-toolbar">
@@ -211,7 +224,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
           />
         </label>
       </div>
-      <div className="ledger-table-wrapper">
+      <div className="ledger-table-wrapper" ref={tableWrapperRef} onWheel={handleWheel}>
         <table className="ledger-table">
           <thead>
             <tr>
@@ -233,18 +246,38 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
                   </th>
                   {displayRooms.map(room => {
                     const reservationsForCell = cellMap.get(String(room.id || ''))?.get(String(periodKey)) || [];
+                    const handleCellClick = () => {
+                      if (reservationsForCell.length === 0 && onCellClick && room.id) {
+                        onCellClick(room.id, periodKey);
+                      }
+                    };
                     return (
-                      <td key={`${room.id || room.name}-${periodKey}`} className={`ledger-reservation-cell ${classifyRoom(room.name)}`}>
+                      <td 
+                        key={`${room.id || room.name}-${periodKey}`} 
+                        className={`ledger-reservation-cell ${classifyRoom(room.name)} ${reservationsForCell.length === 0 ? 'ledger-cell-clickable' : ''}`.trim()}
+                        onClick={handleCellClick}
+                      >
                         {reservationsForCell.length === 0 ? (
                           <span className="ledger-empty">—</span>
                         ) : (
                           <ul className="ledger-reservation-list">
                             {reservationsForCell.map(item => (
                               <li key={item.id} className="ledger-reservation-item">
-                                <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
-                                {item.reservationName && (
-                                  <span className="ledger-reservation-owner">{item.reservationName}</span>
-                                )}
+                                <button
+                                  type="button"
+                                  className="ledger-reservation-button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onReservationClick) {
+                                      onReservationClick(item.id);
+                                    }
+                                  }}
+                                >
+                                  <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
+                                  {item.reservationName && (
+                                    <span className="ledger-reservation-owner">{item.reservationName}</span>
+                                  )}
+                                </button>
                               </li>
                             ))}
                           </ul>
