@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, deleteDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc, serverTimestamp, getDoc, query, where } from 'firebase/firestore';
 import { db } from './config';
 import { COLLECTIONS, DEFAULTS } from '../constants/collections';
 import { WeeklyTemplateExtended, TemplatePriority, TemplateCategory } from '../types/templates';
@@ -112,33 +112,69 @@ export const recurringTemplatesService = {
     await deleteDoc(doc(colRef, id));
   },
 
-  // 新規追加: 優先度別にテンプレートを取得
+  // 優先度別にテンプレートを取得（Firestoreクエリ使用）
   async listByPriority(priority: TemplatePriority): Promise<WeeklyTemplate[]> {
-    const allTemplates = await this.list();
-    return allTemplates.filter(t => t.priority === priority);
+    const q = query(colRef, where('priority', '==', priority));
+    const snap = await getDocs(q);
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...migrateTemplateData(data)
+      };
+    });
   },
 
-  // 新規追加: カテゴリ別にテンプレートを取得
+  // カテゴリ別にテンプレートを取得（Firestoreクエリ使用）
   async listByCategory(category: TemplateCategory): Promise<WeeklyTemplate[]> {
-    const allTemplates = await this.list();
-    return allTemplates.filter(t => t.category === category);
+    const q = query(colRef, where('category', '==', category));
+    const snap = await getDocs(q);
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...migrateTemplateData(data)
+      };
+    });
   },
 
-  // 新規追加: 有効なテンプレートのみを取得
+  // 有効なテンプレートのみを取得（Firestoreクエリ使用）
   async listEnabled(): Promise<WeeklyTemplate[]> {
-    const allTemplates = await this.list();
-    return allTemplates.filter(t => t.enabled);
+    const q = query(colRef, where('enabled', '==', true));
+    const snap = await getDocs(q);
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...migrateTemplateData(data)
+      };
+    });
   },
 
-  // 新規追加: 特定の教室のテンプレートを取得
+  // 特定の教室のテンプレートを取得（Firestoreクエリ使用）
   async listByRoom(roomId: string): Promise<WeeklyTemplate[]> {
-    const allTemplates = await this.list();
-    return allTemplates.filter(t => t.roomId === roomId);
+    const q = query(colRef, where('roomId', '==', roomId));
+    const snap = await getDocs(q);
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...migrateTemplateData(data)
+      };
+    });
   },
 
-  // 新規追加: 特定の曜日のテンプレートを取得
+  // 特定の曜日のテンプレートを取得（クライアント側フィルタ - 配列フィールドのため）
+  // Note: weekday は配列フィールド（weekdays）になったため、Firestore の array-contains を使用
   async listByWeekday(weekday: number): Promise<WeeklyTemplate[]> {
-    const allTemplates = await this.list();
-    return allTemplates.filter(t => t.weekday === weekday);
+    const q = query(colRef, where('weekdays', 'array-contains', weekday));
+    const snap = await getDocs(q);
+    return snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...migrateTemplateData(data)
+      };
+    });
   }
 };
