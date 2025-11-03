@@ -16,7 +16,7 @@ function App() {
       {isPreview ? (
         <PreviewUX />
       ) : (
-        <MainApp />
+      <MainApp />
       )}
     </div>
   );

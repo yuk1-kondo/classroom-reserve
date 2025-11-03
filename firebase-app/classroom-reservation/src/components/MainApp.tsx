@@ -62,7 +62,7 @@ export const MainApp: React.FC = () => {
   // カレンダーの日付クリック処理
   const handleDateClick = useCallback((dateStr: string) => {
     setSelectedDate(dateStr);
-    setShowSidePanel(true);
+      setShowSidePanel(true);
   }, []);
 
   // カレンダーのイベントクリック処理

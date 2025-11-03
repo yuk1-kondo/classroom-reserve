@@ -76,7 +76,7 @@ const ReservationSheet: React.FC<ReservationSheetProps> = ({ date, open, onClose
           {date && (
             <MonthlyReservationsProvider>
               <ReservationDataProvider date={date}>
-                <DailyReservationTable selectedDate={date} showWhenEmpty={true} />
+            <DailyReservationTable selectedDate={date} showWhenEmpty={true} />
               </ReservationDataProvider>
             </MonthlyReservationsProvider>
           )}
