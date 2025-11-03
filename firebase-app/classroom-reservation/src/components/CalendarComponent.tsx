@@ -41,7 +41,7 @@ interface CalendarEvent {
 }
 
 type FullCalendarViewType = 'dayGridMonth';
-type CalendarViewType = FullCalendarViewType | 'ledger' | 'daily';
+type CalendarViewType = FullCalendarViewType | 'ledger';
 
 const normalizeDate = (input?: string): string => {
   if (!input) return toDateStr(new Date());
@@ -121,14 +121,25 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
           const end = r.endTime instanceof Timestamp ? r.endTime.toDate() : new Date(r.endTime as any);
           const roomClass = classifyRoom(r.roomName);
           
+          // 教室カテゴリに応じた色を設定
+          const colorMap: Record<string, { bg: string; border: string; text: string }> = {
+            'room-cat-small': { bg: '#10B981', border: '#0E946C', text: '#fff' },
+            'room-cat-large': { bg: '#F59E0B', border: '#C47E08', text: '#111' },
+            'room-cat-purple': { bg: '#8B5CF6', border: '#6D28D9', text: '#fff' },
+            'room-cat-blue': { bg: '#3B82F6', border: '#2563EB', text: '#fff' },
+            'room-cat-red': { bg: '#EF4444', border: '#DC2626', text: '#fff' },
+            'room-cat-default': { bg: '#9CA3AF', border: '#6B7280', text: '#fff' }
+          };
+          const colors = colorMap[roomClass] || colorMap['room-cat-default'];
+          
           return {
             id: r.id || '',
             title: `${r.roomName} ${formatPeriodDisplay(r.period)}`,
             start,
             end,
-            backgroundColor: `var(--color-${roomClass})`,
-            borderColor: `var(--color-${roomClass})`,
-            textColor: '#fff',
+            backgroundColor: colors.bg,
+            borderColor: colors.border,
+            textColor: colors.text,
             extendedProps: {
               roomName: r.roomName,
               periodName: r.periodName,
@@ -180,6 +191,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const handleLedgerDateChange = useCallback((nextDate: string) => {
     const normalized = normalizeDate(nextDate);
     setLedgerDate(normalized);
+    setDailyTableDate(normalized); // 予約状況の日付も同期
     onDateNavigate?.(normalized, 'ledger');
   }, [onDateNavigate]);
 
@@ -198,7 +210,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   return (
     <div className="calendar-container">
       <div className="calendar-toolbar">
-        {/* 管理者のみビュー切り替えボタンを表示 */}
+        {/* 管理者のみビュー切り替えボタンを表示（台帳・月のみ） */}
         {isAdmin && (
           <div className="view-buttons">
             <button
@@ -212,12 +224,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
               onClick={() => handleViewButtonClick('dayGridMonth')}
             >
               月
-            </button>
-            <button
-              className={`view-btn ${displayView === 'daily' ? 'active' : ''}`}
-              onClick={() => handleViewButtonClick('daily')}
-            >
-              予約状況
             </button>
           </div>
         )}
@@ -234,14 +240,34 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       </div>
 
       {displayView === 'ledger' && (
-        <DailyLedgerView
-          date={ledgerDate}
-          filterMine={filterMine}
-          onFilterMineChange={onFilterMineChange}
-          onDateChange={handleLedgerDateChange}
-          onCellClick={onLedgerCellClick}
-          onReservationClick={onReservationClick}
-        />
+        <>
+          <DailyLedgerView
+            date={ledgerDate}
+            filterMine={filterMine}
+            onFilterMineChange={onFilterMineChange}
+            onDateChange={handleLedgerDateChange}
+            onCellClick={onLedgerCellClick}
+            onReservationClick={onReservationClick}
+          />
+          
+          {/* 管理者の場合は台帳ビューの下に予約状況も表示 */}
+          {isAdmin && (
+            <div className="daily-reservation-section">
+              <h3 className="section-title">予約状況</h3>
+              <ReservationDataProvider date={dailyTableDate}>
+                <DailyReservationTable
+                  selectedDate={dailyTableDate}
+                  onDateChange={(date) => {
+                    setDailyTableDate(date);
+                    onDateNavigate?.(date);
+                  }}
+                  filterMine={filterMine}
+                  onFilterMineChange={onFilterMineChange}
+                />
+              </ReservationDataProvider>
+            </div>
+          )}
+        </>
       )}
 
       {displayView === 'dayGridMonth' && isAdmin && (
@@ -274,19 +300,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
         </div>
       )}
 
-      {displayView === 'daily' && isAdmin && (
-        <ReservationDataProvider date={dailyTableDate}>
-          <DailyReservationTable
-            selectedDate={dailyTableDate}
-            onDateChange={(date) => {
-              setDailyTableDate(date);
-              onDateNavigate?.(date);
-            }}
-            filterMine={filterMine}
-            onFilterMineChange={onFilterMineChange}
-          />
-        </ReservationDataProvider>
-      )}
     </div>
   );
 };
