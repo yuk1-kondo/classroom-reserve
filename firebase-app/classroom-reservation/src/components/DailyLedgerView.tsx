@@ -6,13 +6,13 @@ import { Timestamp } from 'firebase/firestore';
 import { PERIOD_ORDER, periodTimeMap } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
 import { addDaysToDateString, getTodayString } from '../utils/dateUtils';
+import { handleError } from '../utils/errorHandling';
 import {
   normalizeDateInput,
   classifyRoom,
   sortRoomsWithOrder,
   mapReservationsToCells
 } from '../utils/ledger';
-import type { LedgerCellReservation } from '../utils/ledger';
 
 interface DailyLedgerViewProps {
   date: string;
@@ -31,10 +31,16 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   useEffect(() => {
     let active = true;
-    roomsService.getAllRooms().then(list => {
-      if (!active) return;
-      setRooms(sortRoomsWithOrder(Array.isArray(list) ? list : []));
-    }).catch(() => setRooms([]));
+    roomsService.getAllRooms()
+      .then(list => {
+        if (!active) return;
+        setRooms(sortRoomsWithOrder(Array.isArray(list) ? list : []));
+      })
+      .catch(error => {
+        if (!active) return;
+        handleError(error, '教室一覧の取得');
+        setRooms([]);
+      });
     return () => {
       active = false;
     };
