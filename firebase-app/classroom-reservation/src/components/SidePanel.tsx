@@ -72,7 +72,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       formHook.updateFormData('selectedPeriod', prefilledPeriod);
       formHook.setShowForm(true);
     }
-  }, [prefilledRoomId, prefilledPeriod, formHook]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledRoomId, prefilledPeriod]);
   
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();

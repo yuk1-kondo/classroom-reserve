@@ -98,10 +98,16 @@ export const MainApp: React.FC = () => {
       toast.error('予約機能を利用するにはログインが必要です');
       return;
     }
-    setSelectedDate(date);
-    setPrefilledRoomId(roomId);
-    setPrefilledPeriod(period);
-    setShowSidePanel(true);
+    // 新しいクリックであることを保証するため、一旦クリア
+    setPrefilledRoomId('');
+    setPrefilledPeriod('');
+    // 次のレンダリングサイクルで新しい値を設定
+    setTimeout(() => {
+      setSelectedDate(date);
+      setPrefilledRoomId(roomId);
+      setPrefilledPeriod(period);
+      setShowSidePanel(true);
+    }, 0);
   }, [currentUser]);
 
   // 台帳ビューの予約クリック処理
