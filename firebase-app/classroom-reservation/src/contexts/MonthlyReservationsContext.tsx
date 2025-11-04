@@ -26,7 +26,13 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
     }
     try {
       // 要求された範囲（start〜end）だけを取得する（台帳=1日、週/月=それぞれの範囲）
+      console.log('🔍 MonthlyReservationsContext.load called:', {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        rangeDays: Math.ceil((end.getTime() - start.getTime()) / 86400000)
+      });
       const full = await reservationsService.getReservations(start, end);
+      console.log(`📦 Loaded ${full.length} reservations for range ${start.toISOString().slice(0,10)} ~ ${end.toISOString().slice(0,10)}`);
       setReservations(Array.isArray(full) ? full : []);
       return;
     } catch (error) {

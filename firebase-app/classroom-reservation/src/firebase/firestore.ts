@@ -226,6 +226,11 @@ export const reservationsService = {
       }
 
       const inflight: Promise<Reservation[]> = (async () => {
+        console.log('🔥 Firestore query:', {
+          collection: RESERVATIONS_COLLECTION,
+          startTime_gte: startDate.toISOString(),
+          startTime_lte: endDate.toISOString()
+        });
         const q = query(
           collection(db, RESERVATIONS_COLLECTION),
           where('startTime', '>=', Timestamp.fromDate(startDate)),
@@ -243,6 +248,7 @@ export const reservationsService = {
             periodName: normalizePeriodName(data.period, data.periodName)
           } as Reservation;
         });
+        console.log(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0,10)} ~ ${endDate.toISOString().slice(0,10)}`);
         // noCache でもキャッシュは最新で更新しておく
         g._rangeCache.set(key, { at: Date.now(), data: list });
         return list;
