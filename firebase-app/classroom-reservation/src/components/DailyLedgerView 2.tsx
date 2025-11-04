@@ -84,12 +84,11 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
   // マウスホイールでの横スクロールをサポート
   const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     if (!tableWrapperRef.current) return;
-    // Shiftキーが押されている場合のみ、縦スクロールを横スクロールに変換
-    if (event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    // Shiftキーが押されていない場合、縦スクロールを横スクロールに変換
+    if (!event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
       tableWrapperRef.current.scrollBy({ left: event.deltaY, behavior: 'auto' });
       event.preventDefault();
     }
-    // Shiftキーなしの場合は通常の縦スクロール（デフォルト動作）
   }, []);
 
   return (

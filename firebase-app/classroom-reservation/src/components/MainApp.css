@@ -13,13 +13,24 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 16px 24px;
   background: #ffffff;
   border-bottom: 1px solid var(--color-outline);
   color: var(--color-on-surface);
   box-shadow: var(--elevation-header);
   position: relative;
   z-index: 10;
+}
+
+/* 1366x768向け: ヘッダーをコンパクトに */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .main-header {
+    padding: 12px 20px;
+  }
+  
+  .main-header h1 {
+    font-size: 1.5em;
+  }
 }
 
 .main-header h1 {
@@ -109,19 +120,39 @@
 
 .calendar-section {
   flex: 1;
-  padding: var(--spacing-lg);
+  padding: 20px;
   /* 内部のFullCalendarや日別テーブルがはみ出す場合にスクロール可 */
   overflow: auto;
   display: flex;
   flex-direction: column;
 }
 
+/* 1366x768向け: パディングを削減して表示領域を確保 */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .calendar-section {
+    padding: 16px;
+  }
+}
+
 .side-panel-section {
-  width: 400px;
+  width: 360px;
   background: var(--color-surface);
   border-left: 1px solid var(--color-outline);
   box-shadow: var(--elevation-2);
   z-index: 100;
+  /* より大きい画面では幅を広げる */
+}
+
+@media (min-width: 1600px) {
+  .side-panel-section {
+    width: 420px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .side-panel-section {
+    width: 480px;
+  }
 }
 
 .main-footer {

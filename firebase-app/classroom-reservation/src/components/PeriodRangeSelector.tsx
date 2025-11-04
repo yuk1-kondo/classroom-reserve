@@ -26,11 +26,15 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
   selectedDate
 }) => {
   // 複数時限モードに切り替えた時、単一時限の値を開始時限に設定
+  // 単一→複数モード切り替え時に常に現在選択中の時限を引き継ぐ
+  const prevIsRangeMode = React.useRef(periodRange.isRangeMode);
   React.useEffect(() => {
-    if (periodRange.isRangeMode && selectedPeriod && !periodRange.startPeriod) {
-      setPeriodRange(prev => ({ ...prev, startPeriod: selectedPeriod }));
+    // 単一時限モード→複数時限モードに切り替わった瞬間を検出
+    if (!prevIsRangeMode.current && periodRange.isRangeMode && selectedPeriod) {
+      setPeriodRange(prev => ({ ...prev, startPeriod: selectedPeriod, endPeriod: selectedPeriod }));
     }
-  }, [periodRange.isRangeMode, selectedPeriod, periodRange.startPeriod, setPeriodRange]);
+    prevIsRangeMode.current = periodRange.isRangeMode;
+  }, [periodRange.isRangeMode, selectedPeriod, setPeriodRange]);
 
   // 時限フォーマット（曜日に応じた時間帯を反映）
   const formatPeriod = (period: string): string => {
