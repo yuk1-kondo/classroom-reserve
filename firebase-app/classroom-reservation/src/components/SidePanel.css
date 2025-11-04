@@ -210,9 +210,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid #ddd;
   background: #f5f5f5;
+}
+
+/* 1366x768向け: ヘッダーをコンパクトに */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .side-panel-header {
+    padding: 12px 16px;
+  }
+  
+  .side-panel-header h3 {
+    font-size: 1.1em;
+  }
 }
 
 .side-panel-header h3 {
@@ -243,6 +254,13 @@
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+}
+
+/* 1366x768向け: パディング削減 */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .side-panel-content {
+    padding: 16px;
+  }
 }
 
 .selected-date h4 {
@@ -287,11 +305,18 @@
 
 .reservation-form {
   background: #f5f5f5;
-  padding: 24px;
+  padding: 20px;
   border-radius: 8px;
   border: 1px solid #ddd;
   transition: box-shadow var(--transition-normal),
               border-color var(--transition-normal);
+}
+
+/* 1366x768向け: フォームをコンパクトに */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .reservation-form {
+    padding: 16px;
+  }
 }
 
 .reservation-form h5 {
@@ -302,7 +327,14 @@
 }
 
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+/* 1366x768向け: フォーム要素間の余白を削減 */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .form-group {
+    margin-bottom: 16px;
+  }
 }
 
 /* 予約期間プレビュー */
@@ -346,7 +378,7 @@
 .form-group input[type="text"],
 .form-group input[type="date"] {
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 0.9em;
@@ -354,6 +386,16 @@
   transition: border-color var(--transition-fast), 
               box-shadow var(--transition-fast),
               background-color var(--transition-fast);
+}
+
+/* 1366x768向け: 入力フィールドをコンパクトに */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .form-group select,
+  .form-group input[type="text"],
+  .form-group input[type="date"] {
+    padding: 8px 10px;
+    font-size: 0.875em;
+  }
 }
 
 .form-group input[type="checkbox"] {
@@ -643,6 +685,13 @@
   gap: 10px;
 }
 
+/* 1366x768向け: リスト間隔を詰める */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .reservations-list {
+    gap: 8px;
+  }
+}
+
 .reservation-item {
   background: white;
   border: 1px solid #e9ecef;
@@ -654,6 +703,13 @@
 
 .reservation-item:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* 1366x768向け: 予約項目をコンパクトに */
+@media (max-width: 1440px) and (max-height: 900px) {
+  .reservation-item {
+    padding: 10px;
+  }
 }
 
 .reservation-header {
