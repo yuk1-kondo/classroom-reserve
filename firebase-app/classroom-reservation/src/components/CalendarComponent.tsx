@@ -1,7 +1,6 @@
 // カレンダーコンポーネント
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { roomsService } from '../firebase/firestore';
@@ -33,7 +32,7 @@ interface CalendarEvent {
   roomName: string;
 }
 
-type FullCalendarViewType = 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
+type FullCalendarViewType = 'timeGridDay' | 'timeGridWeek';
 type CalendarViewType = FullCalendarViewType | 'ledger';
 
 const VIEW_STORAGE_KEY = 'calendar:lastView:v3';
@@ -50,7 +49,9 @@ const resolveInitialCalendarView = (): FullCalendarViewType => {
 const resolveInitialDisplayView = (): CalendarViewType => {
   if (typeof window === 'undefined') return 'timeGridWeek';
   const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-  if (saved && ['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'].includes(saved)) {
+  // 月ビューは廃止: 過去に保存されていたら週ビューにフォールバック
+  if (saved === 'dayGridMonth') return 'timeGridWeek';
+  if (saved && ['timeGridDay', 'timeGridWeek', 'ledger'].includes(saved)) {
     return saved as CalendarViewType;
   }
   return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
@@ -151,7 +152,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     if (!calendarRef.current) return;
     const api = calendarRef.current.getApi();
     const target = (isMobile ? 'timeGridDay' : 'timeGridWeek') as FullCalendarViewType;
-    if (api.view.type === 'dayGridMonth') return;
     if (api.view.type !== target) {
       api.changeView(target);
       setDisplayView(target);
@@ -356,7 +356,6 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const viewButtonLabel: Record<CalendarViewType, string> = {
     timeGridDay: '日',
     timeGridWeek: '週',
-    dayGridMonth: '月',
     ledger: '台帳'
   };
 
@@ -378,7 +377,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
       <div className="calendar-toolbar">
         <div className="calendar-view-switch" role="group" aria-label="表示切替">
-          {(['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'] as CalendarViewType[]).map(view => (
+          {(['timeGridDay', 'timeGridWeek', 'ledger'] as CalendarViewType[]).map(view => (
             <button
               key={view}
               type="button"
@@ -410,7 +409,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       ) : (
         <FullCalendar
           ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          plugins={[timeGridPlugin, interactionPlugin]}
           initialView={initialView}
           locale="ja"
           dayCellClassNames={dayCellClassNames}
