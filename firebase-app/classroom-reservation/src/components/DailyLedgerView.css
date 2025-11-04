@@ -188,7 +188,7 @@
 }
 
 .ledger-room-header {
-  min-width: 130px;
+  min-width: 110px;
   font-size: 0.9rem;
   background: var(--color-surface-variant);
   text-align: center;
@@ -197,7 +197,7 @@
 /* 1366x768向け: 教室列をコンパクトに */
 @media (max-width: 1440px) and (max-height: 900px) {
   .ledger-room-header {
-    min-width: 120px;
+    min-width: 100px;
     font-size: 0.85rem;
   }
 }
@@ -205,12 +205,12 @@
 /* より大きい画面では幅を増やす */
 @media (min-width: 1600px) {
   .ledger-room-header {
-    min-width: 150px;
+    min-width: 135px;
   }
 }
 
 .ledger-reservation-cell {
-  min-width: 140px;
+  min-width: 110px;
   position: relative;
   height: 85px; /* 3行分の固定高さ（コンパクト） */
   vertical-align: top;
@@ -225,9 +225,10 @@
   }
 }
 
-/* より大きい画面では高さを増やす */
+/* より大きい画面では高さと幅を増やす */
 @media (min-width: 1600px) {
   .ledger-reservation-cell {
+    min-width: 135px;
     height: 100px;
     padding: 8px;
   }
@@ -314,7 +315,7 @@
 
   .ledger-room-header,
   .ledger-reservation-cell {
-    min-width: 120px;
+    min-width: 105px;
   }
 }
 
