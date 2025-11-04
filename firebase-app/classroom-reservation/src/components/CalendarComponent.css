@@ -381,20 +381,3 @@
 .fc .fc-timegrid-col.fc-day-overlimit {
   opacity: 0.45;
 }
-
-/* 予約状況セクション */
-.daily-reservation-section {
-  margin-top: var(--spacing-xl, 24px);
-  padding-top: var(--spacing-lg, 16px);
-  border-top: 2px solid var(--color-outline-variant, #e0e0e0);
-}
-
-.daily-reservation-section .section-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-on-surface, #1a1a1a);
-  margin-bottom: var(--spacing-md, 12px);
-  padding-left: var(--spacing-sm, 8px);
-  border-left: 4px solid var(--color-primary, #1e88e5);
-  text-align: left;
-}

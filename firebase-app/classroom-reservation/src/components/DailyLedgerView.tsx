@@ -1,41 +1,165 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './DailyLedgerView.css';
-import { roomsService, Room } from '../firebase/firestore';
+import { roomsService, Reservation, Room } from '../firebase/firestore';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { Timestamp } from 'firebase/firestore';
-import { getPeriodOrderForDate, getPeriodTimeMapForDate } from '../utils/periods';
+import { PERIOD_ORDER, periodTimeMap } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
-import { addDaysToDateString, getTodayString } from '../utils/dateUtils';
-import { handleError } from '../utils/errorHandling';
-import {
-  normalizeDateInput,
-  classifyRoom,
-  sortRoomsWithOrder,
-  mapReservationsToCells
-} from '../utils/ledger';
-import type { LedgerViewProps } from '../types/ledger';
+import { authService } from '../firebase/auth';
 
-type DailyLedgerViewProps = LedgerViewProps;
+interface DailyLedgerViewProps {
+  date: string;
+  filterMine?: boolean;
+  onFilterMineChange?: (value: boolean) => void;
+  onDateChange?: (dateStr: string) => void;
+}
 
-export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange, onCellClick, onReservationClick }) => {
+interface LedgerCellReservation {
+  id: string;
+  title: string;
+  reservationName: string;
+  period: string;
+  roomId: string;
+}
+
+const LEDGER_ROOM_ORDER = [
+  'サテライト',
+  '会議室',
+  '会議室（小）',
+  '社会科教室',
+  'グローバル教室①',
+  'グローバル教室②',
+  'LL教室',
+  'モノラボ',
+  '視聴覚教室',
+  '多目的室',
+  '大演習室1',
+  '大演習室2',
+  '大演習室3',
+  '大演習室4',
+  '小演習室1',
+  '小演習室2',
+  '小演習室3',
+  '小演習室4',
+  '小演習室5',
+  '小演習室6'
+];
+
+function normalizeDateInput(dateStr: string): string {
+  if (!dateStr) {
+    const today = new Date();
+    return toDateStr(today);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  try {
+    return toDateStr(new Date(dateStr));
+  } catch {
+    return dateStr.slice(0, 10);
+  }
+}
+
+function expandPeriod(raw: string): string[] {
+  const p = String(raw || '');
+  if (p.includes(',')) {
+    return p.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (/^\d+\s*-\s*\d+$/.test(p)) {
+    const [a, b] = p.split('-').map(s => parseInt(s.trim(), 10));
+    if (!Number.isNaN(a) && !Number.isNaN(b)) {
+      const min = Math.min(a, b);
+      const max = Math.max(a, b);
+      const list: string[] = [];
+      for (let x = min; x <= max; x += 1) list.push(String(x));
+      return list;
+    }
+  }
+  return [p];
+}
+
+const classifyRoom = (roomName: string): string => {
+  if (!roomName) return 'room-cat-default';
+  if (/^小演習室/.test(roomName)) return 'room-cat-small';
+  if (/^大演習室/.test(roomName)) return 'room-cat-large';
+  if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
+  if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
+  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
+  return 'room-cat-default';
+};
+
+const sortRoomsWithOrder = (rooms: Room[]): Room[] => {
+  const orderMap = new Map<string, number>();
+  LEDGER_ROOM_ORDER.forEach((name, index) => orderMap.set(name, index));
+  return [...rooms].sort((a, b) => {
+    const aOrder = orderMap.has(a.name) ? orderMap.get(a.name)! : Number.MAX_SAFE_INTEGER;
+    const bOrder = orderMap.has(b.name) ? orderMap.get(b.name)! : Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.name.localeCompare(b.name, 'ja');
+  });
+};
+
+const mapReservationsToCells = (
+  reservations: Reservation[],
+  rooms: Room[],
+  filterMine: boolean
+): Map<string, Map<string, LedgerCellReservation[]>> => {
+  const cellMap = new Map<string, Map<string, LedgerCellReservation[]>>();
+  const currentUser = authService.getCurrentUser();
+
+  const allowReservation = (reservation: Reservation) => {
+    if (!filterMine) return true;
+    if (!currentUser) return false;
+    return reservation.createdBy === currentUser.uid;
+  };
+
+  reservations.forEach(reservation => {
+    if (!reservation.roomId || !allowReservation(reservation)) return;
+    const periods = expandPeriod(reservation.period);
+    periods.forEach(period => {
+      const periodKey = String(period);
+      if (!cellMap.has(reservation.roomId)) {
+        cellMap.set(reservation.roomId, new Map());
+      }
+      const periodMap = cellMap.get(reservation.roomId)!;
+      if (!periodMap.has(periodKey)) {
+        periodMap.set(periodKey, []);
+      }
+      const list = periodMap.get(periodKey)!;
+      list.push({
+        id: reservation.id || `${reservation.roomId}-${period}-${list.length}`,
+        title: reservation.title,
+        reservationName: reservation.reservationName,
+        period: periodKey,
+        roomId: reservation.roomId
+      });
+    });
+  });
+
+  const sortCellReservations = (items: LedgerCellReservation[]): LedgerCellReservation[] => {
+    return [...items].sort((a, b) => a.title.localeCompare(b.title, 'ja'));
+  };
+
+  cellMap.forEach(periodMap => {
+    periodMap.forEach((items, key) => {
+      periodMap.set(key, sortCellReservations(items));
+    });
+  });
+
+  return cellMap;
+};
+
+export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange }) => {
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const { reservations, setRange } = useMonthlyReservations();
-  const tableWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
-    roomsService.getAllRooms()
-      .then(list => {
-        if (!active) return;
-        setRooms(sortRoomsWithOrder(Array.isArray(list) ? list : []));
-      })
-      .catch(error => {
-        if (!active) return;
-        handleError(error, '教室一覧の取得');
-        setRooms([]);
-      });
+    roomsService.getAllRooms().then(list => {
+      if (!active) return;
+      setRooms(sortRoomsWithOrder(Array.isArray(list) ? list : []));
+    }).catch(() => setRooms([]));
     return () => {
       active = false;
     };
@@ -58,17 +182,6 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const cellMap = useMemo(() => mapReservationsToCells(reservationsForDate, rooms, filterMine), [reservationsForDate, rooms, filterMine]);
 
-  // データが揃ったらローディングを解除
-  useEffect(() => {
-    if (rooms.length > 0 && reservations.length >= 0) {
-      // 少し待ってから表示（データが完全に準備されるまで）
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [rooms.length, reservations.length]);
-
   const handleDateChange = useCallback((next: string) => {
     if (!onDateChange) return;
     const normalized = normalizeDateInput(next);
@@ -77,28 +190,13 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const displayRooms = rooms;
 
-  // 曜日に応じた時限順序と時刻マップを取得
-  const periodOrder = useMemo(() => getPeriodOrderForDate(normalizedDate), [normalizedDate]);
-  const periodTimeMapForDate = useMemo(() => getPeriodTimeMapForDate(normalizedDate), [normalizedDate]);
-
-  // マウスホイールでの横スクロールをサポート
-  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
-    if (!tableWrapperRef.current) return;
-    // Shiftキーが押されている場合のみ、縦スクロールを横スクロールに変換
-    if (event.shiftKey && Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-      tableWrapperRef.current.scrollBy({ left: event.deltaY, behavior: 'auto' });
-      event.preventDefault();
-    }
-    // Shiftキーなしの場合は通常の縦スクロール（デフォルト動作）
-  }, []);
-
   return (
     <div className="ledger-view">
       <div className="ledger-toolbar">
         <div className="ledger-nav-buttons">
-          <button type="button" onClick={() => handleDateChange(addDaysToDateString(normalizedDate, -1))}>&lt; 前日</button>
-          <button type="button" onClick={() => handleDateChange(getTodayString())}>今日</button>
-          <button type="button" onClick={() => handleDateChange(addDaysToDateString(normalizedDate, 1))}>翌日 &gt;</button>
+          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() - 86400000)))}>&lt; 前日</button>
+          <button type="button" onClick={() => handleDateChange(toDateStr(new Date()))}>今日</button>
+          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() + 86400000)))}>翌日 &gt;</button>
         </div>
         <label className="ledger-date-picker">
           日付
@@ -113,14 +211,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
           />
         </label>
       </div>
-      
-      {loading ? (
-        <div className="ledger-loading">
-          <div className="loading-spinner"></div>
-          <p>台帳を読み込んでいます...</p>
-        </div>
-      ) : (
-        <div className="ledger-table-wrapper" ref={tableWrapperRef} onWheel={handleWheel}>
+      <div className="ledger-table-wrapper">
         <table className="ledger-table">
           <thead>
             <tr>
@@ -131,8 +222,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
             </tr>
           </thead>
           <tbody>
-            {periodOrder.map(periodKey => {
-              const meta = periodTimeMapForDate[periodKey];
+            {PERIOD_ORDER.map(periodKey => {
+              const meta = periodTimeMap[periodKey];
               const label = meta?.name || periodKey;
               return (
                 <tr key={periodKey}>
@@ -142,38 +233,18 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
                   </th>
                   {displayRooms.map(room => {
                     const reservationsForCell = cellMap.get(String(room.id || ''))?.get(String(periodKey)) || [];
-                    const handleCellClick = () => {
-                      if (reservationsForCell.length === 0 && onCellClick && room.id) {
-                        onCellClick(room.id, periodKey, normalizedDate);
-                      }
-                    };
                     return (
-                      <td 
-                        key={`${room.id || room.name}-${periodKey}`} 
-                        className={`ledger-reservation-cell ${classifyRoom(room.name)} ${reservationsForCell.length === 0 ? 'ledger-cell-clickable' : ''}`.trim()}
-                        onClick={handleCellClick}
-                      >
+                      <td key={`${room.id || room.name}-${periodKey}`} className={`ledger-reservation-cell ${classifyRoom(room.name)}`}>
                         {reservationsForCell.length === 0 ? (
                           <span className="ledger-empty">—</span>
                         ) : (
                           <ul className="ledger-reservation-list">
                             {reservationsForCell.map(item => (
                               <li key={item.id} className="ledger-reservation-item">
-                                <button
-                                  type="button"
-                                  className="ledger-reservation-button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onReservationClick) {
-                                      onReservationClick(item.id);
-                                    }
-                                  }}
-                                >
-                                  <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
-                                  {item.reservationName && (
-                                    <span className="ledger-reservation-owner">{item.reservationName}</span>
-                                  )}
-                                </button>
+                                <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
+                                {item.reservationName && (
+                                  <span className="ledger-reservation-owner">{item.reservationName}</span>
+                                )}
                               </li>
                             ))}
                           </ul>
@@ -186,8 +257,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
             })}
           </tbody>
         </table>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

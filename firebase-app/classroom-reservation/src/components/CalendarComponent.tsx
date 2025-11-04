@@ -1,47 +1,60 @@
 // カレンダーコンポーネント
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import './CalendarComponent.css';
-import DailyLedgerView from './DailyLedgerView';
-import DailyReservationTable from './DailyReservationTable';
-import { toDateStr } from '../utils/dateRange';
-import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
-import { ReservationDataProvider } from '../contexts/ReservationDataContext';
+import { roomsService } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
-import { formatPeriodDisplay } from '../utils/periodLabel';
-import { useAuth } from '../hooks/useAuth';
+import './CalendarComponent.css';
+import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
+import { useSystemSettings } from '../hooks/useSystemSettings';
+import { authService } from '../firebase/auth';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
+import DailyLedgerView from './DailyLedgerView';
+import { toDateStr } from '../utils/dateRange';
 
 interface CalendarComponentProps {
+  onDateClick?: (dateStr: string) => void;
+  onEventClick?: (eventId: string) => void;
+  refreshTrigger?: number;
   selectedDate?: string;
   filterMine?: boolean;
   onFilterMineChange?: (v: boolean) => void;
   onDateNavigate?: (dateStr: string, origin?: 'calendar' | 'ledger') => void;
-  onLedgerCellClick?: (roomId: string, period: string, date: string) => void;
-  onReservationClick?: (reservationId: string) => void;
-  onDateClick?: (dateStr: string) => void;
-  onEventClick?: (eventId: string) => void;
 }
 
 interface CalendarEvent {
   id: string;
   title: string;
-  start: Date;
-  end: Date;
-  backgroundColor?: string;
-  borderColor?: string;
-  textColor?: string;
-  extendedProps?: {
-    roomName?: string;
-    periodName?: string;
-    reservationName?: string;
-  };
+  start: string;
+  end: string;
+  roomId: string;
+  roomName: string;
 }
 
-type FullCalendarViewType = 'dayGridMonth';
+type FullCalendarViewType = 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
 type CalendarViewType = FullCalendarViewType | 'ledger';
+
+const VIEW_STORAGE_KEY = 'calendar:lastView:v3';
+
+const resolveInitialCalendarView = (): FullCalendarViewType => {
+  if (typeof window === 'undefined') return 'timeGridWeek';
+  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  if (saved === 'timeGridDay' || saved === 'timeGridWeek') {
+    return saved;
+  }
+  return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
+};
+
+const resolveInitialDisplayView = (): CalendarViewType => {
+  if (typeof window === 'undefined') return 'timeGridWeek';
+  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  if (saved && ['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'].includes(saved)) {
+    return saved as CalendarViewType;
+  }
+  return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
+};
 
 const normalizeDate = (input?: string): string => {
   if (!input) return toDateStr(new Date());
@@ -53,243 +66,397 @@ const normalizeDate = (input?: string): string => {
   }
 };
 
-// 教室名から色を分類
-function classifyRoom(roomName: string): string {
-  if (!roomName) return 'room-cat-default';
-  if (/^小演習室/.test(roomName)) return 'room-cat-small';
-  if (/^大演習室/.test(roomName)) return 'room-cat-large';
-  if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
-  if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
-  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
-  return 'room-cat-default';
-}
-
 export const CalendarComponent: React.FC<CalendarComponentProps> = ({
+  onDateClick,
+  onEventClick,
+  refreshTrigger,
   selectedDate,
   filterMine: propFilterMine,
   onFilterMineChange,
-  onDateNavigate,
-  onLedgerCellClick,
-  onReservationClick,
-  onDateClick,
-  onEventClick
+  onDateNavigate
 }) => {
-  const { isAdmin, currentUser } = useAuth();
-  const [displayView, setDisplayView] = useState<CalendarViewType>('ledger');
-  const [ledgerDate, setLedgerDate] = useState<string>(() => normalizeDate(selectedDate));
-  const [dailyTableDate, setDailyTableDate] = useState<string>(() => normalizeDate(selectedDate));
+  const resolvedInitialCalendarView = useMemo(() => resolveInitialCalendarView(), []);
+  const resolvedInitialDisplayView = useMemo(() => resolveInitialDisplayView(), []);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const filterMine = propFilterMine ?? false;
-  const { reservations, setRange } = useMonthlyReservations();
+  const [loading, setLoading] = useState(() => resolvedInitialDisplayView !== 'ledger');
+  const [error, setError] = useState<string>('');
+  const [lastSelectedDate, setLastSelectedDate] = useState<string>('');
   const calendarRef = useRef<FullCalendar>(null);
-  const lastFetchedRangeRef = useRef<{ start: string; end: string } | null>(null);
-  const currentUserUid = currentUser?.uid || '';
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const isMobile = windowWidth < 600;
+  const [initialView] = useState<FullCalendarViewType>(resolvedInitialCalendarView);
+  const [displayView, setDisplayView] = useState<CalendarViewType>(resolvedInitialDisplayView);
+  const [ledgerDate, setLedgerDate] = useState<string>(() => normalizeDate(selectedDate));
+  const filterMine = propFilterMine ?? false;
+  const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
+  const { maxDateStr } = useSystemSettings();
+  const isLedgerView = displayView === 'ledger';
+  const ledgerModeRef = useRef(isLedgerView);
 
   useEffect(() => {
+    ledgerModeRef.current = isLedgerView;
+  }, [isLedgerView]);
+
+  const { reservations, setRange, refetch } = useMonthlyReservations();
+
+  const showCalendarLoading = useCallback(() => {
+    if (ledgerModeRef.current) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+  }, []);
+
+  const hideCalendarLoading = useCallback(() => {
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (isLedgerView) {
+      hideCalendarLoading();
+    }
+  }, [isLedgerView, hideCalendarLoading]);
+
+  const classifyRoom = useCallback((roomName: string): string => {
+    if (!roomName) return 'room-cat-default';
+    if (/^小演習室/.test(roomName)) return 'room-cat-small';
+    if (/^大演習室/.test(roomName)) return 'room-cat-large';
+    if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
+    if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
+    if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
+    return 'room-cat-default';
+  }, []);
+
+  const dayCellClassNames = useCallback((arg: any) => {
+    if (!maxDateStr) return [];
+    const cellDate: Date = arg.date;
+    if (cellDate.getTime() > new Date(maxDateStr).getTime()) {
+      return ['fc-day-overlimit'];
+    }
+    return [];
+  }, [maxDateStr]);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (displayView === 'ledger') {
+      hideCalendarLoading();
+      return;
+    }
+    if (!calendarRef.current) return;
+    const api = calendarRef.current.getApi();
+    const target = (isMobile ? 'timeGridDay' : 'timeGridWeek') as FullCalendarViewType;
+    if (api.view.type === 'dayGridMonth') return;
+    if (api.view.type !== target) {
+      api.changeView(target);
+      setDisplayView(target);
+    }
+  }, [isMobile, displayView, hideCalendarLoading]);
+
+  const loadEvents = useCallback(async (startDate: Date, endDate: Date) => {
+    try {
+      if (ledgerModeRef.current) {
+        hideCalendarLoading();
+        return;
+      }
+      showCalendarLoading();
+      const current = authService.getCurrentUser();
+      const base = Array.isArray(reservations) ? reservations : [];
+      const filtered = filterMine && current
+        ? base.filter(r => r.createdBy === current.uid)
+        : base;
+      const calendarEvents: CalendarEvent[] = filtered.map(reservation => {
+        const startTime = reservation.startTime instanceof Timestamp
+          ? reservation.startTime.toDate()
+          : new Date(reservation.startTime);
+        const endTime = reservation.endTime instanceof Timestamp
+          ? reservation.endTime.toDate()
+          : new Date(reservation.endTime);
+        const periodLabel = reservation.period.includes(',') || reservation.period.includes('-')
+          ? formatPeriodDisplay(reservation.period, reservation.periodName)
+          : displayLabel(reservation.period);
+        return {
+          id: reservation.id!,
+          title: `${periodLabel} ${reservation.roomName}`,
+          start: startTime.toISOString(),
+          end: endTime.toISOString(),
+          roomId: reservation.roomId,
+          roomName: reservation.roomName,
+          extendedProps: {
+            originalTitle: reservation.title,
+            period: reservation.period,
+            periodName: periodLabel,
+            periodDisplay: periodLabel
+          }
+        } as any;
+      });
+      setEvents(calendarEvents);
+    } catch (error) {
+      console.error('❌ 予約データ取得エラー:', error);
+      setEvents([]);
+    } finally {
+      hideCalendarLoading();
+    }
+  }, [filterMine, reservations, hideCalendarLoading, showCalendarLoading]);
+
+  useEffect(() => {
+    if (ledgerModeRef.current || !calendarRef.current) {
+      hideCalendarLoading();
+      return;
+    }
+    const api = calendarRef.current.getApi();
+    const start = api.view.currentStart;
+    const end = api.view.currentEnd;
+    loadEvents(start, end);
+  }, [reservations, loadEvents, hideCalendarLoading, displayView]);
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        setError('');
+        const roomsData = await roomsService.getAllRooms();
+        if (roomsData.length === 0) {
+          const message = '⚠️ 教室データが登録されていません。右上のデバッグパネルから「教室初期化」を実行してください。';
+          console.warn(message);
+          setError(message);
+        }
+      } catch (error) {
+        const errorMessage = '❌ 教室データ取得エラー: ' + (error as Error).message;
+        console.error(errorMessage, error);
+        setError(errorMessage);
+      }
+    };
+
+    loadRooms();
+  }, []);
+
+  const handleDateClick = (dateClickInfo: any) => {
+    const dateStr = dateClickInfo.dateStr as string;
+    if (maxDateStr && new Date(dateStr).getTime() > new Date(maxDateStr).getTime()) {
+      const msg = `設定した日付（${maxDateStr}）までしか予約できません。`;
+      alert(msg);
+      return;
+    }
+    setLastSelectedDate(dateStr);
+    onDateNavigate?.(dateStr, 'calendar');
+    if (onDateClick) onDateClick(dateStr);
+  };
+
+  const handleViewChange = (viewInfo: any) => {
+    if (ledgerModeRef.current) return;
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, viewInfo.view.type);
+    } catch {}
+    setDisplayView(viewInfo.view.type as CalendarViewType);
+
+    const targetDate = selectedDate || lastSelectedDate;
+    if (targetDate && calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(targetDate);
+    }
+  };
+
+  const handleEventClick = (eventClickInfo: any) => {
+    if (onEventClick) {
+      onEventClick(eventClickInfo.event.id);
+    }
+  };
+
+  const handleDatesSet = (dateInfo: any) => {
+    if (ledgerModeRef.current) {
+      hideCalendarLoading();
+      return;
+    }
+    const startMs = dateInfo.start.getTime();
+    const endMs = dateInfo.end.getTime();
+    const prev = lastFetchedRangeRef.current;
+    if (prev && prev.start === startMs && prev.end === endMs) {
+      return;
+    }
+    lastFetchedRangeRef.current = { start: startMs, end: endMs };
+    setRange(dateInfo.start, dateInfo.end);
+    loadEvents(dateInfo.start, dateInfo.end);
+  };
+
+  const refetchEvents = useCallback(() => {
+    if (ledgerModeRef.current) {
+      hideCalendarLoading();
+      return;
+    }
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      const currentRange = calendarApi.view.currentStart;
+      const endRange = calendarApi.view.currentEnd;
+      loadEvents(currentRange, endRange);
+    }
+  }, [hideCalendarLoading, loadEvents]);
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      if (lastFetchedRangeRef.current) {
+        refetch();
+        const start = new Date(lastFetchedRangeRef.current.start);
+        const end = new Date(lastFetchedRangeRef.current.end);
+        loadEvents(start, end);
+      } else {
+        refetchEvents();
+      }
+    }
+  }, [refreshTrigger, refetchEvents, refetch, loadEvents]);
+
+  useEffect(() => {
+    if (lastFetchedRangeRef.current) {
+      const start = new Date(lastFetchedRangeRef.current.start);
+      const end = new Date(lastFetchedRangeRef.current.end);
+      loadEvents(start, end);
+    }
+  }, [filterMine, loadEvents]);
+
+  useEffect(() => {
+    if (selectedDate && calendarRef.current) {
+      setLastSelectedDate(selectedDate);
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(selectedDate);
+    }
     if (selectedDate) {
       setLedgerDate(normalizeDate(selectedDate));
-      setDailyTableDate(normalizeDate(selectedDate));
     }
   }, [selectedDate]);
 
-  // 予約データをFullCalendarイベントに変換
-  const loadEvents = useCallback(async (start: Date, end: Date) => {
-    setLoading(true);
+  const handleViewButtonClick = (view: CalendarViewType) => {
+    if (view === 'ledger') {
+      ledgerModeRef.current = true;
+      setDisplayView('ledger');
+      hideCalendarLoading();
+      const base = normalizeDate(selectedDate || lastSelectedDate || toDateStr(new Date()));
+      setLedgerDate(base);
+      onDateNavigate?.(base, 'ledger');
+      try {
+        window.localStorage.setItem(VIEW_STORAGE_KEY, 'ledger');
+      } catch {}
+      return;
+    }
+
+    if (!calendarRef.current) return;
+    ledgerModeRef.current = false;
+    const api = calendarRef.current.getApi();
+    if (api.view.type === view) return;
+    api.changeView(view);
     try {
-      const startStr = toDateStr(start);
-      const endStr = toDateStr(end);
-      
-      // 範囲を設定してデータを取得
-      setRange(start, end);
-      
-      // 少し待ってからreservationsを使用
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const calendarEvents: CalendarEvent[] = reservations
-        .filter(r => {
-          const rStart = r.startTime instanceof Timestamp ? r.startTime.toDate() : new Date(r.startTime as any);
-          const dateStr = toDateStr(rStart);
-          return dateStr >= startStr && dateStr <= endStr;
-        })
-        .filter(r => {
-          if (!filterMine) return true;
-          return r.createdBy === currentUserUid;
-        })
-        .map(r => {
-          const start = r.startTime instanceof Timestamp ? r.startTime.toDate() : new Date(r.startTime as any);
-          const end = r.endTime instanceof Timestamp ? r.endTime.toDate() : new Date(r.endTime as any);
-          const roomClass = classifyRoom(r.roomName);
-          
-          // 教室カテゴリに応じた色を設定
-          const colorMap: Record<string, { bg: string; border: string; text: string }> = {
-            'room-cat-small': { bg: '#10B981', border: '#0E946C', text: '#fff' },
-            'room-cat-large': { bg: '#F59E0B', border: '#C47E08', text: '#111' },
-            'room-cat-purple': { bg: '#8B5CF6', border: '#6D28D9', text: '#fff' },
-            'room-cat-blue': { bg: '#3B82F6', border: '#2563EB', text: '#fff' },
-            'room-cat-red': { bg: '#EF4444', border: '#DC2626', text: '#fff' },
-            'room-cat-default': { bg: '#9CA3AF', border: '#6B7280', text: '#fff' }
-          };
-          const colors = colorMap[roomClass] || colorMap['room-cat-default'];
-          
-          return {
-            id: r.id || '',
-            title: `${r.roomName} ${formatPeriodDisplay(r.period)}`,
-            start,
-            end,
-            backgroundColor: colors.bg,
-            borderColor: colors.border,
-            textColor: colors.text,
-            extendedProps: {
-              roomName: r.roomName,
-              periodName: r.periodName,
-              reservationName: r.reservationName
-            }
-          };
-        });
-      
-      setEvents(calendarEvents);
-      lastFetchedRangeRef.current = { start: startStr, end: endStr };
-    } catch (error) {
-      console.error('イベント読み込みエラー:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [reservations, filterMine, setRange, currentUserUid]);
+      window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+    } catch {}
+    setDisplayView(view);
+  };
 
-  // FullCalendarの日付範囲変更時
-  const handleDatesSet = useCallback((arg: any) => {
-    if (displayView === 'dayGridMonth') {
-      const start = arg.start;
-      const end = arg.end;
-      loadEvents(start, end);
-    }
-  }, [displayView, loadEvents]);
-
-  // reservationsが更新されたらイベントを再生成
-  useEffect(() => {
-    if (displayView === 'dayGridMonth' && lastFetchedRangeRef.current) {
-      const { start, end } = lastFetchedRangeRef.current;
-      const startDate = new Date(`${start}T00:00:00`);
-      const endDate = new Date(`${end}T23:59:59`);
-      loadEvents(startDate, endDate);
-    }
-  }, [reservations, filterMine, displayView, loadEvents]);
-
-  // FullCalendarの日付クリック
-  const handleDateClick = useCallback((arg: any) => {
-    const dateStr = arg.dateStr;
-    onDateClick?.(dateStr);
-  }, [onDateClick]);
-
-  // FullCalendarのイベントクリック
-  const handleEventClick = useCallback((arg: any) => {
-    const eventId = arg.event.id;
-    onEventClick?.(eventId);
-  }, [onEventClick]);
+  const viewButtonLabel: Record<CalendarViewType, string> = {
+    timeGridDay: '日',
+    timeGridWeek: '週',
+    dayGridMonth: '月',
+    ledger: '台帳'
+  };
 
   const handleLedgerDateChange = useCallback((nextDate: string) => {
     const normalized = normalizeDate(nextDate);
     setLedgerDate(normalized);
-    setDailyTableDate(normalized); // 予約状況の日付も同期
     onDateNavigate?.(normalized, 'ledger');
   }, [onDateNavigate]);
 
-  const handleViewButtonClick = useCallback((view: CalendarViewType) => {
-    setDisplayView(view);
-    if (view === 'dayGridMonth' && calendarRef.current) {
-      // 月表示に切り替えた時にイベントを読み込む
-      const calendarApi = calendarRef.current.getApi();
-      const start = calendarApi.view.currentStart;
-      const end = calendarApi.view.currentEnd;
-      loadEvents(start, end);
-    }
-  }, [loadEvents]);
-
-
   return (
-    <div className="calendar-container">
+    <div className={`calendar-container ${isMobile ? 'is-mobile-cal' : ''}`}>
+      {loading && !isLedgerView && (
+        <div className="calendar-loading">📅 カレンダー読み込み中...</div>
+      )}
+
+      {error && (
+        <div className="calendar-error">{error}</div>
+      )}
+
       <div className="calendar-toolbar">
-        {/* 管理者のみビュー切り替えボタンを表示（台帳・月のみ） */}
-        {isAdmin && (
-          <div className="view-buttons">
+        <div className="calendar-view-switch" role="group" aria-label="表示切替">
+          {(['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'] as CalendarViewType[]).map(view => (
             <button
-              className={`view-btn ${displayView === 'ledger' ? 'active' : ''}`}
-              onClick={() => handleViewButtonClick('ledger')}
+              key={view}
+              type="button"
+              className={`view-switch-button ${displayView === view ? 'is-active' : ''}`}
+              onClick={() => handleViewButtonClick(view)}
             >
-              台帳
+              {viewButtonLabel[view]}
             </button>
-            <button
-              className={`view-btn ${displayView === 'dayGridMonth' ? 'active' : ''}`}
-              onClick={() => handleViewButtonClick('dayGridMonth')}
-            >
-              月
-            </button>
-          </div>
-        )}
+          ))}
+        </div>
+        <label className="mine-label">
+          自分の予約のみ
+          <input
+            type="checkbox"
+            className="mine-checkbox"
+            checked={filterMine}
+            onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
+          />
+        </label>
       </div>
 
-      {displayView === 'ledger' && (
-        <>
-          <DailyLedgerView
-            date={ledgerDate}
-            filterMine={filterMine}
-            onFilterMineChange={onFilterMineChange}
-            onDateChange={handleLedgerDateChange}
-            onCellClick={onLedgerCellClick}
-            onReservationClick={onReservationClick}
-          />
-          
-          {/* 管理者の場合は台帳ビューの下に予約状況も表示 */}
-          {isAdmin && (
-            <div className="daily-reservation-section">
-              <h3 className="section-title">予約状況</h3>
-              <ReservationDataProvider date={dailyTableDate}>
-                <DailyReservationTable
-                  selectedDate={dailyTableDate}
-                  onDateChange={(date) => {
-                    setDailyTableDate(date);
-                    onDateNavigate?.(date);
-                  }}
-                  filterMine={filterMine}
-                  onFilterMineChange={onFilterMineChange}
-                />
-              </ReservationDataProvider>
-            </div>
-          )}
-        </>
+      {displayView === 'ledger' ? (
+        <DailyLedgerView
+          date={ledgerDate}
+          filterMine={filterMine}
+          onFilterMineChange={onFilterMineChange}
+          onDateChange={handleLedgerDateChange}
+        />
+      ) : (
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView={initialView}
+          locale="ja"
+          dayCellClassNames={dayCellClassNames}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+          }}
+          height={isMobile ? 'auto' : 'auto'}
+          expandRows={!isMobile}
+          slotMinTime="08:00:00"
+          slotMaxTime="19:00:00"
+          businessHours={{
+            daysOfWeek: [1, 2, 3, 4, 5],
+            startTime: '08:30',
+            endTime: '18:30'
+          }}
+          events={events}
+          eventClassNames={(arg: any) => [classifyRoom(arg.event.extendedProps?.roomName || '')]}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          datesSet={handleDatesSet}
+          viewDidMount={handleViewChange}
+          eventDisplay="block"
+          displayEventTime={false}
+          dayMaxEvents={3}
+          moreLinkClick="popover"
+          eventTextColor="white"
+          eventTimeFormat={{
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }}
+          slotLabelFormat={{
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }}
+          nowIndicator
+          selectable
+          selectMirror
+          weekends
+          editable={false}
+          allDaySlot={false}
+        />
       )}
-
-      {displayView === 'dayGridMonth' && isAdmin && (
-        <div className="calendar-wrapper">
-          {loading && <div className="calendar-loading">読み込み中...</div>}
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: ''
-            }}
-            locale="ja"
-            buttonText={{
-              today: '今日',
-              month: '月',
-              week: '週',
-              day: '日'
-            }}
-            events={events}
-            dateClick={handleDateClick}
-            eventClick={handleEventClick}
-            datesSet={handleDatesSet}
-            height="auto"
-            dayMaxEvents={3}
-            eventDisplay="block"
-          />
-        </div>
-      )}
-
     </div>
   );
 };
