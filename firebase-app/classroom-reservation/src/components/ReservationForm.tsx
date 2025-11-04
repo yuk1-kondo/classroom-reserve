@@ -137,9 +137,13 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
             type="text"
             value={formData.title}
             onChange={(e) => updateFormData('title', e.target.value)}
-            placeholder="予約の内容を入力"
+            placeholder="予約の内容を入力（15文字まで）"
+            maxLength={15}
             disabled={loading}
           />
+          <div className="character-count" style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px' }}>
+            {formData.title.length}/15文字
+          </div>
         </div>
 
         <div className="form-group">
