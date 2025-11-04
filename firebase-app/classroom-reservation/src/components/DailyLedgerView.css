@@ -213,16 +213,16 @@
 .ledger-reservation-cell {
   min-width: 110px;
   position: relative;
-  height: 70px; /* コンパクト化 */
+  height: 55px; /* さらにコンパクト化 -15px */
   vertical-align: top;
-  padding: 5px;
+  padding: 4px;
 }
 
 /* 1366x768向け: さらにコンパクト */
 @media (max-width: 1440px) and (max-height: 900px) {
   .ledger-reservation-cell {
-    height: 65px;
-    padding: 4px;
+    height: 50px;
+    padding: 3px;
   }
 }
 
@@ -230,8 +230,8 @@
 @media (min-width: 1600px) {
   .ledger-reservation-cell {
     min-width: 110px;
-    height: 80px;
-    padding: 6px;
+    height: 65px;
+    padding: 5px;
   }
 }
 
@@ -256,7 +256,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   height: 100%;
   overflow-y: auto;
 }
@@ -270,12 +270,12 @@
   width: 100%;
   background: #ffffff;
   border-radius: var(--radius-small);
-  padding: 3px 5px;
+  padding: 2px 4px;
   border: 1px solid var(--color-outline-variant);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0px;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -293,15 +293,15 @@
 
 .ledger-reservation-title {
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-on-surface);
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .ledger-reservation-owner {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--color-on-surface-variant);
-  line-height: 1.1;
+  line-height: 1.0;
 }
 
 @media (max-width: 900px) {
