@@ -36,7 +36,7 @@ export const useConflictDetection = () => {
     const { start: startOfDay, end: endOfDay } = dayRange(date);
 
     const tryFetch = async (): Promise<Record<string, string[]>> => {
-      let lastErr: any = null;
+      let lastErr: unknown = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const list = await reservationsService.getReservations(startOfDay, endOfDay);
@@ -52,7 +52,10 @@ export const useConflictDetection = () => {
           await new Promise(res => setTimeout(res, 400 * Math.pow(2, attempt)));
         }
       }
-      throw lastErr;
+      const errorMessage = lastErr && typeof lastErr === 'object' && 'message' in lastErr 
+        ? String(lastErr.message) 
+        : '予約データの取得に失敗しました';
+      throw new Error(errorMessage);
     };
 
     const periodsByRoom = await tryFetch();

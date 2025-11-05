@@ -71,12 +71,12 @@ function toMonthIdFromDateStr(dateStr: string): string {
 }
 
 // 月サマリー（日別件数）の±1更新（トランザクション内）
-async function updateMonthOverviewInTx(tx: Transaction, dateStr: string, delta: number) {
+async function updateMonthOverviewInTx(tx: Transaction, dateStr: string, delta: number): Promise<void> {
   try {
     const monthId = toMonthIdFromDateStr(dateStr);
     const ref = doc(db, MONTH_OVERVIEW_COLLECTION, monthId);
     const snap = await tx.get(ref);
-    const days: Record<string, number> = snap.exists() ? (((snap.data() as any).days) || {}) : {};
+    const days: Record<string, number> = snap.exists() ? (((snap.data() as DocumentData).days) || {}) : {};
     const prev = Number(days[dateStr] || 0);
     const next = Math.max(0, prev + delta);
     const newDays = { ...days, [dateStr]: next };
@@ -85,7 +85,10 @@ async function updateMonthOverviewInTx(tx: Transaction, dateStr: string, delta: 
     } else {
       tx.set(ref, { monthId, days: newDays, updatedAt: Timestamp.now() });
     }
-  } catch {}
+  } catch (error) {
+    console.error('月サマリー更新エラー:', error);
+    // トランザクション内なのでエラーは握りつぶさず、ログのみ
+  }
 }
 
 // 月サマリー取得サービス
@@ -95,8 +98,9 @@ export const monthOverviewService = {
       const ref = doc(db, MONTH_OVERVIEW_COLLECTION, monthId);
       const s = await getDoc(ref);
       if (!s.exists()) return {};
-      return ((s.data() as any).days || {}) as Record<string, number>;
-    } catch {
+      return ((s.data() as DocumentData).days || {}) as Record<string, number>;
+    } catch (error) {
+      console.error('月サマリー取得エラー:', error);
       return {};
     }
   },
@@ -128,7 +132,7 @@ function normalizePeriodName(period: string, periodName: string): string {
 }
 
 // CSV 用エスケープ（カンマ/改行/ダブルクォートを含む場合に二重引用）
-function escapeCsv(value: any): string {
+function escapeCsv(value: unknown): string {
   const s = (value ?? '').toString();
   if (/[",\n]/.test(s)) {
     return '"' + s.replace(/"/g, '""') + '"';
@@ -136,17 +140,26 @@ function escapeCsv(value: any): string {
   return s;
 }
 
+// キャッシュ型定義
+interface RoomsServiceCache {
+  _cache?: Room[];
+  _inflight?: Promise<Room[]> | null;
+}
+
 // 教室関連の操作
-export const roomsService = {
+export const roomsService: RoomsServiceCache & {
+  getAllRooms(): Promise<Room[]>;
+  addRoom(room: Omit<Room, 'id'>): Promise<string>;
+} = {
   // 全教室を取得
   async getAllRooms(): Promise<Room[]> {
     try {
       // セッション内メモリキャッシュと同一リクエストの重複排除
-      if ((roomsService as any)._cache && Array.isArray((roomsService as any)._cache)) {
-        return (roomsService as any)._cache as Room[];
+      if (roomsService._cache && Array.isArray(roomsService._cache)) {
+        return roomsService._cache;
       }
-      if ((roomsService as any)._inflight) {
-        return await (roomsService as any)._inflight;
+      if (roomsService._inflight) {
+        return await roomsService._inflight;
       }
 
       const inflight: Promise<Room[]> = (async () => {
@@ -158,13 +171,13 @@ export const roomsService = {
         // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
         const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
         const filtered = rooms.filter(r => !EXCLUDED_NAMES.has(String(r.name)));
-        (roomsService as any)._cache = filtered;
+        roomsService._cache = filtered;
         return filtered;
       })().finally(() => {
-        (roomsService as any)._inflight = null;
+        roomsService._inflight = null;
       });
 
-      (roomsService as any)._inflight = inflight;
+      roomsService._inflight = inflight;
       return await inflight;
     } catch (error) {
       console.error('教室データ取得エラー:', error);
@@ -187,8 +200,38 @@ export const roomsService = {
   }
 };
 
+// 予約サービスのキャッシュ型定義
+interface ReservationCacheData {
+  at: number;
+  data: Reservation[];
+}
+
+interface ReservationsServiceCache {
+  _rangeCache?: Map<string, ReservationCacheData>;
+  _inflight?: Map<string, Promise<Reservation[]>>;
+}
+
 // 予約関連の操作
-export const reservationsService = {
+export const reservationsService: ReservationsServiceCache & {
+  _dateStr(ts: Timestamp): string;
+  _periods(period: string): string[];
+  getReservations(startDate: Date, endDate: Date, opts?: { noCache?: boolean; fromServer?: boolean }): Promise<Reservation[]>;
+  moveReservation(reservationId: string, newRoomId: string, newRoomName: string, newPeriod: string): Promise<void>;
+  exportReservationsCsv(rangeStart: string, rangeEnd: string, opts?: { roomId?: string; includeId?: boolean; includeCreatedAt?: boolean; includeCreatedByUid?: boolean }): Promise<string>;
+  getRoomReservations(roomId: string, startDate: Date, endDate: Date): Promise<Reservation[]>;
+  addReservation(reservation: Omit<Reservation, 'id'>): Promise<string>;
+  getSlotsForDate(dateStr: string): Promise<ReservationSlot[]>;
+  updateReservation(reservationId: string, updates: Partial<Reservation>): Promise<void>;
+  deleteReservation(reservationId: string): Promise<void>;
+  deleteReservationWithKnown(reservation: Reservation): Promise<void>;
+  deleteAllReservations(): Promise<void>;
+  deleteAllReservationsBatch(): Promise<number>;
+  deleteAllReservationsWideRange(): Promise<number>;
+  listAllReservationIds(): Promise<string[]>;
+  getReservationById(reservationId: string): Promise<Reservation | null>;
+  getDayReservations(date: Date): Promise<Reservation[]>;
+  deleteReservationsInRange(rangeStart: string, rangeEnd: string, opts?: { roomId?: string; createdBy?: string }): Promise<number>;
+} = {
   // 内部ユーティリティ: 日付文字列 (YYYY-MM-DD)
   _dateStr(ts: Timestamp): string {
     const d = ts.toDate();
@@ -210,16 +253,20 @@ export const reservationsService = {
       const eMs = Number(endDate?.getTime?.() || 0);
       const key = `${sMs}|${eMs}`;
       const ttlMs = 30 * 1000; // 30秒
-      const g: any = reservationsService as any;
-      if (!g._rangeCache) g._rangeCache = new Map<string, { at: number; data: Reservation[] }>();
-      if (!g._inflight) g._inflight = new Map<string, Promise<Reservation[]>>();
+      if (!reservationsService._rangeCache) {
+        reservationsService._rangeCache = new Map<string, ReservationCacheData>();
+      }
+      if (!reservationsService._inflight) {
+        reservationsService._inflight = new Map<string, Promise<Reservation[]>>();
+      }
+      
       if (!opts?.noCache) {
-        const cached = g._rangeCache.get(key);
+        const cached = reservationsService._rangeCache.get(key);
         const now = Date.now();
         if (cached && (now - cached.at) < ttlMs) {
-          return cached.data as Reservation[];
+          return cached.data;
         }
-        const pending = g._inflight.get(key);
+        const pending = reservationsService._inflight.get(key);
         if (pending) {
           return await pending;
         }
@@ -237,8 +284,8 @@ export const reservationsService = {
           where('startTime', '<=', Timestamp.fromDate(endDate)),
           orderBy('startTime', 'asc')
         );
-        const querySnapshot: any = opts?.fromServer ? await getDocsFromServer(q as any) : await getDocs(q);
-        const list = (querySnapshot.docs as Array<QueryDocumentSnapshot<DocumentData>>).map((docSnap) => {
+        const querySnapshot = opts?.fromServer ? await getDocsFromServer(q) : await getDocs(q);
+        const list = querySnapshot.docs.map((docSnap) => {
           const data = docSnap.data() as Reservation;
           return {
             id: docSnap.id,
@@ -250,14 +297,22 @@ export const reservationsService = {
         });
         console.log(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0,10)} ~ ${endDate.toISOString().slice(0,10)}`);
         // noCache でもキャッシュは最新で更新しておく
-        g._rangeCache.set(key, { at: Date.now(), data: list });
+        if (reservationsService._rangeCache) {
+          reservationsService._rangeCache.set(key, { at: Date.now(), data: list });
+        }
         return list;
       })().finally(() => {
-        try { (reservationsService as any)._inflight.delete(key); } catch {}
+        try { 
+          if (reservationsService._inflight) {
+            reservationsService._inflight.delete(key);
+          }
+        } catch (error) {
+          console.error('キャッシュクリーンアップエラー:', error);
+        }
       });
 
-      if (!opts?.noCache) {
-        g._inflight.set(key, inflight);
+      if (!opts?.noCache && reservationsService._inflight) {
+        reservationsService._inflight.set(key, inflight);
       }
       return await inflight;
     } catch (error) {
@@ -573,9 +628,12 @@ export const reservationsService = {
       try {
         await attempt();
         return;
-      } catch (error: any) {
+      } catch (error) {
         lastErr = error;
-        const code = (error && (error.code || error?.message)) || '';
+        const errorCode = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+        const errorMessage = error && typeof error === 'object' && 'message' in error ? String(error.message) : '';
+        const code = errorCode || errorMessage;
+        
         // リソース枯渇/競合は指数バックオフで再試行
         if (typeof code === 'string' && (/resource-exhausted/i.test(code) || /aborted/i.test(code) || /Too Many Requests/i.test(code))) {
           await sleep(400 * Math.pow(2, i));

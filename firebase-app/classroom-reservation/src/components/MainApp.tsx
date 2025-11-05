@@ -66,12 +66,16 @@ export const MainApp: React.FC = () => {
     setSelectedEventId('');
   };
 
-  // 予約作成後の処理（リロードなしで差分更新）
-  const handleReservationCreated = () => {
-    // カレンダーを強制的に再読み込み（refreshKeyをインクリメント）
-    // ※ Contextが更新されるため、実際にはFirestoreから再取得せずにUIが更新される
+  // 予約作成後の処理（楽観的更新）
+  const handleReservationCreated = useCallback(() => {
+    // サイドパネルを閉じて選択状態をリセット
+    setShowSidePanel(false);
+    setSelectedDate('');
+    setSelectedEventId('');
+    // Context の refetch は各 Provider 内で自動的に行われる
+    // refreshKey を更新してカレンダーを再描画
     setRefreshKey(prev => prev + 1);
-  };
+  }, []);
 
   const ensureTodayIfEmpty = () => {
     if (!selectedDate) {
