@@ -2,16 +2,9 @@ import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import MainApp from './components/MainApp';
 import './App.css';
-import PreviewUX from './preview/PreviewUX';
+// PreviewUX は廃止し、本番/プレビューともに同一UIを表示する
 
 function App() {
-  const isPreview = (() => {
-    if (typeof window === 'undefined') return false;
-    const search = new URLSearchParams(window.location.search);
-    if (search.get('preview') === '1') return true;
-    const path = window.location.pathname.replace(/\/+$/, '');
-    return path === '/preview' || path === '/ux-preview';
-  })();
   return (
     <div className="App">
       <Toaster
@@ -26,11 +19,7 @@ function App() {
           }
         }}
       />
-      {isPreview ? (
-        <PreviewUX />
-      ) : (
       <MainApp />
-      )}
     </div>
   );
 }

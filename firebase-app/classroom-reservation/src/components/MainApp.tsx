@@ -25,25 +25,15 @@ export const MainApp: React.FC = () => {
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefillRequest, setPrefillRequest] = useState<{ roomId: string; period: string; version: number } | null>(null);
-  // プレビュー判定（クリーンパス/クエリ対応）
-  const isPreview = (() => {
-    if (typeof window === 'undefined') return false;
-    const host = window.location.hostname || '';
-    if (/--?(?:ux-)?preview/i.test(host)) return true;
-    const qp = new URLSearchParams(window.location.search);
-    if (qp.get('preview') === '1') return true;
-    const path = window.location.pathname.replace(/\/+$/, '');
-    return path === '/preview' || path === '/ux-preview';
-  })();
 
+  // 初期日付設定
   useEffect(() => {
-    if (!isPreview) return;
     if (!selectedDate) {
       const today = toDateStr(new Date());
       setSelectedDate(today);
       setDailyTableDate(today);
     }
-  }, [isPreview, selectedDate]);
+  }, [selectedDate]);
 
   // 日付クリック処理
   const handleDateNavigate = useCallback((dateStr: string) => {
@@ -188,137 +178,52 @@ export const MainApp: React.FC = () => {
         </header>
 
         <main className="main-content">
-          {isPreview ? (
-            <div className="ledger-preview-section">
-              <div className="ledger-preview-header">
-                <div className="ledger-preview-nav" role="group" aria-label="日付移動">
-                  <button type="button" onClick={() => handleShiftDate(-1)}>&lt; 前日</button>
-                  <button type="button" onClick={handleJumpToToday}>今日</button>
-                  <button type="button" onClick={() => handleShiftDate(1)}>翌日 &gt;</button>
-                </div>
-                <div className="ledger-preview-date-block">
-                  <span className="ledger-preview-date-text">{previewDateText || '日付未選択'}</span>
-                </div>
-                <div className="ledger-preview-controls">
+          <div className="ledger-preview-section">
+            <div className="ledger-preview-header">
+              <div className="ledger-preview-nav" role="group" aria-label="日付移動">
+                <button type="button" onClick={() => handleShiftDate(-1)}>&lt; 前日</button>
+                <button type="button" onClick={handleJumpToToday}>今日</button>
+                <button type="button" onClick={() => handleShiftDate(1)}>翌日 &gt;</button>
+              </div>
+              <div className="ledger-preview-date-block">
+                <span className="ledger-preview-date-text">{previewDateText || '日付未選択'}</span>
+              </div>
+              <div className="ledger-preview-controls">
+                <input
+                  type="date"
+                  className="ledger-preview-date-input"
+                  value={selectedDate || ''}
+                  onChange={e => handleDateNavigate(e.target.value)}
+                  aria-label="日付を選択"
+                />
+                <label className="ledger-preview-filter">
                   <input
-                    type="date"
-                    className="ledger-preview-date-input"
-                    value={selectedDate || ''}
-                    onChange={e => handleDateNavigate(e.target.value)}
-                    aria-label="日付を選択"
+                    type="checkbox"
+                    checked={filterMine}
+                    onChange={e => setFilterMine(e.target.checked)}
                   />
-                  <label className="ledger-preview-filter">
-                    <input
-                      type="checkbox"
-                      checked={filterMine}
-                      onChange={e => setFilterMine(e.target.checked)}
-                    />
-                    自分の予約のみ
-                  </label>
-                  <button
-                    type="button"
-                    className="ledger-preview-manage"
-                    onClick={handleOpenReservationPanel}
-                    disabled={!currentUser}
-                  >
-                    予約を追加・編集
-                  </button>
-                </div>
-              </div>
-              <DailyLedgerView
-                date={selectedDate || toDateStr(new Date())}
-                filterMine={filterMine}
-                onDateChange={handleDateNavigate}
-                showFilterMineToggle={false}
-                showToolbar={false}
-                onCellClick={handleLedgerCellClick}
-                onReservationClick={handleEventClick}
-              />
-            </div>
-          ) : (
-          <div className="calendar-section">
-            <section className="calendar-quick-summary" aria-live="polite">
-              <div className="summary-body">
-                <div className="summary-nav" role="group" aria-label="日付移動">
-                  <button
-                    type="button"
-                    className="summary-nav-button"
-                    onClick={() => handleShiftDate(-1)}
-                  >
-                    &lt; 前日
-                  </button>
-                  <button
-                    type="button"
-                    className="summary-nav-button"
-                    onClick={handleJumpToToday}
-                  >
-                    今日
-                  </button>
-                  <button
-                    type="button"
-                    className="summary-nav-button"
-                    onClick={() => handleShiftDate(1)}
-                  >
-                    翌日 &gt;
-                  </button>
-                </div>
-                <div className="summary-date">
-                  <span className="summary-date-text">{formattedSelectedDate}</span>
-                </div>
-              </div>
-              <div className="summary-actions">
+                  自分の予約のみ
+                </label>
                 <button
                   type="button"
-                  className="summary-chip"
-                  onClick={handleJumpToToday}
-                >
-                  今日へ移動
-                </button>
-                <button
-                  type="button"
-                  className="summary-chip primary"
+                  className="ledger-preview-manage"
                   onClick={handleOpenReservationPanel}
                   disabled={!currentUser}
                 >
-                  予約を追加
+                  予約を追加・編集
                 </button>
               </div>
-            </section>
-
-            <CalendarComponent
-              key={refreshKey}
-              refreshTrigger={refreshKey}
-              selectedDate={selectedDate} // 選択日付を渡す
+            </div>
+            <DailyLedgerView
+              date={selectedDate || toDateStr(new Date())}
               filterMine={filterMine}
-              onFilterMineChange={setFilterMine}
-              onDateNavigate={handleDateNavigate}
-              onDateClick={handleDateClick}
-              onEventClick={handleEventClick}
+              onDateChange={handleDateNavigate}
+              showFilterMineToggle={false}
+              showToolbar={false}
+              onCellClick={handleLedgerCellClick}
+              onReservationClick={handleEventClick}
             />
-            
-            {/* 日別予約一覧テーブル */}
-            {dailyTableDate && (
-              <ReservationDataProvider date={dailyTableDate}>
-                <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
-                  <DailyReservationTable 
-                    selectedDate={dailyTableDate}
-                    showWhenEmpty={true}
-                    filterMine={filterMine}
-                    onFilterMineChange={setFilterMine}
-                    onDateChange={(d)=>{
-                      handleDateNavigate(d);
-                    }}
-                  />
-                  {window.innerWidth < 600 && !showSidePanel && (
-                    <div className="open-reserve-panel-wrapper">
-                      <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
-                    </div>
-                  )}
-                </div>
-              </ReservationDataProvider>
-            )}
           </div>
-          )}
 
           {showSidePanel && (
             <aside className="side-panel-section">
