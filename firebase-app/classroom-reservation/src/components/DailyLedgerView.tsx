@@ -166,6 +166,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
   const { reservations, setRange } = useMonthlyReservations();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let active = true;
@@ -185,13 +187,44 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
     setRange(start, end);
   }, [normalizedDate, setRange]);
 
+  // 予約変更イベントを受けて当日範囲を即時再読込
+  useEffect(() => {
+    const handler = () => {
+      if (!normalizedDate) return;
+      const start = new Date(`${normalizedDate}T00:00:00`);
+      const end = new Date(`${normalizedDate}T23:59:59`);
+      setRange(start, end);
+    };
+    window.addEventListener('reservation:changed', handler as any);
+    return () => window.removeEventListener('reservation:changed', handler as any);
+  }, [normalizedDate, setRange]);
+
+  // ローカル即時反映: 削除IDを保持し、描画から除外
+  useEffect(() => {
+    const onChanged = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail as any;
+        if (detail?.type === 'deleted' && detail?.id) {
+          setRemovedIds(prev => {
+            const next = new Set(prev);
+            next.add(String(detail.id));
+            return next;
+          });
+        }
+      } catch {}
+    };
+    window.addEventListener('reservation:changed', onChanged as any);
+    return () => window.removeEventListener('reservation:changed', onChanged as any);
+  }, []);
+
   const reservationsForDate = useMemo(() => {
     const target = normalizedDate;
     return reservations.filter(r => {
       const startTime = r.startTime instanceof Timestamp ? r.startTime.toDate() : new Date(r.startTime as any);
+      if (removedIds.has(String(r.id))) return false;
       return toDateStr(startTime) === target;
     });
-  }, [reservations, normalizedDate]);
+  }, [reservations, normalizedDate, removedIds]);
 
   const cellMap = useMemo(() => mapReservationsToCells(reservationsForDate, rooms, filterMine), [reservationsForDate, rooms, filterMine]);
 
@@ -205,8 +238,21 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
 
   const toolbarClassName = showFilterMineToggle ? 'ledger-toolbar' : 'ledger-toolbar ledger-toolbar--compact';
 
+  // データが揃うまで全体を隠し、スケルトンを見せる
+  useEffect(() => {
+    if (displayRooms.length > 0) {
+      const timer = setTimeout(() => setLoading(false), 120);
+      return () => clearTimeout(timer);
+    } else {
+      setLoading(true);
+    }
+  }, [displayRooms.length, normalizedDate]);
+
   return (
-    <div className="ledger-view">
+    <div className={`ledger-view ${loading ? 'is-loading' : ''}`.trim()}>
+      {loading && (
+        <div className="ledger-skeleton" aria-live="polite">読み込み中...</div>
+      )}
       {showToolbar && (
         <div className={toolbarClassName}>
           <div className="ledger-nav-buttons" role="group" aria-label="日付移動">

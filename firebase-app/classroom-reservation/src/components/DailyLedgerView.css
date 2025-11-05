@@ -10,6 +10,28 @@
   gap: 16px;
 }
 
+/* ローディング中は表を隠してスケルトンを表示 */
+.ledger-view.is-loading .ledger-table-wrapper { visibility: hidden; }
+.ledger-skeleton {
+  height: 420px;
+  margin: 8px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
 .ledger-toolbar {
   display: flex;
   flex-wrap: wrap;

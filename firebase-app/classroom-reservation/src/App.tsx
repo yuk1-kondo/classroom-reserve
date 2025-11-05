@@ -1,4 +1,5 @@
 import React from 'react';
+import { Toaster } from 'react-hot-toast';
 import MainApp from './components/MainApp';
 import './App.css';
 import PreviewUX from './preview/PreviewUX';
@@ -13,6 +14,18 @@ function App() {
   })();
   return (
     <div className="App">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            whiteSpace: 'nowrap',
+            fontSize: '14px',
+            padding: '8px 12px',
+            maxWidth: '100%'
+          }
+        }}
+      />
       {isPreview ? (
         <PreviewUX />
       ) : (

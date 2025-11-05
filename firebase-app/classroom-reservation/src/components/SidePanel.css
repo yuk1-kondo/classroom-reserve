@@ -209,7 +209,7 @@
 
 .side-panel-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center; /* タイトルを中央揃え */
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #c5ccd7;
@@ -234,7 +234,10 @@
   font-weight: 600;
   display: flex;
   align-items: center;
+  justify-content: center; /* テキスト自体も中央に */
   gap: 8px;
+  width: 100%;
+  text-align: center;
 }
 .app-version { margin-left: 0; font-size: 0.82em; color: #5a6b7c; background: rgba(31, 104, 214, 0.12); padding: 2px 8px; border-radius: 999px; }
 
@@ -933,8 +936,9 @@
 .info-message p {
   margin: 0;
   color: #1f4fc1;
-  font-size: 13px;
+  font-size: 12px; /* 1行に収めるため縮小 */
   font-weight: 500;
+  white-space: nowrap; /* 2行折返し防止 */
 }
 
 /* 管理者機能スタイル */

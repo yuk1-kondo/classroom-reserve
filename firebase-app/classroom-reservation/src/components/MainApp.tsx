@@ -1,5 +1,6 @@
 // メインアプリケーションコンポーネント
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
@@ -53,7 +54,7 @@ export const MainApp: React.FC = () => {
 
   const handleDateClick = (dateStr: string) => {
     if (!currentUser) {
-      alert('予約機能を利用するにはログインが必要です');
+      toast.error('予約機能を利用するにはログインが必要です');
       return;
     }
     console.log('📅 日付クリック:', dateStr);
@@ -104,7 +105,7 @@ export const MainApp: React.FC = () => {
 
   const handleOpenReservationPanel = useCallback(() => {
     if (!currentUser) {
-      alert('予約機能を利用するにはログインが必要です');
+      toast.error('予約機能を利用するにはログインが必要です');
       return;
     }
     ensureTodayIfEmpty();

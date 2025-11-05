@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
 import { formatPeriodDisplay } from '../utils/periodLabel';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editReservationName, setEditReservationName] = useState('');
+  const { refetch } = useMonthlyReservations();
 
   const loadReservation = useCallback(async () => {
     if (!reservationId) return;
@@ -102,6 +104,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       // 読み取りクォータ節約：予約が読み込めている場合はゼロリード版を使用
       await reservationsService.deleteReservationWithKnown(reservation as Reservation);
       console.log('✅ 予約削除成功');
+      // 台帳/カレンダーの即時反映
+      try { await refetch(); } catch {}
+      try {
+        window.dispatchEvent(new CustomEvent('reservation:changed', {
+          detail: { type: 'deleted', id: String(reservation.id) }
+        }));
+      } catch {}
       
       toast.success('予約を削除しました');
       onClose();
@@ -210,7 +219,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <span className="detail-label">教室</span>
                 <span className="detail-value">{reservation.roomName}</span>
               </div>
-              <div className={`detail-card detail-card--editable ${isEditing ? 'is-active' : ''}`}>
+              <div className={`detail-card detail-card--wide detail-card--editable ${isEditing ? 'is-active' : ''}`}>
                 <span className="detail-label">予約者</span>
                 <span className="detail-value">
                   {!isEditing ? (
