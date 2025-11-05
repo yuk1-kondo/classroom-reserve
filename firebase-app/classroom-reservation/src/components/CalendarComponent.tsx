@@ -1,6 +1,7 @@
 // カレンダーコンポーネント
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { roomsService } from '../firebase/firestore';
@@ -32,7 +33,7 @@ interface CalendarEvent {
   roomName: string;
 }
 
-type FullCalendarViewType = 'timeGridDay' | 'timeGridWeek';
+type FullCalendarViewType = 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
 type CalendarViewType = FullCalendarViewType | 'ledger';
 
 const VIEW_STORAGE_KEY = 'calendar:lastView:v3';
@@ -40,15 +41,19 @@ const VIEW_STORAGE_KEY = 'calendar:lastView:v3';
 const resolveInitialCalendarView = (): FullCalendarViewType => {
   if (typeof window === 'undefined') return 'timeGridWeek';
   const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-  if (saved === 'timeGridDay' || saved === 'timeGridWeek') {
+  if (saved === 'timeGridDay' || saved === 'timeGridWeek' || saved === 'dayGridMonth') {
     return saved;
   }
   return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
 };
 
 const resolveInitialDisplayView = (): CalendarViewType => {
-  // 台帳ビューのみ表示（固定）
-  return 'ledger';
+  if (typeof window === 'undefined') return 'timeGridWeek';
+  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  if (saved && ['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'].includes(saved)) {
+    return saved as CalendarViewType;
+  }
+  return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
 };
 
 const normalizeDate = (input?: string): string => {
@@ -146,6 +151,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     if (!calendarRef.current) return;
     const api = calendarRef.current.getApi();
     const target = (isMobile ? 'timeGridDay' : 'timeGridWeek') as FullCalendarViewType;
+    if (api.view.type === 'dayGridMonth') return;
     if (api.view.type !== target) {
       api.changeView(target);
       setDisplayView(target);
@@ -322,7 +328,32 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     }
   }, [selectedDate]);
 
-  // ビュー切り替え機能は削除（台帳ビューのみ表示）
+  const viewButtonLabel: Record<CalendarViewType, string> = {
+    timeGridDay: '日',
+    timeGridWeek: '週',
+    dayGridMonth: '月',
+    ledger: '台帳'
+  };
+
+  const mineToggleId = React.useId();
+
+  const handleViewSwitch = useCallback((targetView: CalendarViewType) => {
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, targetView);
+    } catch {}
+    setDisplayView(targetView);
+    if (targetView === 'ledger') {
+      const date = selectedDate || lastSelectedDate || normalizeDate(new Date().toISOString().slice(0, 10));
+      setLedgerDate(date);
+      return;
+    }
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (api.view.type !== targetView) {
+        api.changeView(targetView);
+      }
+    }
+  }, [selectedDate, lastSelectedDate]);
 
   const handleLedgerDateChange = useCallback((nextDate: string) => {
     const normalized = normalizeDate(nextDate);
@@ -341,16 +372,29 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       )}
 
       <div className="calendar-toolbar">
-        {/* ビュー切り替えボタンは削除（台帳ビューのみ表示） */}
-        <label className="mine-label">
-          自分の予約のみ
+        <div className="calendar-view-switch" role="group" aria-label="表示切替">
+          {(['timeGridDay', 'timeGridWeek', 'dayGridMonth', 'ledger'] as CalendarViewType[]).map(view => (
+            <button
+              key={view}
+              type="button"
+              className={`view-switch-button ${displayView === view ? 'is-active' : ''}`}
+              onClick={() => handleViewSwitch(view)}
+              aria-pressed={displayView === view}
+            >
+              {viewButtonLabel[view]}
+            </button>
+          ))}
+        </div>
+        <div className="mine-toggle">
           <input
+            id={mineToggleId}
             type="checkbox"
             className="mine-checkbox"
             checked={filterMine}
             onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
           />
-        </label>
+          <label htmlFor={mineToggleId}>自分の予約のみ</label>
+        </div>
       </div>
 
       {displayView === 'ledger' ? (
@@ -363,7 +407,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       ) : (
         <FullCalendar
           ref={calendarRef}
-          plugins={[timeGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView={initialView}
           locale="ja"
           dayCellClassNames={dayCellClassNames}
