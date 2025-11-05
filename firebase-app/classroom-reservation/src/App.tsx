@@ -1,6 +1,8 @@
 import React from 'react';
 import MainApp from './components/MainApp';
 import './App.css';
+import './styles/accessibility.css';
+import './styles/animations.css';
 import PreviewUX from './preview/PreviewUX';
 
 function App() {

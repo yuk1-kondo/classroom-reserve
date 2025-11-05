@@ -1,0 +1,303 @@
+/* アクセシビリティ向上のためのスタイル */
+
+/* スクリーンリーダー専用コンテンツ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* フォーカス可視化の改善 */
+*:focus-visible {
+  outline: 2px solid var(--color-primary, #ff69b4);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ボタンのフォーカス状態 */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary, #ff69b4);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 105, 180, 0.2);
+}
+
+/* 入力フィールドのフォーカス状態 */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary, #ff69b4);
+  outline-offset: 0;
+  border-color: var(--color-primary, #ff69b4);
+  box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+  * {
+    border-width: 2px !important;
+  }
+  
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    border: 2px solid currentColor !important;
+  }
+}
+
+/* 色覚特性への配慮 - パターンやアイコンを追加 */
+.status-indicator {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.status-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+
+.status-success::before {
+  background: var(--color-success, #28a745);
+  content: '✓';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+}
+
+.status-error::before {
+  background: var(--color-error, #dc3545);
+  content: '✕';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+}
+
+.status-warning::before {
+  background: var(--color-warning, #ffc107);
+  content: '⚠';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  font-size: 0.75rem;
+}
+
+/* アニメーション削減設定の尊重 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* タッチターゲットのサイズ改善（最小44x44px） */
+button,
+a,
+input[type="checkbox"],
+input[type="radio"],
+select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* 小さいボタンの場合はパディングで調整 */
+button.btn-small,
+a.btn-small {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+}
+
+/* テキストサイズ調整への対応 */
+@media (min-width: 320px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* ズーム時のレイアウト崩れ防止 */
+@media (min-resolution: 2dppx) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* キーボードナビゲーション表示 */
+.keyboard-navigation-visible *:focus {
+  outline: 2px solid var(--color-primary, #ff69b4);
+  outline-offset: 2px;
+}
+
+/* スキップリンク */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary, #ff69b4);
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  z-index: 10000;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ライブリージョンのスタイル */
+[aria-live] {
+  position: relative;
+}
+
+/* ダイアログ/モーダルのアクセシビリティ */
+[role="dialog"],
+[role="alertdialog"] {
+  position: fixed;
+  z-index: 1000;
+}
+
+[role="dialog"] [role="document"] {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 必須フィールドの視覚的表示 */
+[aria-required="true"],
+[required] {
+  position: relative;
+}
+
+/* エラーメッセージとの関連付け */
+[aria-invalid="true"] {
+  border-color: var(--color-error, #dc3545) !important;
+}
+
+[aria-describedby] {
+  position: relative;
+}
+
+/* プログレスインジケーター */
+[role="progressbar"] {
+  height: 4px;
+  background: var(--color-surface, #f5f5f5);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+[role="progressbar"]::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: var(--color-primary, #ff69b4);
+  transition: width 0.3s ease;
+}
+
+/* ツールチップのアクセシビリティ */
+[role="tooltip"] {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  z-index: 1000;
+  max-width: 200px;
+  word-wrap: break-word;
+}
+
+/* カスタムチェックボックス/ラジオボタンのアクセシビリティ */
+input[type="checkbox"],
+input[type="radio"] {
+  /* ネイティブ要素を隠さず、透明化してキーボードアクセス可能に */
+  opacity: 0;
+  position: absolute;
+}
+
+input[type="checkbox"] + label,
+input[type="radio"] + label {
+  position: relative;
+  padding-left: 2rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+input[type="checkbox"] + label::before,
+input[type="radio"] + label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--color-border, #ddd);
+  background: white;
+}
+
+input[type="checkbox"] + label::before {
+  border-radius: 4px;
+}
+
+input[type="radio"] + label::before {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:checked + label::after,
+input[type="radio"]:checked + label::after {
+  content: '';
+  position: absolute;
+  left: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+input[type="checkbox"]:checked + label::after {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--color-primary, #ff69b4);
+  border-radius: 2px;
+}
+
+input[type="radio"]:checked + label::after {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--color-primary, #ff69b4);
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:focus + label::before,
+input[type="radio"]:focus + label::before {
+  outline: 2px solid var(--color-primary, #ff69b4);
+  outline-offset: 2px;
+}

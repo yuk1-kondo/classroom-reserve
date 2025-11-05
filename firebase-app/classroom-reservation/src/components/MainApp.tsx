@@ -5,7 +5,9 @@ import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
 import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
+import { ToastContainer } from './FormValidation';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import './MainApp.css';
 import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
@@ -13,6 +15,7 @@ import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsCont
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
+  const { toasts, removeToast } = useToast();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
@@ -203,6 +206,13 @@ export const MainApp: React.FC = () => {
           open={showSheet}
           onClose={()=>setShowSheet(false)}
           onOpenSidePanel={()=>{ setShowSheet(false); setShowSidePanel(true); }}
+        />
+
+        {/* トースト通知 */}
+        <ToastContainer
+          toasts={toasts}
+          onRemove={removeToast}
+          position="top-right"
         />
       </div>
     </MonthlyReservationsProvider>
