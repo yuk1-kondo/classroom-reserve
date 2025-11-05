@@ -3,7 +3,7 @@ import './DailyLedgerView.css';
 import { roomsService, Reservation, Room } from '../firebase/firestore';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { Timestamp } from 'firebase/firestore';
-import { PERIOD_ORDER, periodTimeMap } from '../utils/periods';
+import { getPeriodOrderForDate, getPeriodTimeMapForDate } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
 import { authService } from '../firebase/auth';
 
@@ -310,8 +310,9 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {PERIOD_ORDER.map(periodKey => {
-              const meta = periodTimeMap[periodKey];
+            {getPeriodOrderForDate(normalizedDate).map(periodKey => {
+              const periodMap = getPeriodTimeMapForDate(normalizedDate);
+              const meta = periodMap[periodKey];
               const label = meta?.name || periodKey;
               return (
                 <tr key={periodKey}>

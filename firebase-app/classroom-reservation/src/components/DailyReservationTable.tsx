@@ -13,7 +13,7 @@ import { dayRange, toDateStr } from '../utils/dateRange';
 import { Timestamp } from 'firebase/firestore';
 import './DailyReservationTable.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追加
-import { PERIOD_ORDER } from '../firebase/firestore';
+import { getPeriodOrderForDate } from '../utils/periods';
 import { authService } from '../firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 
@@ -308,8 +308,8 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
         };
 
         const free: Array<{roomId:string; roomName:string; period:string; periodName:string; start:Date; end:Date}> = [];
-        const periodList = PERIOD_ORDER as readonly string[];
         const baseDateStr = toDateStr(new Date(selectedDate));
+        const periodList = getPeriodOrderForDate(baseDateStr) as readonly string[];
         for (const room of rooms) {
           if (filterRoomId !== 'all' && room.id !== filterRoomId) continue;
           for (const p of periodList) {
@@ -455,7 +455,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
               onChange={e => setFilterPeriod(e.target.value)}
             >
               <option value="all">すべて</option>
-              {PERIOD_ORDER.map(p => (
+              {getPeriodOrderForDate(selectedDate).map(p => (
                 <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
               ))}
             </select>

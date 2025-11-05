@@ -1,7 +1,8 @@
 // 時限範囲選択コンポーネント
 import React from 'react';
 import { PeriodRangeState } from '../hooks/useReservationForm';
-import { Reservation, PERIOD_ORDER, createDateTimeFromPeriod } from '../firebase/firestore';
+import { Reservation, createDateTimeFromPeriod } from '../firebase/firestore';
+import { getPeriodOrderForDate } from '../utils/periods';
 import { displayLabel } from '../utils/periodLabel';
 
 interface PeriodRangeSelectorProps {
@@ -83,18 +84,17 @@ export const PeriodRangeSelector: React.FC<PeriodRangeSelectorProps> = ({
     return isReserved;
   };
 
-  // 曜日により7限を隠す（Mon/Wed以外）
+  // 曜日により7限を隠す（火曜・木曜・金曜は7限なし）
   const availableOrder = React.useMemo(() => {
-    if (!selectedDate) return PERIOD_ORDER;
-    try {
-      const d = new Date(selectedDate);
-      const dow = d.getDay(); // 1:Mon, 3:Wed
-      const monOrWed = dow === 1 || dow === 3;
-      if (monOrWed) return PERIOD_ORDER;
-      return (PERIOD_ORDER as unknown as readonly string[]).filter(k => k !== '7') as unknown as typeof PERIOD_ORDER;
-    } catch {
-      return PERIOD_ORDER;
+    if (!selectedDate) {
+      // デフォルトは全時限
+      try {
+        return getPeriodOrderForDate(new Date().toISOString().slice(0, 10));
+      } catch {
+        return ['0', '1', '2', '3', '4', 'lunch', '5', '6', '7', 'after'] as const;
+      }
     }
+    return getPeriodOrderForDate(selectedDate);
   }, [selectedDate]);
 
   return (
