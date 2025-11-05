@@ -106,33 +106,45 @@
 .ledger-period-header {
   position: sticky;
   left: 0;
-  z-index: 10;
-  background: #f3f4f6;
+  z-index: 100;
+  background: #f3f4f6 !important;
   min-width: 120px;
-  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.15);
-  border-right: 2px solid #d1d5db !important;
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.2);
+  border-right: 3px solid #d1d5db !important;
 }
 
-.ledger-period-header::before,
-.ledger-period-cell::before {
+.ledger-period-header::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -1px;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: inherit;
+  bottom: -1px;
+  background: #f3f4f6;
   z-index: -1;
+  border-right: 3px solid #d1d5db;
 }
 
 .ledger-period-cell {
-  background: #f9fafb;
+  background: #f9fafb !important;
   min-width: 120px;
   position: sticky;
   left: 0;
-  z-index: 5;
-  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.15);
-  border-right: 2px solid #d1d5db !important;
+  z-index: 50;
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.2);
+  border-right: 3px solid #d1d5db !important;
+}
+
+.ledger-period-cell::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  background: #f9fafb;
+  z-index: -1;
+  border-right: 3px solid #d1d5db;
 }
 
 .period-label {
