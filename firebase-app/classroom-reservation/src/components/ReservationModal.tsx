@@ -106,8 +106,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       toast.success('予約を削除しました');
       onClose();
       
-      // 削除後は画面をリロードして最新状態を反映
-      setTimeout(() => window.location.reload(), 300);
+      // リロードせずに、コールバックで親コンポーネントに通知（差分更新）
+      if (onReservationUpdated) {
+        onReservationUpdated();
+      }
     } catch (error: any) {
       console.error('❌ 予約削除エラー:', error);
       const msg = (error && (error.message || error.code)) || '';
@@ -137,8 +139,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       setIsEditing(false);
       toast.success('予約を更新しました');
       
-      // 更新後は画面をリロードして最新状態を反映
-      setTimeout(() => window.location.reload(), 300);
+      // リロードせずに、コールバックで親コンポーネントに通知（差分更新）
+      if (onReservationUpdated) {
+        onReservationUpdated();
+      }
     } catch (e) {
       console.error('予約更新エラー:', e);
       setError('予約の更新に失敗しました');

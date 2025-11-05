@@ -6,6 +6,9 @@ interface MonthlyReservationsContextValue {
   reservations: Reservation[];
   setRange: (start: Date, end: Date) => void;
   refetch: () => Promise<void>;
+  addReservations: (newReservations: Reservation[]) => void;
+  updateReservation: (id: string, updates: Partial<Reservation>) => void;
+  removeReservation: (id: string) => void;
 }
 
 const MonthlyReservationsContext = createContext<MonthlyReservationsContextValue | undefined>(undefined);
@@ -63,11 +66,42 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
     await inflightRef.current;
   }, [load]);
 
+  // 予約を追加（差分更新）
+  const addReservations = useCallback((newReservations: Reservation[]) => {
+    setReservations(prev => {
+      const existingIds = new Set(prev.map(r => r.id));
+      const toAdd = newReservations.filter(r => !existingIds.has(r.id));
+      console.log(`➕ MonthlyReservationsContext: ${toAdd.length}件の予約を追加`);
+      return [...prev, ...toAdd].sort((a, b) => {
+        const aTime = (a.startTime as Timestamp).toMillis();
+        const bTime = (b.startTime as Timestamp).toMillis();
+        return aTime - bTime;
+      });
+    });
+  }, []);
+
+  // 予約を更新（差分更新）
+  const updateReservation = useCallback((id: string, updates: Partial<Reservation>) => {
+    setReservations(prev => {
+      return prev.map(r => r.id === id ? { ...r, ...updates } : r);
+    });
+    console.log(`✏️ MonthlyReservationsContext: 予約ID ${id} を更新`);
+  }, []);
+
+  // 予約を削除（差分更新）
+  const removeReservation = useCallback((id: string) => {
+    setReservations(prev => prev.filter(r => r.id !== id));
+    console.log(`🗑️ MonthlyReservationsContext: 予約ID ${id} を削除`);
+  }, []);
+
   const value = useMemo<MonthlyReservationsContextValue>(() => ({
     reservations,
     setRange,
-    refetch
-  }), [reservations, setRange, refetch]);
+    refetch,
+    addReservations,
+    updateReservation,
+    removeReservation
+  }), [reservations, setRange, refetch, addReservations, updateReservation, removeReservation]);
 
   return (
     <MonthlyReservationsContext.Provider value={value}>

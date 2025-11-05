@@ -66,15 +66,11 @@ export const MainApp: React.FC = () => {
     setSelectedEventId('');
   };
 
-  // 予約作成後の処理
+  // 予約作成後の処理（リロードなしで差分更新）
   const handleReservationCreated = () => {
-    // カレンダーを強制的に再読み込み
+    // カレンダーを強制的に再読み込み（refreshKeyをインクリメント）
+    // ※ Contextが更新されるため、実際にはFirestoreから再取得せずにUIが更新される
     setRefreshKey(prev => prev + 1);
-    // 日別表示テーブルも更新
-    if (dailyTableDate) {
-      setDailyTableDate('');
-      setTimeout(() => setDailyTableDate(selectedDate), 100);
-    }
   };
 
   const ensureTodayIfEmpty = () => {
@@ -95,32 +91,32 @@ export const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="main-app">
-      <header className="main-header">
-        <h1>
-          <img
-            src={process.env.PUBLIC_URL + '/logo_clear.png'}
-            alt="校章"
-            className="header-logo"
-            width={32}
-            height={32}
-          />{' '}
-          桜和高校教室予約システム
-        </h1>
-        <div className="header-info">
-          <div className="system-info">v{APP_VERSION}</div>
-          <button 
-            className="toggle-panel-button"
-            onClick={() => setShowSidePanel(!showSidePanel)}
-          >
-            {showSidePanel ? '📋 パネルを閉じる' : '📋 予約管理'}
-          </button>
-        </div>
-      </header>
+    <MonthlyReservationsProvider>
+      <div className="main-app">
+        <header className="main-header">
+          <h1>
+            <img
+              src={process.env.PUBLIC_URL + '/logo_clear.png'}
+              alt="校章"
+              className="header-logo"
+              width={32}
+              height={32}
+            />{' '}
+            桜和高校教室予約システム
+          </h1>
+          <div className="header-info">
+            <div className="system-info">v{APP_VERSION}</div>
+            <button 
+              className="toggle-panel-button"
+              onClick={() => setShowSidePanel(!showSidePanel)}
+            >
+              {showSidePanel ? '📋 パネルを閉じる' : '📋 予約管理'}
+            </button>
+          </div>
+        </header>
 
-      <main className="main-content">
-        <div className="calendar-section">
-          <MonthlyReservationsProvider>
+        <main className="main-content">
+          <div className="calendar-section">
             <CalendarComponent
               key={refreshKey}
               refreshTrigger={refreshKey}
@@ -131,37 +127,33 @@ export const MainApp: React.FC = () => {
               onDateClick={handleDateClick}
               onEventClick={handleEventClick}
             />
-          </MonthlyReservationsProvider>
-          
-          {/* 日別予約一覧テーブル */}
-          {dailyTableDate && (
-            <MonthlyReservationsProvider>
+            
+            {/* 日別予約一覧テーブル */}
+            {dailyTableDate && (
               <ReservationDataProvider date={dailyTableDate}>
-              <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
-                <DailyReservationTable 
-                  selectedDate={dailyTableDate}
-                  showWhenEmpty={true}
-                  filterMine={filterMine}
-                  onFilterMineChange={setFilterMine}
-                  onDateChange={(d)=>{
-                    handleDateNavigate(d);
-                  }}
-                />
-                {window.innerWidth < 600 && !showSidePanel && (
-                  <div className="open-reserve-panel-wrapper">
-                    <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
-                  </div>
-                )}
-              </div>
+                <div className={`daily-table-container ${window.innerWidth < 600 ? 'only-desktop' : ''}`}>
+                  <DailyReservationTable 
+                    selectedDate={dailyTableDate}
+                    showWhenEmpty={true}
+                    filterMine={filterMine}
+                    onFilterMineChange={setFilterMine}
+                    onDateChange={(d)=>{
+                      handleDateNavigate(d);
+                    }}
+                  />
+                  {window.innerWidth < 600 && !showSidePanel && (
+                    <div className="open-reserve-panel-wrapper">
+                      <button onClick={()=>setShowSidePanel(true)} className="open-reserve-panel-btn">この日の予約を追加・編集</button>
+                    </div>
+                  )}
+                </div>
               </ReservationDataProvider>
-            </MonthlyReservationsProvider>
-          )}
-        </div>
+            )}
+          </div>
 
-        {showSidePanel && (
-          <aside className="side-panel-section">
-            <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
-            <MonthlyReservationsProvider>
+          {showSidePanel && (
+            <aside className="side-panel-section">
+              <button className="mobile-close-panel only-mobile" onClick={handleCloseSidePanel} aria-label="パネルを閉じる">← カレンダーへ戻る</button>
               <ReservationDataProvider date={selectedDate}>
                 <SidePanel
                   selectedDate={selectedDate}
@@ -170,46 +162,46 @@ export const MainApp: React.FC = () => {
                   onReservationCreated={handleReservationCreated}
                 />
               </ReservationDataProvider>
-            </MonthlyReservationsProvider>
-          </aside>
+            </aside>
+          )}
+        </main>
+
+        <footer className="main-footer">
+          <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
+        </footer>
+
+        {/* モバイルFAB（プレビュー限定） */}
+        {isPreview && (
+          <button
+            className="fab only-mobile"
+            aria-label="予約を追加"
+            onClick={handleFabClick}
+            title="予約を追加"
+          >
+            ＋
+          </button>
         )}
-      </main>
+        
+        {/* 予約詳細モーダル */}
+        <ReservationModal
+          isOpen={showReservationModal}
+          reservationId={selectedEventId}
+          onClose={() => {
+            setShowReservationModal(false);
+            setSelectedEventId('');
+          }}
+          onReservationUpdated={handleReservationCreated}
+        />
 
-      <footer className="main-footer">
-        <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
-      </footer>
-
-      {/* モバイルFAB（プレビュー限定） */}
-      {isPreview && (
-        <button
-          className="fab only-mobile"
-          aria-label="予約を追加"
-          onClick={handleFabClick}
-          title="予約を追加"
-        >
-          ＋
-        </button>
-      )}
-      
-      {/* 予約詳細モーダル */}
-      <ReservationModal
-        isOpen={showReservationModal}
-        reservationId={selectedEventId}
-        onClose={() => {
-          setShowReservationModal(false);
-          setSelectedEventId('');
-        }}
-        onReservationUpdated={handleReservationCreated}
-      />
-
-      {/* 予約シート（モバイル用） */}
-      <ReservationSheet
-        date={dailyTableDate}
-        open={showSheet}
-        onClose={()=>setShowSheet(false)}
-        onOpenSidePanel={()=>{ setShowSheet(false); setShowSidePanel(true); }}
-      />
-    </div>
+        {/* 予約シート（モバイル用） */}
+        <ReservationSheet
+          date={dailyTableDate}
+          open={showSheet}
+          onClose={()=>setShowSheet(false)}
+          onOpenSidePanel={()=>{ setShowSheet(false); setShowSidePanel(true); }}
+        />
+      </div>
+    </MonthlyReservationsProvider>
   );
 };
 

@@ -27,7 +27,7 @@ export const useReservationForm = (
   selectedDate?: string,
   currentUser?: AuthUser | null,
   rooms: Room[] = [],
-  onReservationCreated?: () => void
+  onReservationCreated?: (createdReservations?: Reservation[]) => void
 ) => {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -242,14 +242,24 @@ export const useReservationForm = (
         }
       }
 
-      await Promise.all(reservationPromises);
+      // 予約作成を実行し、作成された予約のIDを取得
+      const createdReservationIds = await Promise.all(reservationPromises);
+      
+      // 作成された予約データを取得（Firestoreから読み取り）
+      const createdReservations: Reservation[] = [];
+      for (const reservationId of createdReservationIds) {
+        try {
+          const reservation = await reservationsService.getReservationById(reservationId);
+          if (reservation) {
+            createdReservations.push(reservation);
+          }
+        } catch (error) {
+          console.error(`予約ID ${reservationId} の取得に失敗:`, error);
+        }
+      }
       
       // フォームリセット
       resetForm();
-      
-      if (onReservationCreated) {
-        onReservationCreated();
-      }
       
       const totalReservations = datesToReserve.length; // 実際に作成される予約件数は日数分
       if (totalReservations > 1) {
@@ -266,8 +276,10 @@ export const useReservationForm = (
         }
       }
       
-      // 自動リロード（最新データを取得）
-      setTimeout(() => window.location.reload(), 500);
+      // リロードせずに、作成された予約をContextに渡す（差分更新）
+      if (onReservationCreated) {
+        onReservationCreated(createdReservations);
+      }
     } catch (error) {
       console.error('予約作成エラー:', error);
       toast.error('予約の作成に失敗しました');

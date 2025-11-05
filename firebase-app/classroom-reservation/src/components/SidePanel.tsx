@@ -43,8 +43,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
-  const { rooms, reservations: reservationsFromDaily } = useReservationDataContext();
-  const { reservations: monthlyReservations } = useMonthlyReservations();
+  const { rooms, reservations: reservationsFromDaily, addReservations: addReservationsToDaily } = useReservationDataContext();
+  const { reservations: monthlyReservations, addReservations: addReservationsToMonthly } = useMonthlyReservations();
   const reservations = React.useMemo(()=>{
     if (Array.isArray(reservationsFromDaily) && reservationsFromDaily.length > 0) return reservationsFromDaily;
     return Array.isArray(monthlyReservations) ? monthlyReservations : [];
@@ -57,10 +57,18 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // 直後の重複チェックを抑止するためのクールダウン時刻
   const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
-  const wrappedOnReservationCreated = () => {
+  const wrappedOnReservationCreated = (createdReservations?: any[]) => {
     // 予約直後は一時的に重複チェックをスキップ（反映待ちの誤検知対策）
     skipCheckUntilRef.current = Date.now() + 2000; // 約2.0秒
     try { resetConflict(); } catch {}
+    
+    // 作成された予約をContextに追加（差分更新）
+    if (createdReservations && createdReservations.length > 0) {
+      console.log('🎉 予約作成完了。Contextに追加:', createdReservations.length, '件');
+      addReservationsToDaily(createdReservations);
+      addReservationsToMonthly(createdReservations);
+    }
+    
     try { onReservationCreated && onReservationCreated(); } catch {}
   };
   const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
