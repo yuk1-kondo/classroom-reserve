@@ -47,14 +47,8 @@ const resolveInitialCalendarView = (): FullCalendarViewType => {
 };
 
 const resolveInitialDisplayView = (): CalendarViewType => {
-  if (typeof window === 'undefined') return 'timeGridWeek';
-  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
-  // 月ビューは廃止: 過去に保存されていたら週ビューにフォールバック
-  if (saved === 'dayGridMonth') return 'timeGridWeek';
-  if (saved && ['timeGridDay', 'timeGridWeek', 'ledger'].includes(saved)) {
-    return saved as CalendarViewType;
-  }
-  return window.innerWidth < 600 ? 'timeGridDay' : 'timeGridWeek';
+  // 台帳ビューのみ表示（固定）
+  return 'ledger';
 };
 
 const normalizeDate = (input?: string): string => {
@@ -328,36 +322,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
     }
   }, [selectedDate]);
 
-  const handleViewButtonClick = (view: CalendarViewType) => {
-    if (view === 'ledger') {
-      ledgerModeRef.current = true;
-      setDisplayView('ledger');
-      hideCalendarLoading();
-      const base = normalizeDate(selectedDate || lastSelectedDate || toDateStr(new Date()));
-      setLedgerDate(base);
-      onDateNavigate?.(base, 'ledger');
-      try {
-        window.localStorage.setItem(VIEW_STORAGE_KEY, 'ledger');
-      } catch {}
-      return;
-    }
-
-    if (!calendarRef.current) return;
-    ledgerModeRef.current = false;
-    const api = calendarRef.current.getApi();
-    if (api.view.type === view) return;
-    api.changeView(view);
-    try {
-      window.localStorage.setItem(VIEW_STORAGE_KEY, view);
-    } catch {}
-    setDisplayView(view);
-  };
-
-  const viewButtonLabel: Record<CalendarViewType, string> = {
-    timeGridDay: '日',
-    timeGridWeek: '週',
-    ledger: '台帳'
-  };
+  // ビュー切り替え機能は削除（台帳ビューのみ表示）
 
   const handleLedgerDateChange = useCallback((nextDate: string) => {
     const normalized = normalizeDate(nextDate);
@@ -376,18 +341,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
       )}
 
       <div className="calendar-toolbar">
-        <div className="calendar-view-switch" role="group" aria-label="表示切替">
-          {(['timeGridDay', 'timeGridWeek', 'ledger'] as CalendarViewType[]).map(view => (
-            <button
-              key={view}
-              type="button"
-              className={`view-switch-button ${displayView === view ? 'is-active' : ''}`}
-              onClick={() => handleViewButtonClick(view)}
-            >
-              {viewButtonLabel[view]}
-            </button>
-          ))}
-        </div>
+        {/* ビュー切り替えボタンは削除（台帳ビューのみ表示） */}
         <label className="mine-label">
           自分の予約のみ
           <input
