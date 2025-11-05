@@ -23,6 +23,7 @@ import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
 import { PERIOD_ORDER as PERIOD_ORDER_CONST, periodTimeMap as PERIOD_TIME_MAP, createDateTimeFromPeriod as createDTFromPeriod } from '../utils/periods';
 import { makeSlotId } from '../utils/slot';
 import { toDateStr } from '../utils/dateRange';
+import { logger } from '../utils/logger';
 
 // 教室の型定義
 export interface Room {
@@ -273,8 +274,7 @@ export const reservationsService: ReservationsServiceCache & {
       }
 
       const inflight: Promise<Reservation[]> = (async () => {
-        console.log('🔥 Firestore query:', {
-          collection: RESERVATIONS_COLLECTION,
+        logger.firestoreQuery(RESERVATIONS_COLLECTION, {
           startTime_gte: startDate.toISOString(),
           startTime_lte: endDate.toISOString()
         });
@@ -295,7 +295,7 @@ export const reservationsService: ReservationsServiceCache & {
             periodName: normalizePeriodName(data.period, data.periodName)
           } as Reservation;
         });
-        console.log(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0,10)} ~ ${endDate.toISOString().slice(0,10)}`);
+        logger.debug(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0,10)} ~ ${endDate.toISOString().slice(0,10)}`);
         // noCache でもキャッシュは最新で更新しておく
         if (reservationsService._rangeCache) {
           reservationsService._rangeCache.set(key, { at: Date.now(), data: list });
@@ -307,7 +307,7 @@ export const reservationsService: ReservationsServiceCache & {
             reservationsService._inflight.delete(key);
           }
         } catch (error) {
-          console.error('キャッシュクリーンアップエラー:', error);
+          logger.error('キャッシュクリーンアップエラー:', error);
         }
       });
 

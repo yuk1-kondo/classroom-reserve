@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { roomsService, reservationsService, Room, Reservation } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
 import { AuthUser } from '../firebase/auth';
+import { logger } from '../utils/logger';
 
 export const useReservationData = (currentUser: AuthUser | null, selectedDate?: string) => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -20,13 +21,13 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
         arr.findIndex(r => r.name === room.name) === index
       );
       
-      console.log('取得した教室データ:', roomsData.length, '件');
-      console.log('重複排除後:', uniqueRooms.length, '件');
+      logger.debug('取得した教室データ:', roomsData.length, '件');
+      logger.debug('重複排除後:', uniqueRooms.length, '件');
       
       setRooms(uniqueRooms);
       return uniqueRooms;
     } catch (error) {
-      console.error('教室データ取得エラー:', error);
+      logger.error('教室データ取得エラー:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -36,20 +37,20 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
   // 指定日の予約を取得
   const loadReservationsForDate = useCallback(async (date: string) => {
     try {
-      console.log('🔍 loadReservationsForDate: 開始', date);
+      logger.debug('🔍 loadReservationsForDate: 開始', date);
       setLoading(true);
       const { start: startOfDay, end: endOfDay } = dayRange(date);
       
-      console.log('🔍 loadReservationsForDate: 検索範囲', { startOfDay, endOfDay });
+      logger.debug('🔍 loadReservationsForDate: 検索範囲', { startOfDay, endOfDay });
       
   const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
-      console.log('🔍 loadReservationsForDate: 取得結果', { count: reservationsData.length, data: reservationsData });
+      logger.debug('🔍 loadReservationsForDate: 取得結果', { count: reservationsData.length, data: reservationsData });
   
   // スロット取得は削除（予約データから直接競合チェック可能）
   setReservations(reservationsData);
       return reservationsData;
     } catch (error) {
-      console.error('予約データ取得エラー:', error);
+      logger.error('予約データ取得エラー:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -63,12 +64,12 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
 
   // 選択日が変更されたときの処理
   useEffect(() => {
-    console.log('🔍 useReservationData: selectedDate変更検知:', selectedDate);
+    logger.debug('🔍 useReservationData: selectedDate変更検知:', selectedDate);
     if (selectedDate) {
-      console.log('🔍 useReservationData: loadReservationsForDate呼び出し開始');
+      logger.debug('🔍 useReservationData: loadReservationsForDate呼び出し開始');
       loadReservationsForDate(selectedDate);
     } else {
-      console.log('🔍 useReservationData: selectedDateが空のため予約データクリア');
+      logger.debug('🔍 useReservationData: selectedDateが空のため予約データクリア');
       setReservations([]);
     }
   }, [selectedDate, loadReservationsForDate]);

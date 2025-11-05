@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { reservationsService, Reservation } from '../firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
+import { logger } from '../utils/logger';
 
 interface MonthlyReservationsContextValue {
   reservations: Reservation[];
@@ -29,17 +30,17 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
     }
     try {
       // 要求された範囲（start〜end）だけを取得する（台帳=1日、週/月=それぞれの範囲）
-      console.log('🔍 MonthlyReservationsContext.load called:', {
+      logger.debug('🔍 MonthlyReservationsContext.load called:', {
         start: start.toISOString(),
         end: end.toISOString(),
         rangeDays: Math.ceil((end.getTime() - start.getTime()) / 86400000)
       });
       const full = await reservationsService.getReservations(start, end);
-      console.log(`📦 Loaded ${full.length} reservations for range ${start.toISOString().slice(0,10)} ~ ${end.toISOString().slice(0,10)}`);
+      logger.debug(`📦 Loaded ${full.length} reservations for range ${start.toISOString().slice(0,10)} ~ ${end.toISOString().slice(0,10)}`);
       setReservations(Array.isArray(full) ? full : []);
       return;
     } catch (error) {
-      console.error('予約読み込みエラー:', error);
+      logger.error('予約読み込みエラー:', error);
       setReservations([]);
     }
   }, []);
@@ -71,7 +72,7 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
     setReservations(prev => {
       const existingIds = new Set(prev.map(r => r.id));
       const toAdd = newReservations.filter(r => !existingIds.has(r.id));
-      console.log(`➕ MonthlyReservationsContext: ${toAdd.length}件の予約を追加`);
+      logger.debug(`➕ MonthlyReservationsContext: ${toAdd.length}件の予約を追加`);
       return [...prev, ...toAdd].sort((a, b) => {
         const aTime = (a.startTime as Timestamp).toMillis();
         const bTime = (b.startTime as Timestamp).toMillis();
@@ -85,13 +86,13 @@ export const MonthlyReservationsProvider: React.FC<ProviderProps> = ({ children 
     setReservations(prev => {
       return prev.map(r => r.id === id ? { ...r, ...updates } : r);
     });
-    console.log(`✏️ MonthlyReservationsContext: 予約ID ${id} を更新`);
+    logger.debug(`✏️ MonthlyReservationsContext: 予約ID ${id} を更新`);
   }, []);
 
   // 予約を削除（差分更新）
   const removeReservation = useCallback((id: string) => {
     setReservations(prev => prev.filter(r => r.id !== id));
-    console.log(`🗑️ MonthlyReservationsContext: 予約ID ${id} を削除`);
+    logger.debug(`🗑️ MonthlyReservationsContext: 予約ID ${id} を削除`);
   }, []);
 
   const value = useMemo<MonthlyReservationsContextValue>(() => ({

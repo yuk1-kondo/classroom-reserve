@@ -3,8 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 import { reservationsService } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
 import { displayLabel } from '../utils/periodLabel';
-
-const debug = (...args: any[]) => { if (process.env.NODE_ENV !== 'production') console.log(...args); };
+import { logger } from '../utils/logger';
 
 export interface ConflictCheckState {
   hasConflict: boolean;
@@ -70,10 +69,10 @@ export const useConflictDetection = () => {
     targetRoomId: string,
     currentUserId?: string
   ): Promise<{ hasConflict: boolean; message: string; details: string[] }> => {
-    debug('🔍 checkForConflicts呼び出し:', { targetDates, targetPeriods, targetRoomId, currentUserId });
+    logger.debug('🔍 checkForConflicts呼び出し:', { targetDates, targetPeriods, targetRoomId, currentUserId });
     
     if (!targetRoomId || targetDates.length === 0 || targetPeriods.length === 0) {
-      debug('🔍 チェック条件不足で終了');
+      logger.debug('🔍 チェック条件不足で終了');
       return { hasConflict: false, message: '', details: [] };
     }
 
@@ -81,15 +80,15 @@ export const useConflictDetection = () => {
       const conflicts: string[] = [];
       
       for (const date of targetDates) {
-        debug(`🔍 ${date}の重複チェック開始`);
+        logger.debug(`🔍 ${date}の重複チェック開始`);
         
         // その日の予約（キャッシュ/リトライ付き）
         const periodsByRoom = await loadDayRoomPeriods(date);
         const reservedPeriodsForRoom = periodsByRoom[targetRoomId] || [];
-        debug(`🔍 ${date}の対象教室予約:`, reservedPeriodsForRoom.join(','));
+        logger.debug(`🔍 ${date}の対象教室予約:`, reservedPeriodsForRoom.join(','));
         
         for (const period of targetPeriods) {
-          debug(`🔍 時限${period}のチェック中...`);
+          logger.debug(`🔍 時限${period}のチェック中...`);
           
           // 既存予約との重複をチェック
           const isConflict = reservedPeriodsForRoom.includes(period);
@@ -98,17 +97,17 @@ export const useConflictDetection = () => {
             const dateStr = new Date(date).toLocaleDateString('ja-JP');
             const periodName = displayLabel(period);
             conflicts.push(`${dateStr} ${periodName} - 既に予約があります`);
-            debug(`  ❌ 競合: ${dateStr} ${periodName}`);
+            logger.debug(`  ❌ 競合: ${dateStr} ${periodName}`);
           } else {
-            debug(`  ✅ 時限${period}は利用可能`);
+            logger.debug(`  ✅ 時限${period}は利用可能`);
           }
         }
       }
       
-      debug(`🔍 重複チェック完了: 競合数=${conflicts.length}`);
+      logger.debug(`🔍 重複チェック完了: 競合数=${conflicts.length}`);
       if (conflicts.length > 0) {
-        debug('❌ 検出された競合:');
-        conflicts.forEach((conflict, index) => debug(`  ${index + 1}. ${conflict}`));
+        logger.debug('❌ 検出された競合:');
+        conflicts.forEach((conflict, index) => logger.debug(`  ${index + 1}. ${conflict}`));
         return {
           hasConflict: true,
           message: '選択した時間帯は既に予約があります。',
@@ -116,10 +115,10 @@ export const useConflictDetection = () => {
         };
       }
       
-      debug('✅ 重複なし、予約可能');
+      logger.debug('✅ 重複なし、予約可能');
       return { hasConflict: false, message: '', details: [] };
     } catch (error) {
-      console.error('重複チェックエラー:', error);
+      logger.error('重複チェックエラー:', error);
       return { hasConflict: false, message: '', details: [] };
     }
   }, [loadDayRoomPeriods]);
@@ -137,7 +136,7 @@ export const useConflictDetection = () => {
 
     timerRef.current = setTimeout(async () => {
       if (!selectedRoom || datesToCheck.length === 0 || periodsToCheck.length === 0) {
-        debug('🔍 条件不足のため重複チェックスキップ');
+        logger.debug('🔍 条件不足のため重複チェックスキップ');
         setConflictCheck({ hasConflict: false, conflictMessage: '', conflictDetails: [] });
         return;
       }

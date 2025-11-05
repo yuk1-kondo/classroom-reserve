@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { reservationsService, roomsService, Reservation, Room } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
+import { logger } from '../utils/logger';
 
 interface ReservationDataContextValue {
   rooms: Room[];
@@ -46,7 +47,7 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ children, dat
     setReservations(prev => {
       const existingIds = new Set(prev.map(r => r.id));
       const toAdd = newReservations.filter(r => !existingIds.has(r.id));
-      console.log(`➕ ReservationDataContext: ${toAdd.length}件の予約を追加`);
+      logger.debug(`➕ ReservationDataContext: ${toAdd.length}件の予約を追加`);
       return [...prev, ...toAdd].sort((a, b) => {
         const aTime = (a.startTime as any).toMillis?.() || (a.startTime as any).getTime?.() || 0;
         const bTime = (b.startTime as any).toMillis?.() || (b.startTime as any).getTime?.() || 0;
@@ -60,13 +61,13 @@ export const ReservationDataProvider: React.FC<ProviderProps> = ({ children, dat
     setReservations(prev => {
       return prev.map(r => r.id === id ? { ...r, ...updates } : r);
     });
-    console.log(`✏️ ReservationDataContext: 予約ID ${id} を更新`);
+    logger.debug(`✏️ ReservationDataContext: 予約ID ${id} を更新`);
   }, []);
 
   // 予約を削除（差分更新）
   const removeReservation = useCallback((id: string) => {
     setReservations(prev => prev.filter(r => r.id !== id));
-    console.log(`🗑️ ReservationDataContext: 予約ID ${id} を削除`);
+    logger.debug(`🗑️ ReservationDataContext: 予約ID ${id} を削除`);
   }, []);
 
   // 再取得
