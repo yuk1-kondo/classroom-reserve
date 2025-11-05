@@ -15,13 +15,104 @@
 
 /* フィルター行 */
 .daily-reservation-table .filters {
-  display: flex;
-  gap: 8px;
-  margin: 8px 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin: 4px 0 0;
+  align-items: end;
 }
 
-.daily-reservation-table .filters label select {
-  margin-left: 6px;
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.filter-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5a6773;
+  letter-spacing: 0.02em;
+}
+
+.filter-field input,
+.filter-field select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #d4dbe2;
+  font-size: 0.92rem;
+  color: #24292f;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 127, 211, 0.18);
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #d4dbe2;
+  border-radius: 14px;
+  background: #ffffff;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.filter-checkbox-input {
+  width: 18px;
+  height: 18px;
+}
+
+.filters-reset {
+  justify-self: end;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(45, 127, 211, 0.12);
+  color: #2d7fd3;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filters-reset:not(:disabled):hover {
+  background: #2d7fd3;
+  color: #ffffff;
+}
+
+.filters-reset:disabled {
+  background: #eef2f6;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 8px;
+  color: #2d7fd3;
+  font-size: 0.85rem;
+}
+
+.filter-chip {
+  background: rgba(45, 127, 211, 0.2);
+  color: #1f4d7a;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .daily-reservation-table * {
@@ -49,10 +140,10 @@
 /* ヘッダー */
 .table-header {
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: #ffffff; /* 旧 #f6f8fa -> ホワイト化 */
   border-bottom: 1px solid #d0d7de; /* 外枠と同色 */
   position: sticky; /* プレビュー: ヘッダー固定 */
@@ -185,6 +276,18 @@
   .daily-reservation-table { font-size: 10px; margin: 0; border-radius: 4px; }
   .table-header { padding: 6px 10px; }
   .table-header h4 { font-size: 12px; }
+  .daily-reservation-table .filters {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .filter-checkbox {
+    grid-column: span 2;
+  }
+  .filters-reset {
+    grid-column: span 2;
+    justify-self: stretch;
+    text-align: center;
+  }
   .excel-table { font-size: 10px; min-width: 0 !important; width: 100% !important; }
   .excel-table thead th { padding: 6px 4px; font-size: 10px; }
   .excel-table tbody td { padding: 4px 4px; font-size: 10px; }
@@ -198,6 +301,15 @@
 @media (max-width: 480px) {
   .daily-reservation-table { border-radius: 2px; }
   .table-header { padding: 4px 8px; }
+  .daily-reservation-table .filters {
+    grid-template-columns: 1fr;
+  }
+  .filter-checkbox {
+    grid-column: span 1;
+  }
+  .filters-reset {
+    grid-column: span 1;
+  }
   .table-header h4 { font-size: 11px; }
   .excel-table { font-size: 9px; min-width: 0 !important; width: 100% !important; }
   .excel-table thead th { padding: 4px 2px; font-size: 9px; }

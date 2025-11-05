@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { adminService } from './admin';
-import { setPersistence, browserSessionPersistence } from 'firebase/auth';
+import { setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 // 許可されたドメイン設定
 const ALLOWED_DOMAIN = 'e.osakamanabi.jp';
@@ -31,14 +31,14 @@ export interface AuthUser {
 export const authService = {
   adminPassword: 'admin2025', // 管理者パスワード
   // ログイン有効期間 (ミリ秒)
-  LOGIN_TTL_MS: 1000 * 60 * 60 * 24 * 1, // 1日（必要に応じて変更）
+  LOGIN_TTL_MS: 1000 * 60 * 60 * 24 * 14, // 14日間に延長
   LAST_LOGIN_KEY: 'lastLoginAt',
 
   // Googleサインイン
   async signInWithGoogle(): Promise<UserCredential> {
     try {
       // セッションごとにのみ永続化（タブを閉じるとサインアウト）
-      try { await setPersistence(auth, browserSessionPersistence); } catch {}
+      try { await setPersistence(auth, browserLocalPersistence); } catch {}
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');

@@ -21,7 +21,6 @@ import ReservationLimitSettings from './admin/ReservationLimitSettings';
 // import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
 import AdminUserManager from './admin/AdminUserManager';
-import { APP_VERSION } from '../version';
 
 
 interface SidePanelProps {
@@ -31,6 +30,7 @@ interface SidePanelProps {
   onReservationCreated?: () => void;
   prefilledRoomId?: string;
   prefilledPeriod?: string;
+  prefillVersion?: number | null;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -39,7 +39,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onClose,
   onReservationCreated,
   prefilledRoomId,
-  prefilledPeriod
+  prefilledPeriod,
+  prefillVersion
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
@@ -72,16 +73,27 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     try { onReservationCreated && onReservationCreated(); } catch {}
   };
   const formHook = useReservationForm(selectedDate, currentUser, rooms, wrappedOnReservationCreated);
+  const lastPrefillVersionRef = useRef<number | null>(null);
   
   // 台帳ビューからの事前入力を反映
   useEffect(() => {
-    if (prefilledRoomId && prefilledPeriod) {
-      formHook.updateFormData('selectedRoom', prefilledRoomId);
-      formHook.updateFormData('selectedPeriod', prefilledPeriod);
-      formHook.setShowForm(true);
+    if (!prefilledRoomId || !prefilledPeriod) return;
+    // 未ログインの場合は自動でフォームを開かない
+    if (!currentUser) {
+      formHook.setShowForm(false);
+      return;
+    }
+    if (prefillVersion && lastPrefillVersionRef.current === prefillVersion) {
+      return;
+    }
+    formHook.updateFormData('selectedRoom', prefilledRoomId);
+    formHook.updateFormData('selectedPeriod', prefilledPeriod);
+    formHook.setShowForm(true);
+    if (prefillVersion) {
+      lastPrefillVersionRef.current = prefillVersion;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefilledRoomId, prefilledPeriod]);
+  }, [prefilledRoomId, prefilledPeriod, prefillVersion, currentUser]);
   
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
@@ -180,7 +192,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       />
 
       <div className="side-panel-header">
-        <h3>📅 予約管理 <span className="app-version">Ver {APP_VERSION}</span></h3>
+        <h3>📅 予約管理</h3>
       </div>
 
       {selectedDate ? (

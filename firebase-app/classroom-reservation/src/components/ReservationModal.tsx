@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
 import { formatPeriodDisplay } from '../utils/periodLabel';
+import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editReservationName, setEditReservationName] = useState('');
+  const { refetch } = useMonthlyReservations();
 
   const loadReservation = useCallback(async () => {
     if (!reservationId) return;
@@ -102,6 +104,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       // 読み取りクォータ節約：予約が読み込めている場合はゼロリード版を使用
       await reservationsService.deleteReservationWithKnown(reservation as Reservation);
       console.log('✅ 予約削除成功');
+      // 台帳/カレンダーの即時反映
+      try { await refetch(); } catch {}
+      try {
+        window.dispatchEvent(new CustomEvent('reservation:changed', {
+          detail: { type: 'deleted', id: String(reservation.id) }
+        }));
+      } catch {}
       
       toast.success('予約を削除しました');
       onClose();
@@ -197,26 +206,24 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           )}
 
           {reservation && (
-            <div className="reservation-details details-grid">
-              {/* 1行目: 日付 / 時限 */}
-              <div className="detail-item">
-                <div className="item-label">日付</div>
-                <div className="item-value">{formatDate(reservation.startTime)}</div>
+            <div className={`reservation-details ${isEditing ? 'is-editing' : ''}`}>
+              <div className="detail-card">
+                <span className="detail-label">日付</span>
+                <span className="detail-value">{formatDate(reservation.startTime)}</span>
               </div>
-              <div className="detail-item">
-                <div className="item-label">時限</div>
-                <div className="item-value">{periodDisplay(reservation)}</div>
+              <div className="detail-card">
+                <span className="detail-label">時限</span>
+                <span className="detail-value">{periodDisplay(reservation)}</span>
               </div>
-              {/* 2行目: 教室 / 予約者 */}
-              <div className="detail-item">
-                <div className="item-label">教室</div>
-                <div className="item-value">{reservation.roomName}</div>
+              <div className="detail-card">
+                <span className="detail-label">教室</span>
+                <span className="detail-value">{reservation.roomName}</span>
               </div>
-              <div className="detail-item">
-                <div className="item-label">予約者</div>
-                <div className="item-value">
+              <div className={`detail-card detail-card--wide detail-card--editable ${isEditing ? 'is-active' : ''}`}>
+                <span className="detail-label">予約者</span>
+                <span className="detail-value">
                   {!isEditing ? (
-                    reservation.reservationName
+                    reservation.reservationName || '—'
                   ) : (
                     <input
                       type="text"
@@ -225,29 +232,36 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                       disabled={loading}
                       aria-label="予約者名を編集"
                       placeholder="予約者名"
+                      maxLength={30}
                     />
                   )}
-                </div>
+                </span>
               </div>
-              {/* 3行目: 予約内容（全幅） */}
-              <div className="detail-item span-2">
-                <div className="item-label">予約内容</div>
-                <div className="item-value">
+              <div className={`detail-card detail-card--wide detail-card--editable ${isEditing ? 'is-active' : ''}`}>
+                <span className="detail-label">予約内容</span>
+                <span className="detail-value detail-value-multiline">
                   {!isEditing ? (
-                    reservation.title
+                    reservation.title || '—'
                   ) : (
-                    <input
-                      type="text"
+                    <textarea
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       disabled={loading}
                       aria-label="予約内容を編集"
                       placeholder="予約内容"
+                      maxLength={40}
+                      rows={2}
                     />
                   )}
-                </div>
+                </span>
               </div>
             </div>
+          )}
+
+          {reservation && isEditing && (
+            <p className="edit-hint" role="status">
+              編集モード：ハイライトされた項目が変更できます
+            </p>
           )}
 
           <div className={`reservation-actions ${showDeleteConfirm ? 'confirm-mode' : ''}`}>

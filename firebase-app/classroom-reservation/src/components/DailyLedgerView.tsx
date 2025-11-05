@@ -12,6 +12,10 @@ interface DailyLedgerViewProps {
   filterMine?: boolean;
   onFilterMineChange?: (value: boolean) => void;
   onDateChange?: (dateStr: string) => void;
+  showFilterMineToggle?: boolean;
+  showToolbar?: boolean;
+  onCellClick?: (roomId: string, period: string, date: string) => void;
+  onReservationClick?: (reservationId: string) => void;
 }
 
 interface LedgerCellReservation {
@@ -78,16 +82,6 @@ function expandPeriod(raw: string): string[] {
   return [p];
 }
 
-const classifyRoom = (roomName: string): string => {
-  if (!roomName) return 'room-cat-default';
-  if (/^小演習室/.test(roomName)) return 'room-cat-small';
-  if (/^大演習室/.test(roomName)) return 'room-cat-large';
-  if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
-  if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
-  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
-  return 'room-cat-default';
-};
-
 const sortRoomsWithOrder = (rooms: Room[]): Room[] => {
   const orderMap = new Map<string, number>();
   LEDGER_ROOM_ORDER.forEach((name, index) => orderMap.set(name, index));
@@ -149,10 +143,31 @@ const mapReservationsToCells = (
   return cellMap;
 };
 
-export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMine = false, onFilterMineChange, onDateChange }) => {
+const classifyRoom = (roomName: string): string => {
+  if (!roomName) return 'room-cat-default';
+  if (/^小演習室/.test(roomName)) return 'room-cat-small';
+  if (/^大演習室/.test(roomName)) return 'room-cat-large';
+  if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
+  if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
+  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
+  return 'room-cat-default';
+};
+
+export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
+  date,
+  filterMine = false,
+  onFilterMineChange,
+  onDateChange,
+  showFilterMineToggle = true,
+  showToolbar = true,
+  onCellClick,
+  onReservationClick
+}) => {
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
   const { reservations, setRange } = useMonthlyReservations();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let active = true;
@@ -172,13 +187,44 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
     setRange(start, end);
   }, [normalizedDate, setRange]);
 
+  // 予約変更イベントを受けて当日範囲を即時再読込
+  useEffect(() => {
+    const handler = () => {
+      if (!normalizedDate) return;
+      const start = new Date(`${normalizedDate}T00:00:00`);
+      const end = new Date(`${normalizedDate}T23:59:59`);
+      setRange(start, end);
+    };
+    window.addEventListener('reservation:changed', handler as any);
+    return () => window.removeEventListener('reservation:changed', handler as any);
+  }, [normalizedDate, setRange]);
+
+  // ローカル即時反映: 削除IDを保持し、描画から除外
+  useEffect(() => {
+    const onChanged = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail as any;
+        if (detail?.type === 'deleted' && detail?.id) {
+          setRemovedIds(prev => {
+            const next = new Set(prev);
+            next.add(String(detail.id));
+            return next;
+          });
+        }
+      } catch {}
+    };
+    window.addEventListener('reservation:changed', onChanged as any);
+    return () => window.removeEventListener('reservation:changed', onChanged as any);
+  }, []);
+
   const reservationsForDate = useMemo(() => {
     const target = normalizedDate;
     return reservations.filter(r => {
       const startTime = r.startTime instanceof Timestamp ? r.startTime.toDate() : new Date(r.startTime as any);
+      if (removedIds.has(String(r.id))) return false;
       return toDateStr(startTime) === target;
     });
-  }, [reservations, normalizedDate]);
+  }, [reservations, normalizedDate, removedIds]);
 
   const cellMap = useMemo(() => mapReservationsToCells(reservationsForDate, rooms, filterMine), [reservationsForDate, rooms, filterMine]);
 
@@ -190,34 +236,76 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
 
   const displayRooms = rooms;
 
+  const toolbarClassName = showFilterMineToggle ? 'ledger-toolbar' : 'ledger-toolbar ledger-toolbar--compact';
+
+  // データが揃うまで全体を隠し、スケルトンを見せる
+  useEffect(() => {
+    if (displayRooms.length > 0) {
+      const timer = setTimeout(() => setLoading(false), 120);
+      return () => clearTimeout(timer);
+    } else {
+      setLoading(true);
+    }
+  }, [displayRooms.length, normalizedDate]);
+
   return (
-    <div className="ledger-view">
-      <div className="ledger-toolbar">
-        <div className="ledger-nav-buttons">
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() - 86400000)))}>&lt; 前日</button>
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date()))}>今日</button>
-          <button type="button" onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() + 86400000)))}>翌日 &gt;</button>
+    <div className={`ledger-view ${loading ? 'is-loading' : ''}`.trim()}>
+      {loading && (
+        <div className="ledger-skeleton" aria-live="polite">読み込み中...</div>
+      )}
+      {showToolbar && (
+        <div className={toolbarClassName}>
+          <div className="ledger-nav-buttons" role="group" aria-label="日付移動">
+            <button
+              type="button"
+              className="ledger-nav-button"
+              onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() - 86400000)))}
+            >
+              &lt; 前日
+            </button>
+            <button
+              type="button"
+              className="ledger-nav-button"
+              onClick={() => handleDateChange(toDateStr(new Date()))}
+            >
+              今日
+            </button>
+            <button
+              type="button"
+              className="ledger-nav-button"
+              onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() + 86400000)))}
+            >
+              翌日 &gt;
+            </button>
+          </div>
+          <label className="ledger-date-picker">
+            日付
+            <input type="date" value={normalizedDate} onChange={e => handleDateChange(e.target.value)} />
+          </label>
+          {showFilterMineToggle && (
+            <label className="ledger-filter-mine">
+              自分の予約のみ
+              <input
+                type="checkbox"
+                checked={filterMine}
+                onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
+              />
+            </label>
+          )}
         </div>
-        <label className="ledger-date-picker">
-          日付
-          <input type="date" value={normalizedDate} onChange={e => handleDateChange(e.target.value)} />
-        </label>
-        <label className="ledger-filter-mine">
-          自分の予約のみ
-          <input
-            type="checkbox"
-            checked={filterMine}
-            onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
-          />
-        </label>
-      </div>
+      )}
       <div className="ledger-table-wrapper">
         <table className="ledger-table">
           <thead>
             <tr>
               <th className="ledger-period-header">時限</th>
               {displayRooms.map(room => (
-                <th key={String(room.id || room.name)} className="ledger-room-header">{room.name}</th>
+                <th
+                  key={String(room.id || room.name)}
+                  className="ledger-room-header"
+                >
+                  {room.name}
+                </th>
               ))}
             </tr>
           </thead>
@@ -228,23 +316,58 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({ date, filterMi
               return (
                 <tr key={periodKey}>
                   <th className="ledger-period-cell">
-                    <div className="period-label">{label}</div>
-                    <div className="period-time">{meta ? `${meta.start} - ${meta.end}` : ''}</div>
+                    <div className="period-cell-inner">
+                      <span className="period-label">{label}</span>
+                      <span className="period-time">{meta ? `${meta.start} - ${meta.end}` : ''}</span>
+                    </div>
                   </th>
                   {displayRooms.map(room => {
                     const reservationsForCell = cellMap.get(String(room.id || ''))?.get(String(periodKey)) || [];
+                    const roomId = room.id ? String(room.id) : '';
+                    const isEmpty = reservationsForCell.length === 0;
+                    const categoryClass = classifyRoom(room.name);
+                    const isClickable = Boolean(isEmpty && roomId && onCellClick);
+                    const handleActivate = () => {
+                      if (isClickable) {
+                        onCellClick?.(roomId, String(periodKey), normalizedDate);
+                      }
+                    };
                     return (
-                      <td key={`${room.id || room.name}-${periodKey}`} className={`ledger-reservation-cell ${classifyRoom(room.name)}`}>
-                        {reservationsForCell.length === 0 ? (
+                      <td
+                        key={`${room.id || room.name}-${periodKey}`}
+                        className={`ledger-reservation-cell ${categoryClass} ${isClickable ? 'ledger-cell-clickable' : ''}`.trim()}
+                        onClick={handleActivate}
+                        onKeyDown={event => {
+                          if (!isClickable) return;
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleActivate();
+                          }
+                        }}
+                        role={isClickable ? 'button' : undefined}
+                        tabIndex={isClickable ? 0 : undefined}
+                      >
+                        {isEmpty ? (
                           <span className="ledger-empty">—</span>
                         ) : (
                           <ul className="ledger-reservation-list">
                             {reservationsForCell.map(item => (
                               <li key={item.id} className="ledger-reservation-item">
-                                <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
-                                {item.reservationName && (
-                                  <span className="ledger-reservation-owner">{item.reservationName}</span>
-                                )}
+                                <button
+                                  type="button"
+                                  className="ledger-reservation-button"
+                                  onClick={event => {
+                                    event.stopPropagation();
+                                    if (item.id && onReservationClick) {
+                                      onReservationClick(item.id);
+                                    }
+                                  }}
+                                >
+                                  <span className="ledger-reservation-title">{item.title || '（名称未設定）'}</span>
+                                  <span className="ledger-reservation-owner">
+                                    {item.reservationName || '予約者未設定'}
+                                  </span>
+                                </button>
                               </li>
                             ))}
                           </ul>

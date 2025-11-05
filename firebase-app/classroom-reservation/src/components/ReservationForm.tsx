@@ -163,8 +163,14 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
             onClick={onCreateReservation}
             disabled={loading || conflictCheck.hasConflict}
           >
-            {loading ? '作成中...' : 
-             conflictCheck.hasConflict ? '重複のため予約不可' : '予約を作成'}
+            {loading ? '作成中...' : (
+              conflictCheck.hasConflict ? (
+                <>
+                  <span>重複のため</span>
+                  <span>予約不可</span>
+                </>
+              ) : '予約を作成'
+            )}
           </button>
           <button 
             className="cancel-button"

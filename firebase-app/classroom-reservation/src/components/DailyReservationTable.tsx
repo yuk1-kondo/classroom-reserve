@@ -70,7 +70,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       return a.name.localeCompare(b.name);
     });
   }, [rooms]);
-  
+
   const selectedDateInputValue = React.useMemo(() => {
     if (!selectedDate) return '';
     const v = String(selectedDate);
@@ -83,6 +83,34 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   }, [selectedDate]);
 
   // rooms はコンテキストから供給される
+  const dateFieldId = React.useId();
+  const roomFieldId = React.useId();
+  const periodFieldId = React.useId();
+  const mineCheckboxId = React.useId();
+  const filtersActive = filterRoomId !== 'all' || filterPeriod !== 'all' || filterMine;
+
+  const handleResetFilters = useCallback(() => {
+    setFilterRoomId('all');
+    setFilterPeriod('all');
+    if (onFilterMineChange) {
+      onFilterMineChange(false);
+    }
+  }, [onFilterMineChange]);
+
+  const activeFilterChips = React.useMemo(() => {
+    const chips: string[] = [];
+    if (filterRoomId !== 'all') {
+      const targetRoom = sortedRooms.find(r => String(r.id) === String(filterRoomId));
+      chips.push(`教室: ${targetRoom?.name || '指定'}`);
+    }
+    if (filterPeriod !== 'all') {
+      chips.push(`時限: ${displayLabel(String(filterPeriod))}`);
+    }
+    if (filterMine) {
+      chips.push('自分の予約のみ');
+    }
+    return chips;
+  }, [filterRoomId, filterPeriod, filterMine, sortedRooms]);
 
   // 当日の最新を即時再構築（削除直後の反映用）
   const refreshDayNow = useCallback(async () => {
@@ -396,35 +424,70 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       <div className="table-header">
         <h4>📋 {formatDate(selectedDate)} の予約</h4>
         {/* フィルター（ヘッダー右側） */}
-        <div className="filters">
-          <label>
-            日付:
-            <input type="date" value={selectedDateInputValue} onChange={e => onDateChange && onDateChange(e.target.value)} />
-          </label>
-          <label>
-            教室:
-            <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)}>
+        <div className="filters" role="group" aria-label="予約フィルター">
+          <div className="filter-field">
+            <label htmlFor={dateFieldId}>日付</label>
+            <input
+              id={dateFieldId}
+              type="date"
+              value={selectedDateInputValue}
+              onChange={e => onDateChange && onDateChange(e.target.value)}
+            />
+          </div>
+          <div className="filter-field">
+            <label htmlFor={roomFieldId}>教室</label>
+            <select
+              id={roomFieldId}
+              value={filterRoomId}
+              onChange={e => setFilterRoomId(e.target.value)}
+            >
               <option value="all">すべて</option>
               {sortedRooms.map(r => (
                 <option key={String(r.id)} value={String(r.id)}>{r.name}</option>
               ))}
             </select>
-          </label>
-          <label>
-            時限:
-            <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
+          </div>
+          <div className="filter-field">
+            <label htmlFor={periodFieldId}>時限</label>
+            <select
+              id={periodFieldId}
+              value={filterPeriod}
+              onChange={e => setFilterPeriod(e.target.value)}
+            >
               <option value="all">すべて</option>
               {PERIOD_ORDER.map(p => (
                 <option key={String(p)} value={String(p)}>{displayLabel(String(p))}</option>
               ))}
             </select>
-          </label>
-          <label>
-            自分の予約のみ
-            <input type="checkbox" checked={filterMine} onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)} />
-          </label>
+          </div>
+          <div className="filter-checkbox">
+            <input
+              id={mineCheckboxId}
+              className="filter-checkbox-input"
+              type="checkbox"
+              checked={filterMine}
+              onChange={e => onFilterMineChange && onFilterMineChange(e.target.checked)}
+            />
+            <label htmlFor={mineCheckboxId}>自分の予約のみ</label>
+          </div>
+          <button
+            type="button"
+            className="filters-reset"
+            onClick={handleResetFilters}
+            disabled={!filtersActive}
+          >
+            フィルターをリセット
+          </button>
         </div>
       </div>
+
+      {filtersActive && (
+        <div className="active-filters" role="status" aria-live="polite">
+          {activeFilterChips.map((chip, index) => (
+            <span key={`${chip}-${index}`} className="filter-chip">{chip}</span>
+          ))}
+        </div>
+      )}
 
       {/* タブ */}
       <div className="subtabs tabs-padding">
