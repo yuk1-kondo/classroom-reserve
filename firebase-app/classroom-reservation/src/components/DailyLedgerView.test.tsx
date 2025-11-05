@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { DailyLedgerView } from './DailyLedgerView';
+import DailyLedgerView from './DailyLedgerView';
 import { authService } from '../firebase/auth';
 import { roomsService } from '../firebase/firestore';
 import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
@@ -21,7 +21,7 @@ jest.mock('../contexts/MonthlyReservationsContext', () => ({
     setRange: jest.fn(),
     refetch: jest.fn(),
   }),
-  MonthlyReservationsProvider: ({ children }: any) => <div>{children}</div>,
+  MonthlyReservationsProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe('DailyLedgerView', () => {
