@@ -28,8 +28,8 @@
 
 .ledger-nav-buttons button,
 .ledger-view button {
-  background: var(--color-surface-variant);
-  border: 1px solid var(--color-outline);
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
   border-radius: var(--radius-small);
   padding: 6px 12px;
   cursor: pointer;
@@ -38,7 +38,8 @@
 
 .ledger-nav-buttons button:hover,
 .ledger-view button:hover {
-  background: var(--color-outline-variant);
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 .ledger-date-picker,
@@ -57,31 +58,33 @@
   border-collapse: collapse;
   width: max(100%, 960px);
   min-width: 720px;
-  border: 1px solid var(--color-outline);
+  border: 2px solid #d1d5db;
 }
 
 .ledger-table th,
 .ledger-table td {
-  border: 1px solid var(--color-outline-variant);
+  border: 1px solid #e5e7eb;
   padding: 8px;
   vertical-align: top;
-  background: var(--color-surface);
+  background: #ffffff;
 }
 
 .ledger-period-header {
   position: sticky;
   left: 0;
   z-index: 2;
-  background: var(--color-surface-variant);
+  background: #f3f4f6;
   min-width: 120px;
+  border-right: 2px solid #d1d5db !important;
 }
 
 .ledger-period-cell {
-  background: var(--color-surface-variant);
+  background: #f9fafb;
   min-width: 120px;
   position: sticky;
   left: 0;
   z-index: 1;
+  border-right: 2px solid #d1d5db !important;
 }
 
 .period-label {
@@ -96,8 +99,10 @@
 .ledger-room-header {
   min-width: 140px;
   font-size: 0.9rem;
-  background: var(--color-surface-variant);
+  background: #f3f4f6;
   text-align: center;
+  font-weight: 600;
+  border-bottom: 2px solid #d1d5db !important;
 }
 
 .ledger-reservation-cell {
@@ -124,7 +129,7 @@
   background: #ffffff;
   border-radius: var(--radius-small);
   padding: 6px 8px;
-  border: 1px solid var(--color-outline-variant);
+  border: 1px solid #d1d5db;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
