@@ -31,7 +31,7 @@ export interface AuthUser {
 export const authService = {
   adminPassword: 'admin2025', // 管理者パスワード
   // ログイン有効期間 (ミリ秒)
-  LOGIN_TTL_MS: 1000 * 60 * 60 * 24 * 14, // 14日間に延長
+  LOGIN_TTL_MS: 1000 * 60 * 60 * 24 * 1, // 1日間に短縮（セキュリティ強化）
   LAST_LOGIN_KEY: 'lastLoginAt',
 
   // Googleサインイン
