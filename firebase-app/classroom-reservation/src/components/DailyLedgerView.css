@@ -283,26 +283,31 @@
   border-color: rgba(30, 88, 170, 0.35);
   color: #194c88;
 }
+.ledger-room-header.room-cat-small { background: #e9f3fe; border-color: rgba(30, 88, 170, 0.25); }
 .room-cat-large .ledger-reservation-button {
   background: #fff3e0;
   border-color: rgba(214, 122, 28, 0.36);
   color: #8c4607;
 }
+.ledger-room-header.room-cat-large { background: #fff6e8; border-color: rgba(214, 122, 28, 0.26); }
 .room-cat-purple .ledger-reservation-button {
   background: #ede7f6;
   border-color: rgba(103, 58, 183, 0.35);
   color: #4a2e96;
 }
+.ledger-room-header.room-cat-purple { background: #f1ecfa; border-color: rgba(103, 58, 183, 0.25); }
 .room-cat-blue .ledger-reservation-button {
   background: #e0f2f1;
   border-color: rgba(0, 121, 107, 0.32);
   color: #04695f;
 }
+.ledger-room-header.room-cat-blue { background: #e7f6f5; border-color: rgba(0, 121, 107, 0.22); }
 .room-cat-red .ledger-reservation-button {
   background: #ffebee;
   border-color: rgba(229, 57, 53, 0.35);
   color: #a52724;
 }
+.ledger-room-header.room-cat-red { background: #fef0ee; border-color: rgba(207, 81, 58, 0.24); }
 .room-cat-default .ledger-reservation-button {
   background: #eceff1;
   border-color: rgba(84, 101, 121, 0.3);
@@ -313,12 +318,94 @@
   background: #fafbfd;
 }
 
+/* 低解像度PC向け最適化 (1024x768, 1366x768) */
+@media (max-width: 1400px) {
+  .ledger-preview-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .ledger-preview-date-text {
+    font-size: 1.5rem;
+  }
+
+  .ledger-preview-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ledger-preview-manage {
+    font-size: 0.82rem;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ledger-view {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .ledger-table {
+    min-width: 800px;
+  }
+
+  .ledger-room-header {
+    min-width: 120px;
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+
+  .ledger-reservation-cell {
+    min-width: 120px;
+    padding: 6px 8px;
+  }
+
+  .period-cell-inner {
+    padding: 10px 8px;
+    min-height: 56px;
+  }
+
+  .period-label {
+    font-size: 0.85rem;
+  }
+
+  .period-time {
+    font-size: 0.65rem;
+  }
+
+  .ledger-reservation-button {
+    padding: 6px 10px;
+    min-height: 48px;
+  }
+
+  .ledger-reservation-title {
+    font-size: 0.75rem;
+  }
+
+  .ledger-reservation-owner {
+    font-size: 0.65rem;
+  }
+}
+
 @media (max-width: 900px) {
   .ledger-view {
-    padding: 16px;
+    padding: 12px;
   }
 
   .ledger-table {
     min-width: 640px;
+  }
+
+  .ledger-room-header {
+    min-width: 100px;
+    font-size: 0.78rem;
+    padding: 6px 8px;
+  }
+
+  .ledger-reservation-cell {
+    min-width: 100px;
+    padding: 5px 6px;
   }
 }

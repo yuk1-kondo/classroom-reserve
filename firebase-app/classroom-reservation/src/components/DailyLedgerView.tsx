@@ -235,6 +235,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
   }, [onDateChange]);
 
   const displayRooms = rooms;
+  const tableWrapperRef = React.useRef<HTMLDivElement | null>(null);
 
   const toolbarClassName = showFilterMineToggle ? 'ledger-toolbar' : 'ledger-toolbar ledger-toolbar--compact';
 
@@ -247,6 +248,23 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
       setLoading(true);
     }
   }, [displayRooms.length, normalizedDate]);
+
+  // Shift+ホイールで横スクロール
+  useEffect(() => {
+    const wrapper = tableWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.shiftKey || e.deltaX !== 0) {
+        // Shiftキーが押されている、または横スクロールイベントの場合
+        e.preventDefault();
+        wrapper.scrollLeft += e.deltaY || e.deltaX;
+      }
+    };
+
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handleWheel);
+  }, []);
 
   return (
     <div className={`ledger-view ${loading ? 'is-loading' : ''}`.trim()}>
@@ -294,19 +312,22 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
           )}
         </div>
       )}
-      <div className="ledger-table-wrapper">
+      <div className="ledger-table-wrapper" ref={tableWrapperRef}>
         <table className="ledger-table">
           <thead>
             <tr>
               <th className="ledger-period-header">時限</th>
-              {displayRooms.map(room => (
-                <th
-                  key={String(room.id || room.name)}
-                  className="ledger-room-header"
-                >
-                  {room.name}
-                </th>
-              ))}
+              {displayRooms.map(room => {
+                const headerCat = classifyRoom(room.name);
+                return (
+                  <th
+                    key={String(room.id || room.name)}
+                    className={`ledger-room-header ${headerCat}`.trim()}
+                  >
+                    {room.name}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
