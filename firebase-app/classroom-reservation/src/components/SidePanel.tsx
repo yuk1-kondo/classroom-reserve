@@ -250,7 +250,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
           {/* 実用的な運用案内メッセージ */}
           <div className="info-message">
-            <p>⚠️ 教室予約済みの場合は先生間で相談し変更して下さい</p>
+            <p>⚠️ 教室が予約済みの場合は先生間で相談して変更して下さい</p>
           </div>
         </div>
       ) : (
