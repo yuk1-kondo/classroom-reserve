@@ -161,13 +161,14 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
   // 仕様変更（要望に合わせて更新）:
-  // - 管理者（super/regular 共通）は誰の予約でも削除可能
-  // - 一般ユーザーは作成者本人のみ削除可能
+  // - 管理者（super/regular 共通）は誰の予約でも削除・編集可能
+  // - 一般ユーザーは作成者本人のみ削除可能（編集は不可）
   const { isAdmin } = useAuth();
   const isCreator = reservation?.createdBy && authService.getCurrentUser()?.uid === reservation?.createdBy;
   // 管理者は常に削除可能。一般ユーザーは作成者のみ。
   const canDelete = isAdmin || (isCreator === true);
-  const canEdit = isAdmin || (isCreator === true);
+  // 編集は管理者のみ可能（一般ユーザーには編集ボタンを非表示）
+  const canEdit = isAdmin;
 
   useEffect(() => {
     if (showDeleteConfirm && confirmDeleteBtnRef.current) {
