@@ -11,8 +11,46 @@ import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
 import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
-import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
+import { MonthlyReservationsProvider, useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { toDateStr } from '../utils/dateRange';
+
+// 日付ナビゲーションボタン用の内部コンポーネント
+const DateNavigationButtons: React.FC<{
+  selectedDate: string;
+  onShiftDate: (offset: number) => void;
+  onJumpToToday: () => void;
+}> = ({ selectedDate, onShiftDate, onJumpToToday }) => {
+  const { loading } = useMonthlyReservations();
+  
+  return (
+    <div className="ledger-preview-nav" role="group" aria-label="日付移動">
+      <button 
+        type="button" 
+        onClick={() => onShiftDate(-1)}
+        disabled={loading}
+        aria-label="前日"
+      >
+        &lt; 前日
+      </button>
+      <button 
+        type="button" 
+        onClick={onJumpToToday}
+        disabled={loading}
+        aria-label="今日"
+      >
+        今日
+      </button>
+      <button 
+        type="button" 
+        onClick={() => onShiftDate(1)}
+        disabled={loading}
+        aria-label="翌日"
+      >
+        翌日 &gt;
+      </button>
+    </div>
+  );
+};
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
@@ -180,11 +218,11 @@ export const MainApp: React.FC = () => {
         <main className="main-content">
           <div className="ledger-preview-section">
             <div className="ledger-preview-header">
-              <div className="ledger-preview-nav" role="group" aria-label="日付移動">
-                <button type="button" onClick={() => handleShiftDate(-1)}>&lt; 前日</button>
-                <button type="button" onClick={handleJumpToToday}>今日</button>
-                <button type="button" onClick={() => handleShiftDate(1)}>翌日 &gt;</button>
-              </div>
+              <DateNavigationButtons
+                selectedDate={selectedDate}
+                onShiftDate={handleShiftDate}
+                onJumpToToday={handleJumpToToday}
+              />
               <div className="ledger-preview-date-block">
                 <span className="ledger-preview-date-text">{previewDateText || '日付未選択'}</span>
               </div>
