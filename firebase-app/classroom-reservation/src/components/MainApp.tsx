@@ -52,24 +52,61 @@ const DateNavigationButtons: React.FC<{
   );
 };
 
+const SELECTED_DATE_STORAGE_KEY = 'owa-cbs-selected-date';
+
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  // localStorageから保存された日付を読み込む
+  const getStoredDate = (): string | null => {
+    try {
+      const stored = localStorage.getItem(SELECTED_DATE_STORAGE_KEY);
+      if (stored) {
+        // 日付の妥当性チェック（YYYY-MM-DD形式）
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(stored)) {
+          // 有効な日付かチェック
+          const date = new Date(`${stored}T00:00:00`);
+          if (!isNaN(date.getTime())) {
+            return stored;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('localStorage読み込みエラー:', e);
+    }
+    return null;
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    // 初期化時にlocalStorageから読み込む
+    const stored = getStoredDate();
+    return stored || '';
+  });
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
+  const [dailyTableDate, setDailyTableDate] = useState<string>(() => {
+    // 初期化時にlocalStorageから読み込む
+    const stored = getStoredDate();
+    return stored || '';
+  });
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefillRequest, setPrefillRequest] = useState<{ roomId: string; period: string; version: number } | null>(null);
 
-  // 初期日付設定
+  // 初期日付設定（localStorageに保存されていない場合のみ今日の日付を設定）
   useEffect(() => {
     if (!selectedDate) {
       const today = toDateStr(new Date());
       setSelectedDate(today);
       setDailyTableDate(today);
+      // localStorageにも保存
+      try {
+        localStorage.setItem(SELECTED_DATE_STORAGE_KEY, today);
+      } catch (e) {
+        console.warn('localStorage保存エラー:', e);
+      }
     }
   }, [selectedDate]);
 
@@ -78,6 +115,12 @@ export const MainApp: React.FC = () => {
     const normalized = dateStr;
     setSelectedDate(normalized);
     setDailyTableDate(normalized);
+    // localStorageに保存
+    try {
+      localStorage.setItem(SELECTED_DATE_STORAGE_KEY, normalized);
+    } catch (e) {
+      console.warn('localStorage保存エラー:', e);
+    }
   }, []);
 
   const handleDateClick = (dateStr: string) => {
@@ -187,7 +230,14 @@ export const MainApp: React.FC = () => {
   const handleShiftDate = useCallback((offset: number) => {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
     base.setDate(base.getDate() + offset);
-    handleDateNavigate(toDateStr(base));
+    const newDate = toDateStr(base);
+    handleDateNavigate(newDate);
+    // handleDateNavigate内でlocalStorageに保存されるが、念のため明示的に保存
+    try {
+      localStorage.setItem(SELECTED_DATE_STORAGE_KEY, newDate);
+    } catch (e) {
+      console.warn('localStorage保存エラー:', e);
+    }
   }, [selectedDate, handleDateNavigate]);
 
   return (
