@@ -11,27 +11,102 @@ import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
 import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
-import { MonthlyReservationsProvider } from '../contexts/MonthlyReservationsContext';
+import { MonthlyReservationsProvider, useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { toDateStr } from '../utils/dateRange';
+
+// 日付ナビゲーションボタン用の内部コンポーネント
+const DateNavigationButtons: React.FC<{
+  selectedDate: string;
+  onShiftDate: (offset: number) => void;
+  onJumpToToday: () => void;
+}> = ({ selectedDate, onShiftDate, onJumpToToday }) => {
+  const { loading } = useMonthlyReservations();
+  
+  return (
+    <div className="ledger-preview-nav" role="group" aria-label="日付移動">
+      <button 
+        type="button" 
+        onClick={() => onShiftDate(-1)}
+        disabled={loading}
+        aria-label="前日"
+      >
+        &lt; 前日
+      </button>
+      <button 
+        type="button" 
+        onClick={onJumpToToday}
+        disabled={loading}
+        aria-label="今日"
+      >
+        今日
+      </button>
+      <button 
+        type="button" 
+        onClick={() => onShiftDate(1)}
+        disabled={loading}
+        aria-label="翌日"
+      >
+        翌日 &gt;
+      </button>
+    </div>
+  );
+};
+
+const SELECTED_DATE_STORAGE_KEY = 'owa-cbs-selected-date';
 
 export const MainApp: React.FC = () => {
   const { currentUser } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  // localStorageから保存された日付を読み込む
+  const getStoredDate = (): string | null => {
+    try {
+      const stored = localStorage.getItem(SELECTED_DATE_STORAGE_KEY);
+      if (stored) {
+        // 日付の妥当性チェック（YYYY-MM-DD形式）
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(stored)) {
+          // 有効な日付かチェック
+          const date = new Date(`${stored}T00:00:00`);
+          if (!isNaN(date.getTime())) {
+            return stored;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('localStorage読み込みエラー:', e);
+    }
+    return null;
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    // 初期化時にlocalStorageから読み込む
+    const stored = getStoredDate();
+    return stored || '';
+  });
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [dailyTableDate, setDailyTableDate] = useState<string>(''); // 日別表示用の日付
+  const [dailyTableDate, setDailyTableDate] = useState<string>(() => {
+    // 初期化時にlocalStorageから読み込む
+    const stored = getStoredDate();
+    return stored || '';
+  });
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
   const [prefillRequest, setPrefillRequest] = useState<{ roomId: string; period: string; version: number } | null>(null);
 
-  // 初期日付設定
+  // 初期日付設定（localStorageに保存されていない場合のみ今日の日付を設定）
   useEffect(() => {
     if (!selectedDate) {
       const today = toDateStr(new Date());
       setSelectedDate(today);
       setDailyTableDate(today);
+      // localStorageにも保存
+      try {
+        localStorage.setItem(SELECTED_DATE_STORAGE_KEY, today);
+      } catch (e) {
+        console.warn('localStorage保存エラー:', e);
+      }
     }
   }, [selectedDate]);
 
@@ -40,6 +115,12 @@ export const MainApp: React.FC = () => {
     const normalized = dateStr;
     setSelectedDate(normalized);
     setDailyTableDate(normalized);
+    // localStorageに保存
+    try {
+      localStorage.setItem(SELECTED_DATE_STORAGE_KEY, normalized);
+    } catch (e) {
+      console.warn('localStorage保存エラー:', e);
+    }
   }, []);
 
   const handleDateClick = (dateStr: string) => {
@@ -149,7 +230,14 @@ export const MainApp: React.FC = () => {
   const handleShiftDate = useCallback((offset: number) => {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
     base.setDate(base.getDate() + offset);
-    handleDateNavigate(toDateStr(base));
+    const newDate = toDateStr(base);
+    handleDateNavigate(newDate);
+    // handleDateNavigate内でlocalStorageに保存されるが、念のため明示的に保存
+    try {
+      localStorage.setItem(SELECTED_DATE_STORAGE_KEY, newDate);
+    } catch (e) {
+      console.warn('localStorage保存エラー:', e);
+    }
   }, [selectedDate, handleDateNavigate]);
 
   return (
@@ -180,11 +268,11 @@ export const MainApp: React.FC = () => {
         <main className="main-content">
           <div className="ledger-preview-section">
             <div className="ledger-preview-header">
-              <div className="ledger-preview-nav" role="group" aria-label="日付移動">
-                <button type="button" onClick={() => handleShiftDate(-1)}>&lt; 前日</button>
-                <button type="button" onClick={handleJumpToToday}>今日</button>
-                <button type="button" onClick={() => handleShiftDate(1)}>翌日 &gt;</button>
-              </div>
+              <DateNavigationButtons
+                selectedDate={selectedDate}
+                onShiftDate={handleShiftDate}
+                onJumpToToday={handleJumpToToday}
+              />
               <div className="ledger-preview-date-block">
                 <span className="ledger-preview-date-text">{previewDateText || '日付未選択'}</span>
               </div>

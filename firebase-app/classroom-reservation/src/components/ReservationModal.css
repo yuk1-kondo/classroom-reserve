@@ -101,7 +101,7 @@
   align-items: stretch;
   gap: 10px;
   margin: 20px 0 16px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .reservation-actions.confirm-mode { margin-top: 4px; }
@@ -367,6 +367,7 @@
 @media (max-width: 640px) {
   .reservation-actions {
     flex-direction: column;
+    justify-content: stretch;
   }
   .reservation-actions .edit-button,
   .reservation-actions .delete-button {

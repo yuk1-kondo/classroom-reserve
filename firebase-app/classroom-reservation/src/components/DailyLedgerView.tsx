@@ -165,7 +165,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
 }) => {
   const normalizedDate = normalizeDateInput(date);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const { reservations, setRange } = useMonthlyReservations();
+  const { reservations, setRange, loading: reservationsLoading } = useMonthlyReservations();
   const [loading, setLoading] = useState<boolean>(true);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
@@ -278,6 +278,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
               type="button"
               className="ledger-nav-button"
               onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() - 86400000)))}
+              disabled={reservationsLoading}
+              aria-label="前日"
             >
               &lt; 前日
             </button>
@@ -285,6 +287,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
               type="button"
               className="ledger-nav-button"
               onClick={() => handleDateChange(toDateStr(new Date()))}
+              disabled={reservationsLoading}
+              aria-label="今日"
             >
               今日
             </button>
@@ -292,6 +296,8 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
               type="button"
               className="ledger-nav-button"
               onClick={() => handleDateChange(toDateStr(new Date(new Date(`${normalizedDate}T00:00:00`).getTime() + 86400000)))}
+              disabled={reservationsLoading}
+              aria-label="翌日"
             >
               翌日 &gt;
             </button>
