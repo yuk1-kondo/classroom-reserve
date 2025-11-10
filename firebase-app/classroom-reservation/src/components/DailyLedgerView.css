@@ -107,6 +107,8 @@
 
 .ledger-table-wrapper {
   overflow-x: auto;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
   border-radius: 12px;
   border: 1px solid #c5ccd7;
   background: #ffffff;

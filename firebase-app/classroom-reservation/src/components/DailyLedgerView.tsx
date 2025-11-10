@@ -248,21 +248,58 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
     }
   }, [displayRooms.length, normalizedDate]);
 
-  // Shift+ホイールで横スクロール
+  // Shift+ホイールで横スクロール、縦スクロール時の横移動を防止
   useEffect(() => {
     const wrapper = tableWrapperRef.current;
     if (!wrapper) return;
 
+    let lastScrollLeft = wrapper.scrollLeft;
+    let isLockingHorizontal = false;
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const handleWheel = (e: WheelEvent) => {
-      if (e.shiftKey || e.deltaX !== 0) {
-        // Shiftキーが押されている、または横スクロールイベントの場合
+      // Shiftキーが押されている場合のみ横スクロール
+      if (e.shiftKey) {
         e.preventDefault();
-        wrapper.scrollLeft += e.deltaY || e.deltaX;
+        wrapper.scrollLeft += e.deltaY;
+        lastScrollLeft = wrapper.scrollLeft;
+        isLockingHorizontal = false;
+      }
+      // 縦スクロールの場合（deltaYの方が大きい）
+      else if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        // 縦スクロール時は横スクロール位置を固定
+        isLockingHorizontal = true;
+        wrapper.scrollLeft = lastScrollLeft;
+        // スクロール終了後にロックを解除
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          isLockingHorizontal = false;
+          lastScrollLeft = wrapper.scrollLeft;
+        }, 150);
+      }
+      // 横スクロールのみの場合
+      else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        isLockingHorizontal = false;
+        lastScrollLeft = wrapper.scrollLeft;
+      }
+    };
+
+    const handleScroll = () => {
+      // 縦スクロール中は横スクロール位置を固定
+      if (isLockingHorizontal && wrapper.scrollLeft !== lastScrollLeft) {
+        wrapper.scrollLeft = lastScrollLeft;
+      } else if (!isLockingHorizontal) {
+        lastScrollLeft = wrapper.scrollLeft;
       }
     };
 
     wrapper.addEventListener('wheel', handleWheel, { passive: false });
-    return () => wrapper.removeEventListener('wheel', handleWheel);
+    wrapper.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      wrapper.removeEventListener('wheel', handleWheel);
+      wrapper.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
   }, []);
 
   return (
