@@ -195,6 +195,13 @@
   padding: 8px 10px;
 }
 
+/* 空きスロットのセルのみ中央配置 */
+.ledger-reservation-cell:has(> .ledger-empty:only-child) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .ledger-empty {
   display: inline-block;
   color: #6b7a8a;
