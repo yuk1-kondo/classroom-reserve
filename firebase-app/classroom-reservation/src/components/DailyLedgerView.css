@@ -129,11 +129,12 @@
 .ledger-period-header {
   position: sticky;
   left: 0;
-  z-index: 8;
+  z-index: 10;
   background: #edf1f7;
   min-width: 108px;
-  border-right: 1px solid #c5ccd7;
+  border-right: 2px solid #c5ccd7;
   border-left: 1px solid #c5ccd7;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
 }
 
 .ledger-period-cell {
@@ -141,9 +142,10 @@
   min-width: 108px;
   position: sticky;
   left: 0;
-  z-index: 7;
+  z-index: 9;
   padding: 0;
-  border-right: 1px solid #c5ccd7;
+  border-right: 2px solid #c5ccd7;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
 }
 
 .period-cell-inner {
