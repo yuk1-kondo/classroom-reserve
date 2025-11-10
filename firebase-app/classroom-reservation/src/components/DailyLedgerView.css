@@ -129,12 +129,13 @@
 .ledger-period-header {
   position: sticky;
   left: 0;
+  top: 0;
   z-index: 10;
   background: #edf1f7;
   min-width: 108px;
-  border-right: 2px solid #c5ccd7;
+  border-right: 1px solid #c5ccd7;
   border-left: 1px solid #c5ccd7;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .ledger-period-cell {
@@ -142,10 +143,9 @@
   min-width: 108px;
   position: sticky;
   left: 0;
-  z-index: 9;
+  z-index: 7;
   padding: 0;
-  border-right: 2px solid #c5ccd7;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+  border-right: 1px solid #c5ccd7;
 }
 
 .period-cell-inner {
@@ -180,6 +180,10 @@
   color: #1f2a35;
   font-weight: 600;
   letter-spacing: 0.01em;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .ledger-room-header:last-child {
