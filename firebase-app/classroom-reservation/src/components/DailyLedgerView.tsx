@@ -399,7 +399,7 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
                     return (
                       <td
                         key={`${room.id || room.name}-${periodKey}`}
-                        className={`ledger-reservation-cell ${categoryClass} ${isClickable ? 'ledger-cell-clickable' : ''}`.trim()}
+                        className={`ledger-reservation-cell ${categoryClass} ${isClickable ? 'ledger-cell-clickable' : ''} ${isEmpty ? 'ledger-cell-empty' : ''}`.trim()}
                         onClick={handleActivate}
                         onKeyDown={event => {
                           if (!isClickable) return;

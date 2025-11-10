@@ -196,7 +196,7 @@
 }
 
 /* 空きスロットのセルのみ中央配置 */
-.ledger-reservation-cell:has(> .ledger-empty:only-child) {
+.ledger-reservation-cell.ledger-cell-empty {
   display: flex;
   align-items: center;
   justify-content: center;
