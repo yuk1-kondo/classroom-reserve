@@ -107,6 +107,8 @@
 
 .ledger-table-wrapper {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
   border-radius: 12px;
   border: 1px solid #c5ccd7;
   background: #ffffff;
@@ -115,7 +117,14 @@
 .ledger-table {
   width: 100%;
   min-width: 920px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ledger-table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .ledger-table th,
@@ -184,6 +193,7 @@
   top: 0;
   z-index: 6;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-clip: padding-box;
 }
 
 .ledger-room-header:last-child {
