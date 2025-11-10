@@ -38,10 +38,10 @@ export function getPeriodTimeMapForDate(dateStr: string): Record<PeriodKey, { st
   try {
     const d = new Date(`${dateStr}T00:00:00`);
     const dow = d.getDay(); // 0:Sun,1:Mon,...,6:Sat
-    // 火曜(2)、木曜(4)、金曜(5)は6限終了後すぐ放課後（15:45開始）
-    // 月曜(1)、水曜(3)は7限後の放課後（16:25開始）
-    // 土日(0,6)は7限後の放課後（16:25開始）
-    const afterStart = (dow === 2 || dow === 4 || dow === 5) ? '15:45' : '16:25';
+    // 火曜(2)、木曜(4)、金曜(5)は6限終了後すぐ放課後（15:15開始）
+    // 月曜(1)、水曜(3)は7限後の放課後（16:15開始）
+    // 土日(0,6)は7限後の放課後（16:15開始）
+    const afterStart = (dow === 2 || dow === 4 || dow === 5) ? '15:15' : '16:15';
     return {
       ...periodTimeMap,
       after: { ...periodTimeMap.after, start: afterStart }
