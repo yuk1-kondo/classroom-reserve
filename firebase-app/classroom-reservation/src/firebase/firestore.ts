@@ -605,6 +605,101 @@ export const reservationsService = {
     });
   },
 
+  // 複数時限予約の一部削除
+  async deletePartialPeriods(reservationId: string, periodsToDelete: string[]): Promise<void> {
+    const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+    const attempt = async () => {
+      await runTransaction(db, async (tx: Transaction) => {
+        const resRef = doc(db, RESERVATIONS_COLLECTION, reservationId);
+        const snap = await tx.get(resRef);
+        if (!snap.exists()) {
+          throw new Error('予約が見つかりません');
+        }
+        const data = snap.data() as Reservation;
+        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
+        const allPeriods = this._periods(data.period);
+        
+        // 削除対象の時限を除外
+        const remainingPeriods = allPeriods.filter(p => !periodsToDelete.includes(p.trim()));
+        
+        if (remainingPeriods.length === 0) {
+          // 残りが0なら全部削除
+          tx.delete(resRef);
+          for (const p of allPeriods) {
+            const slotId = makeSlotId(data.roomId, dateStr, p);
+            const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+            tx.delete(slotRef);
+          }
+          await updateMonthOverviewInTx(tx, dateStr, -1);
+        } else if (remainingPeriods.length === 1) {
+          // 残りが1時限なら、単一時限予約に更新
+          const singlePeriod = remainingPeriods[0];
+          const dt = createDTFromPeriod(dateStr, singlePeriod);
+          if (!dt) throw new Error('時限の日時作成に失敗しました');
+          
+          // 削除対象のスロットを削除
+          for (const p of periodsToDelete) {
+            const slotId = makeSlotId(data.roomId, dateStr, p);
+            const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+            tx.delete(slotRef);
+          }
+          
+          // 予約を更新
+          const periodName = dt.periodName || displayLabel(singlePeriod);
+          tx.update(resRef, {
+            period: singlePeriod,
+            periodName: periodName,
+            startTime: Timestamp.fromDate(dt.start),
+            endTime: Timestamp.fromDate(dt.end),
+            updatedAt: Timestamp.now()
+          });
+        } else {
+          // 残りが複数時限なら、複数時限予約として更新
+          const firstPeriod = remainingPeriods[0];
+          const lastPeriod = remainingPeriods[remainingPeriods.length - 1];
+          const dtStart = createDTFromPeriod(dateStr, firstPeriod);
+          const dtEnd = createDTFromPeriod(dateStr, lastPeriod);
+          if (!dtStart || !dtEnd) throw new Error('時限の日時作成に失敗しました');
+          
+          // 削除対象のスロットを削除
+          for (const p of periodsToDelete) {
+            const slotId = makeSlotId(data.roomId, dateStr, p);
+            const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
+            tx.delete(slotRef);
+          }
+          
+          // 予約を更新
+          const periodStr = remainingPeriods.join(',');
+          const periodName = `${displayLabel(firstPeriod)}〜${displayLabel(lastPeriod)}`;
+          tx.update(resRef, {
+            period: periodStr,
+            periodName: periodName,
+            startTime: Timestamp.fromDate(dtStart.start),
+            endTime: Timestamp.fromDate(dtEnd.end),
+            updatedAt: Timestamp.now()
+          });
+        }
+      });
+    };
+    let lastErr: any = null;
+    for (let i = 0; i < 3; i++) {
+      try {
+        await attempt();
+        return;
+      } catch (error: any) {
+        lastErr = error;
+        const code = (error && (error.code || error.message)) || '';
+        if (typeof code === 'string' && (/resource-exhausted/i.test(code) || /aborted/i.test(code) || /Too Many Requests/i.test(code))) {
+          await sleep(400 * Math.pow(2, i));
+          continue;
+        }
+        break;
+      }
+    }
+    console.error('一部削除エラー:', lastErr);
+    throw lastErr;
+  },
+
   // 管理者機能：全ての予約を削除
   async deleteAllReservations(): Promise<void> { // 旧方式（小規模データ向け）
     try {

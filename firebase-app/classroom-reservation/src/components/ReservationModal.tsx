@@ -6,7 +6,7 @@ import { authService } from '../firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
-import { formatPeriodDisplay } from '../utils/periodLabel';
+import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 
 interface ReservationModalProps {
@@ -27,6 +27,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<'full' | 'partial' | null>(null);
+  const [selectedPeriodsToDelete, setSelectedPeriodsToDelete] = useState<Set<string>>(new Set());
   const confirmDeleteBtnRef = useRef<HTMLButtonElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -75,9 +77,24 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       setLoading(false);
       setError('');
       setShowDeleteConfirm(false);
+      setDeleteMode(null);
+      setSelectedPeriodsToDelete(new Set());
       setIsEditing(false);
     }
   }, [isOpen, reservationId, loadReservation]);
+
+  // 複数時限予約かどうかを判定
+  const isMultiPeriodReservation = (r: Reservation | null): boolean => {
+    if (!r || !r.period) return false;
+    const periods = r.period.includes(',') ? r.period.split(',').map(p => p.trim()).filter(Boolean) : [r.period];
+    return periods.length > 1;
+  };
+
+  // 時限の配列を取得
+  const getPeriods = (r: Reservation | null): string[] => {
+    if (!r || !r.period) return [];
+    return r.period.includes(',') ? r.period.split(',').map(p => p.trim()).filter(Boolean) : [r.period];
+  };
 
   // 表示は period から再構築（periodName は参考のみ）
   const periodDisplay = (r: Reservation): string => {
@@ -101,9 +118,20 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
     try {
       setLoading(true);
-      // 読み取りクォータ節約：予約が読み込めている場合はゼロリード版を使用
-      await reservationsService.deleteReservationWithKnown(reservation as Reservation);
-      console.log('✅ 予約削除成功');
+      
+      if (deleteMode === 'partial' && selectedPeriodsToDelete.size > 0) {
+        // 一部削除
+        const periodsToDelete = Array.from(selectedPeriodsToDelete);
+        await reservationsService.deletePartialPeriods(reservation.id, periodsToDelete);
+        console.log('✅ 一部削除成功');
+        toast.success(`${periodsToDelete.length}時限を削除しました`);
+      } else {
+        // 全部削除
+        await reservationsService.deleteReservationWithKnown(reservation as Reservation);
+        console.log('✅ 予約削除成功');
+        toast.success('予約を削除しました');
+      }
+      
       // 台帳/カレンダーの即時反映
       try { await refetch(); } catch {}
       try {
@@ -112,7 +140,6 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         }));
       } catch {}
       
-      toast.success('予約を削除しました');
       onClose();
       
       // リロードせずに、コールバックで親コンポーネントに通知（差分更新）
@@ -130,6 +157,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     } finally {
       setLoading(false);
       setShowDeleteConfirm(false);
+      setDeleteMode(null);
+      setSelectedPeriodsToDelete(new Set());
     }
   };
 
@@ -306,27 +335,118 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
             {canDelete && showDeleteConfirm && (
               <div className="delete-inline improved" role="alertdialog" aria-label="削除確認">
-                <div className="confirm-left">
-                  <span className="confirm-text-strong">削除しますか？</span>
-                  <span className="confirm-sub">取り消しはできません</span>
-                </div>
-                <div className="inline-buttons">
-                  <button 
-                    ref={confirmDeleteBtnRef}
-                    className="confirm-delete-btn"
-                    onClick={handleDelete}
-                    disabled={loading}
-                  >
-                    確定
-                  </button>
-                  <button 
-                    className="cancel-delete-btn"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    disabled={loading}
-                  >
-                    キャンセル
-                  </button>
-                </div>
+                {isMultiPeriodReservation(reservation) && deleteMode === null ? (
+                  // 複数時限予約の場合：削除モードを選択
+                  <div className="delete-mode-selection">
+                    <div className="confirm-left">
+                      <span className="confirm-text-strong">削除方法を選択してください</span>
+                      <span className="confirm-sub">この予約は複数時限です</span>
+                    </div>
+                    <div className="delete-mode-buttons">
+                      <button 
+                        className="delete-mode-btn full"
+                        onClick={() => setDeleteMode('full')}
+                        disabled={loading}
+                      >
+                        全部削除
+                      </button>
+                      <button 
+                        className="delete-mode-btn partial"
+                        onClick={() => setDeleteMode('partial')}
+                        disabled={loading}
+                      >
+                        一部削除
+                      </button>
+                      <button 
+                        className="cancel-delete-btn"
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteMode(null);
+                        }}
+                        disabled={loading}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                ) : isMultiPeriodReservation(reservation) && deleteMode === 'partial' ? (
+                  // 一部削除モード：時限を選択
+                  <div className="partial-delete-selection">
+                    <div className="confirm-left">
+                      <span className="confirm-text-strong">削除する時限を選択してください</span>
+                      <span className="confirm-sub">チェックした時限のみ削除されます</span>
+                    </div>
+                    <div className="period-checkboxes">
+                      {getPeriods(reservation).map(period => (
+                        <label key={period} className="period-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={selectedPeriodsToDelete.has(period)}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedPeriodsToDelete);
+                              if (e.target.checked) {
+                                newSet.add(period);
+                              } else {
+                                newSet.delete(period);
+                              }
+                              setSelectedPeriodsToDelete(newSet);
+                            }}
+                            disabled={loading}
+                          />
+                          <span>{displayLabel(period)}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="inline-buttons">
+                      <button 
+                        ref={confirmDeleteBtnRef}
+                        className="confirm-delete-btn"
+                        onClick={handleDelete}
+                        disabled={loading || selectedPeriodsToDelete.size === 0}
+                      >
+                        確定 ({selectedPeriodsToDelete.size}時限削除)
+                      </button>
+                      <button 
+                        className="cancel-delete-btn"
+                        onClick={() => {
+                          setDeleteMode(null);
+                          setSelectedPeriodsToDelete(new Set());
+                        }}
+                        disabled={loading}
+                      >
+                        戻る
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // 全部削除または単一時限予約の場合
+                  <div className="confirm-left">
+                    <span className="confirm-text-strong">削除しますか？</span>
+                    <span className="confirm-sub">取り消しはできません</span>
+                  </div>
+                )}
+                {deleteMode === 'full' && (
+                  <div className="inline-buttons">
+                    <button 
+                      ref={confirmDeleteBtnRef}
+                      className="confirm-delete-btn"
+                      onClick={handleDelete}
+                      disabled={loading}
+                    >
+                      確定
+                    </button>
+                    <button 
+                      className="cancel-delete-btn"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteMode(null);
+                      }}
+                      disabled={loading}
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

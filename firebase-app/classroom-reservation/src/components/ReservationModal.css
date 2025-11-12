@@ -388,6 +388,101 @@
 }
 .delete-inline.improved .confirm-left { margin: 0; }
 .delete-inline.improved .inline-buttons { display: flex; gap: 10px; justify-content: center; }
+
+/* 削除モード選択 */
+.delete-mode-selection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.delete-mode-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.delete-mode-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.delete-mode-btn.full {
+  background: var(--color-error);
+  color: #fff;
+  border-color: var(--color-error);
+}
+
+.delete-mode-btn.full:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.delete-mode-btn.partial {
+  background: #fff;
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.delete-mode-btn.partial:hover:not(:disabled) {
+  background: #fff5f2;
+}
+
+.delete-mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 一部削除選択 */
+.partial-delete-selection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.period-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.period-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.period-checkbox-label:hover {
+  background: #e9ecef;
+}
+
+.period-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.period-checkbox-label span {
+  font-size: 13px;
+  color: #37474f;
+  font-weight: 500;
+}
 .confirm-left { display: flex; flex-direction: column; gap: 2px; }
 .confirm-text-strong { color: #c62828; font-weight: 700; font-size: 14px; }
 .confirm-sub { color: #b71c1c; font-size: 11px; font-weight: 500; }
