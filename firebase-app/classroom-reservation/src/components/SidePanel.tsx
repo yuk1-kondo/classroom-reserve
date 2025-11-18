@@ -98,14 +98,17 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
-  // 予約作成: 先日付制限の検証を噛ませる
+  // 予約作成: 先日付制限の検証を噛ませる（管理者の場合はスキップ）
   const handleCreateWithLimit = async () => {
-    const dates = formHook.getReservationDates();
-    const result = validateDatesWithinMax(dates, maxDateStr);
-    if (!result.ok) {
-      const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
-      toast.error(msg, { duration: 4000 });
-      return;
+    // 管理者の場合は日付制限をスキップ
+    if (!isAdmin) {
+      const dates = formHook.getReservationDates();
+      const result = validateDatesWithinMax(dates, maxDateStr);
+      if (!result.ok) {
+        const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
+        toast.error(msg, { duration: 4000 });
+        return;
+      }
     }
     await formHook.handleCreateReservation();
   };
@@ -218,8 +221,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             onCreateReservation={handleCreateWithLimit}
             reservations={reservations}
             selectedDate={selectedDate}
-            maxDateStr={maxDateStr}
+            maxDateStr={isAdmin ? undefined : maxDateStr}
             limitMonths={limitMonths}
+            isAdmin={isAdmin}
           />
 
           {/* 管理者機能セクション */}

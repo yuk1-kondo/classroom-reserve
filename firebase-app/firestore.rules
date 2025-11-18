@@ -47,11 +47,14 @@ service cloud.firestore {
     match /reservations/{reservationId} {
       allow read: if true;
       // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
+      // 管理者の場合は日付制限をスキップ
       allow create: if isAuthenticated()
         && request.resource.data.createdBy == request.auth.uid
         && (
+          // 管理者の場合は制限なし
+          isAdmin()
           // 設定が無ければ制限なし
-          !exists(/databases/$(database)/documents/system_settings/global)
+          || !exists(/databases/$(database)/documents/system_settings/global)
           || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
           || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
         );

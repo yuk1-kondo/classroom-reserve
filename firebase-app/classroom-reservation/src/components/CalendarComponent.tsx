@@ -10,6 +10,7 @@ import './CalendarComponent.css';
 import { displayLabel, formatPeriodDisplay } from '../utils/periodLabel';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { authService } from '../firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import DailyLedgerView from './DailyLedgerView';
 import { toDateStr } from '../utils/dateRange';
@@ -90,6 +91,7 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   const filterMine = propFilterMine ?? false;
   const lastFetchedRangeRef = useRef<{ start: number; end: number } | null>(null);
   const { maxDateStr } = useSystemSettings();
+  const { isAdmin } = useAuth();
   const isLedgerView = displayView === 'ledger';
   const ledgerModeRef = useRef(isLedgerView);
 
@@ -128,13 +130,14 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
   }, []);
 
   const dayCellClassNames = useCallback((arg: any) => {
-    if (!maxDateStr) return [];
+    // 管理者の場合は日付制限をスキップ
+    if (isAdmin || !maxDateStr) return [];
     const cellDate: Date = arg.date;
     if (cellDate.getTime() > new Date(maxDateStr).getTime()) {
       return ['fc-day-overlimit'];
     }
     return [];
-  }, [maxDateStr]);
+  }, [maxDateStr, isAdmin]);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -237,7 +240,8 @@ export const CalendarComponent: React.FC<CalendarComponentProps> = ({
 
   const handleDateClick = (dateClickInfo: any) => {
     const dateStr = dateClickInfo.dateStr as string;
-    if (maxDateStr && new Date(dateStr).getTime() > new Date(maxDateStr).getTime()) {
+    // 管理者の場合は日付制限をスキップ
+    if (!isAdmin && maxDateStr && new Date(dateStr).getTime() > new Date(maxDateStr).getTime()) {
       const msg = `設定した日付（${maxDateStr}）までしか予約できません。`;
       alert(msg);
       return;
