@@ -28,6 +28,10 @@ yarn-error.log*
 # Node modules (if any)
 node_modules/
 
+# Build outputs
+firebase-app/classroom-reservation/build/
+firebase-app/functions/lib/
+
 # Environment variables
 .env
 .env.local
