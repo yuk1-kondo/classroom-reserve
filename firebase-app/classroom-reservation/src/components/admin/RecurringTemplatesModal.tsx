@@ -63,35 +63,39 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
           <button onClick={onClose} className="close-btn">×</button>
         </div>
         <div className="rtm-modal-body">
-          <div className="rtm-pane">
-            <h4>テンプレート一覧/編集</h4>
-            <RecurringTemplatesManager isAdmin={isAdmin} currentUserId={currentUserId} roomOptions={roomOptions} />
-          </div>
-          
-          <div className="rtm-pane">
-            <h4>テンプレートから予約を生成</h4>
-            <div className="hint" style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
-              左側で作成したテンプレートを指定期間に適用して、実際の予約を作成します。
+          <div className="rtm-column-left">
+            <div className="rtm-pane">
+              <h4>テンプレート一覧/編集</h4>
+              <RecurringTemplatesManager isAdmin={isAdmin} currentUserId={currentUserId} roomOptions={roomOptions} />
             </div>
-            <div className="form-row">
-              <label>開始日</label>
-              <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} title="テンプレート適用の開始日" />
+            
+            <div className="rtm-pane">
+              <h4>テンプレートから予約を生成</h4>
+              <div className="hint" style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
+                左側（上部）で作成したテンプレートを指定期間に適用して、実際の予約を作成します。
+              </div>
+              <div className="form-row">
+                <label>開始日</label>
+                <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} title="テンプレート適用の開始日" />
+              </div>
+              <div className="form-row">
+                <label>終了日</label>
+                <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} title="テンプレート適用の終了日" />
+              </div>
+              <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
+              <div className="hint">注: 既存の予約がある場合は自動的にスキップされます（上書きされません）。</div>
+              <div className="actions">
+                <button onClick={handleApplyReservations} disabled={!isAdmin || busyReserve}>予約を生成</button>
+              </div>
+              {messageReserve && <div className="msg">{messageReserve}</div>}
             </div>
-            <div className="form-row">
-              <label>終了日</label>
-              <input type="date" value={rangeEnd} max={maxDateStr || undefined} onChange={e => setRangeEnd(clampEnd(e.target.value))} title="テンプレート適用の終了日" />
-            </div>
-            <div className="hint">最大予約日: {maxDateStr ? maxDateStr : '（未設定）'}</div>
-            <div className="hint">注: 既存の予約がある場合は自動的にスキップされます（上書きされません）。</div>
-            <div className="actions">
-              <button onClick={handleApplyReservations} disabled={!isAdmin || busyReserve}>予約を生成</button>
-            </div>
-            {messageReserve && <div className="msg">{messageReserve}</div>}
           </div>
 
-          <div className="rtm-pane">
-            <h4>CSV一括予約</h4>
-            <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} />
+          <div className="rtm-column-right">
+            <div className="rtm-pane">
+              <h4>CSV一括予約</h4>
+              <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} />
+            </div>
           </div>
         </div>
       </div>
