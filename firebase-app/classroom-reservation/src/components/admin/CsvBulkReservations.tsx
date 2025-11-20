@@ -11,6 +11,7 @@ type RoomOption = { id: string; name: string };
 type Props = {
   currentUserId?: string;
   roomOptions?: RoomOption[]; // 省略時は内部で取得
+  isAdmin?: boolean; // 管理者フラグ
 };
 
 type CsvRow = {
@@ -105,13 +106,14 @@ function iterateDates(startStr: string, endStr: string): Date[] {
   return out;
 }
 
-export default function CsvBulkReservations({ currentUserId, roomOptions }: Props) {
+export default function CsvBulkReservations({ currentUserId, roomOptions, isAdmin = false }: Props) {
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<PreviewItem[]>([]);
   const { maxDateStr, limitMonths } = useSystemSettings();
   const [rangeStart, setRangeStart] = useState<string>(() => new Date().toISOString().slice(0,10));
   const [rangeEnd, setRangeEnd] = useState<string>(() => {
-    if (maxDateStr) return maxDateStr;
+    // 管理者の場合はmaxDateStrを無視してデフォルト3ヶ月後
+    if (maxDateStr && !isAdmin) return maxDateStr;
     const d = new Date(); d.setMonth(d.getMonth() + (limitMonths || 3)); return d.toISOString().slice(0,10);
   });
   const [message, setMessage] = useState<string>('');
@@ -234,8 +236,13 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
   const handleApply = async () => {
     if (!currentUserId) { alert('管理者でログインしてください'); return; }
     if (!rangeStart || !rangeEnd || rangeStart > rangeEnd) { alert('期間を正しく指定してください'); return; }
-    // システム上限の強制適用（UIのmaxとダブルチェック）
-    const effectiveEnd = maxDateStr && rangeEnd > maxDateStr ? maxDateStr : rangeEnd;
+    
+    // システム上限の強制適用（管理者の場合はスキップ）
+    let effectiveEnd = rangeEnd;
+    if (!isAdmin && maxDateStr && rangeEnd > maxDateStr) {
+      effectiveEnd = maxDateStr;
+    }
+
     if (rows.length === 0) { alert('CSVを読み込んでください'); return; }
     const hasError = rows.some(r => r.error);
     if (hasError) { alert('CSVにエラーがあります。修正してください'); return; }

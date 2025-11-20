@@ -94,7 +94,7 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
           <div className="rtm-column-right">
             <div className="rtm-pane">
               <h4>CSV一括予約</h4>
-              <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} />
+              <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} isAdmin={isAdmin} />
             </div>
           </div>
         </div>
