@@ -43,19 +43,24 @@ function parseWeekday(cell: string): number | null {
   return null;
 }
 
+  const fullToHalfDigits = (s: string) => s.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
+
 function expandPeriods(cell: string): string[] {
+  const fullToHalfDigits = (s: string) => s.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
   const raw = cell.split(',').map(s => s.trim()).filter(Boolean);
   const out: string[] = [];
   for (const token of raw) {
-    if (token.includes('-')) {
-      const [a, b] = token.split('-').map(s => s.trim());
+    // 正規化: 全角→半角, "限"などの除去
+    const norm = fullToHalfDigits(token).replace(/限/g, '').trim();
+    if (norm.includes('-')) {
+      const [a, b] = norm.split('-').map(s => s.trim());
       const startIdx = PERIOD_ORDER.indexOf(a as any);
       const endIdx = PERIOD_ORDER.indexOf(b as any);
       if (startIdx >= 0 && endIdx >= 0 && startIdx <= endIdx) {
         out.push(...PERIOD_ORDER.slice(startIdx, endIdx + 1));
       }
     } else {
-      out.push(token);
+      out.push(norm);
     }
   }
   // 正規化（重複除去）
@@ -65,6 +70,7 @@ function expandPeriods(cell: string): string[] {
 // 連続する時限をグループ化（例: ["1","2","3","5"] → [["1","2","3"],["5"]])
 function groupContiguousPeriods(periods: string[]): string[][] {
   const order = PERIOD_ORDER as readonly string[];
+  // 警告: PERIOD_ORDER に含まれないものは無視される（これが原因で空になる可能性あり）
   const indices = periods
     .map(p => order.indexOf(p as any))
     .filter(i => i >= 0)
@@ -240,6 +246,7 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
       console.log(`📅 CSV一括予約開始: 期間 ${rangeStart} 〜 ${effectiveEnd} (${dates.length}日間), CSV行数: ${rows.length}`);
       let created = 0; let skipped = 0; let errors = 0;
       const errorDetails: string[] = [];
+      let matchedRows = 0;
 
       for (const d of dates) {
         const ymd = toDateStr(d); // ローカル日付で固定（ISOで日付が前日にずれる問題を回避）
@@ -247,9 +254,18 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
 
         for (const row of rows) {
           if (d.getDay() !== row.weekday) continue;
+          matchedRows++; // デバッグ用カウント
           const roomId = row.roomId!;
+          
           // 連続時限はまとめて1予約にする
           const groups = groupContiguousPeriods(row.periods);
+          if (groups.length === 0 && row.periods.length > 0) {
+            // periodsはあるのにgroupsが空 = すべて不正な時限
+            errors++;
+            errorDetails.push(`${ymd} ${row.roomName} ${row.periods.join(',')}: 不正な時限コード（システム定義外）`);
+            continue;
+          }
+
           for (const group of groups) {
             // 既存重複チェック（グループ内のいずれかが衝突したらスキップ）
             const hasConflict = group.some(period =>
@@ -300,7 +316,13 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
       }
       
       let messageText = `✅ 完了: 作成 ${created} / 既存 ${skipped} / 失敗 ${errors}`;
-      if (created === 0 && skipped > 0) {
+      if (created === 0 && skipped === 0 && errors === 0) {
+         if (matchedRows === 0) {
+            messageText += `\n⚠️ 期間内に該当する曜日のデータがありませんでした。\n期間: ${rangeStart}〜${effectiveEnd}, CSV行数: ${rows.length}`;
+         } else {
+            messageText += `\n⚠️ データはありましたが処理されませんでした (マッチ回数: ${matchedRows})。\n時限コードが正しいか確認してください。`;
+         }
+      } else if (created === 0 && skipped > 0) {
         messageText += '\n⚠️ すべて既存予約のためスキップされました。';
       }
       if (errors > 0) {
