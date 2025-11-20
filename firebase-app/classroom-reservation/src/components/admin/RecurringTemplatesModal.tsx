@@ -3,6 +3,7 @@ import RecurringTemplatesManager from './RecurringTemplatesManager';
 import { useSystemSettings } from '../../hooks/useSystemSettings';
 import { applyTemplateReservations } from '../../firebase/templateReservations';
 import CsvBulkReservations from './CsvBulkReservations';
+import BulkDeleteReservations from './BulkDeleteReservations';
 import './RecurringTemplatesModal.css';
 
 interface Props {
@@ -96,6 +97,12 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
               <h4>CSV一括予約</h4>
               <CsvBulkReservations currentUserId={currentUserId} roomOptions={roomOptions} isAdmin={isAdmin} />
             </div>
+            
+            {isAdmin && (
+              <div className="rtm-pane" style={{ marginTop: '16px', borderColor: '#ffcccc', backgroundColor: '#fffcfc' }}>
+                <BulkDeleteReservations roomOptions={roomOptions} isAdmin={isAdmin} />
+              </div>
+            )}
           </div>
         </div>
       </div>
