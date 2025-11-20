@@ -44,7 +44,6 @@ function parseWeekday(cell: string): number | null {
   return null;
 }
 
-  const fullToHalfDigits = (s: string) => s.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
 
 function expandPeriods(cell: string): string[] {
   const fullToHalfDigits = (s: string) => s.replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0));
