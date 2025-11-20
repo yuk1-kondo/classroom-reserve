@@ -25,6 +25,14 @@
 
 .csvb-message {
   margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  white-space: pre-line;
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .csvb-preview { margin-top: 12px; }

@@ -70,6 +70,9 @@ export default function RecurringTemplatesModal({ open, onClose, isAdmin, curren
           
           <div className="rtm-pane">
             <h4>テンプレートから予約を生成</h4>
+            <div className="hint" style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
+              左側で作成したテンプレートを指定期間に適用して、実際の予約を作成します。
+            </div>
             <div className="form-row">
               <label>開始日</label>
               <input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} title="テンプレート適用の開始日" />

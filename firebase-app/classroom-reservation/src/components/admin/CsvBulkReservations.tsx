@@ -237,7 +237,9 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
     try {
       setBusy(true); setMessage('予約作成中...');
       const dates = iterateDates(rangeStart, effectiveEnd);
+      console.log(`📅 CSV一括予約開始: 期間 ${rangeStart} 〜 ${effectiveEnd} (${dates.length}日間), CSV行数: ${rows.length}`);
       let created = 0; let skipped = 0; let errors = 0;
+      const errorDetails: string[] = [];
 
       for (const d of dates) {
         const ymd = toDateStr(d); // ローカル日付で固定（ISOで日付が前日にずれる問題を回避）
@@ -261,7 +263,11 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
             const last = group[group.length - 1];
             const dtStart = createDateTimeFromPeriod(ymd, first);
             const dtEnd = createDateTimeFromPeriod(ymd, last);
-            if (!dtStart || !dtEnd) { errors++; continue; }
+            if (!dtStart || !dtEnd) { 
+              errors++; 
+              errorDetails.push(`${ymd} ${row.roomName || roomId} ${first}-${last}: 時限の日時作成失敗`);
+              continue; 
+            }
             const periodStr = group.join(',');
             const periodName = group.length > 1 ? `${displayLabel(first)}〜${displayLabel(last)}` : displayLabel(first);
             try {
@@ -278,15 +284,29 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
                 createdBy: currentUserId
               });
               created++;
-            } catch (e) {
+            } catch (e: any) {
               console.error('予約作成失敗', e);
               errors++;
+              const errorMsg = e?.message || String(e);
+              errorDetails.push(`${ymd} ${row.roomName || roomId} ${periodStr}: ${errorMsg}`);
             }
           }
         }
       }
 
-      setMessage(`✅ 完了: 作成 ${created} / 既存 ${skipped} / 失敗 ${errors}`);
+      console.log(`📊 CSV一括予約完了: 作成 ${created} / 既存 ${skipped} / 失敗 ${errors}`);
+      if (errors > 0 && errorDetails.length > 0) {
+        console.error('エラー詳細:', errorDetails.slice(0, 10)); // 最初の10件のみ
+      }
+      
+      let messageText = `✅ 完了: 作成 ${created} / 既存 ${skipped} / 失敗 ${errors}`;
+      if (created === 0 && skipped > 0) {
+        messageText += '\n⚠️ すべて既存予約のためスキップされました。';
+      }
+      if (errors > 0) {
+        messageText += `\n❌ エラー: ${errorDetails.slice(0, 3).join('; ')}${errorDetails.length > 3 ? '...' : ''}`;
+      }
+      setMessage(messageText);
     } catch (e: any) {
       console.error(e);
       setMessage(`❌ 失敗: ${e?.message || '不明なエラー'}`);
@@ -350,5 +370,6 @@ export default function CsvBulkReservations({ currentUserId, roomOptions }: Prop
     </div>
   );
 }
+
 
 
