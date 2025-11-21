@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { reservationsService } from '../../firebase/firestore';
-import { useSystemSettings } from '../../hooks/useSystemSettings';
 import './BulkDeleteReservations.css';
 
 interface Props {
