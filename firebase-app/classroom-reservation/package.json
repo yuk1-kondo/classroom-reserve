@@ -1,6 +1,6 @@
 {
   "name": "classroom-reservation",
-  "version": "2.5.8",
+  "version": "2.6.1",
   "private": true,
   "dependencies": {
     "@fullcalendar/daygrid": "6.1.19",

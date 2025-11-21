@@ -11,6 +11,8 @@ interface DateRangeSelectorProps {
   maxDateStr?: string;
   // UI 表示用の月数（任意）
   limitMonths?: number;
+  // 管理者フラグ（管理者の場合は日付制限をスキップ）
+  isAdmin?: boolean;
 }
 
 export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
@@ -18,8 +20,11 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
   setDateRange,
   loading,
   maxDateStr,
-  limitMonths
+  limitMonths,
+  isAdmin = false
 }) => {
+  // 管理者の場合は日付制限を無効化
+  const effectiveMaxDateStr = isAdmin ? undefined : maxDateStr;
   return (
     <div className="form-group">
       <label>日付:</label>
@@ -53,9 +58,9 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
               <input
                 type="date"
                 value={dateRange.startDate}
-                max={maxDateStr}
+                max={effectiveMaxDateStr}
                 onChange={(e) => {
-                  const v = clampToMax(e.target.value, maxDateStr);
+                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
                   setDateRange(prev => ({ ...prev, startDate: v, endDate: v }));
                 }}
                 disabled={loading}
@@ -66,38 +71,43 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
             <>
               <div className="date-input-group">
                 <label>開始日:</label>
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  max={maxDateStr}
-                  onChange={(e) => {
-                    const v = clampToMax(e.target.value, maxDateStr);
-                    setDateRange(prev => ({ ...prev, startDate: v }));
-                  }}
-                  disabled={loading}
-                  aria-label="開始日を選択"
-                />
+              <input
+                type="date"
+                value={dateRange.startDate}
+                max={effectiveMaxDateStr}
+                onChange={(e) => {
+                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
+                  setDateRange(prev => ({ ...prev, startDate: v }));
+                }}
+                disabled={loading}
+                aria-label="開始日を選択"
+              />
               </div>
               <div className="date-input-group">
                 <label>終了日:</label>
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  max={maxDateStr}
-                  onChange={(e) => {
-                    const v = clampToMax(e.target.value, maxDateStr);
-                    setDateRange(prev => ({ ...prev, endDate: v }));
-                  }}
-                  disabled={loading}
-                  aria-label="終了日を選択"
-                />
+              <input
+                type="date"
+                value={dateRange.endDate}
+                max={effectiveMaxDateStr}
+                onChange={(e) => {
+                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
+                  setDateRange(prev => ({ ...prev, endDate: v }));
+                }}
+                disabled={loading}
+                aria-label="終了日を選択"
+              />
               </div>
             </>
           )}
         </div>
-        {maxDateStr && (
+        {effectiveMaxDateStr && !isAdmin && (
           <div className="helper-text" aria-live="polite">
-            予約は{maxDateStr}まで選択できます。
+            予約は{effectiveMaxDateStr}まで選択できます。
+          </div>
+        )}
+        {isAdmin && (
+          <div className="helper-text admin-hint" aria-live="polite" style={{ color: '#0066cc', fontWeight: 'bold' }}>
+            ⚙️ 管理者モード: 日付制限なしで予約できます
           </div>
         )}
       </div>

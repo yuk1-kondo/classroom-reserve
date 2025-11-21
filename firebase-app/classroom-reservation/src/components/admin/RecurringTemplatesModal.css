@@ -4,8 +4,10 @@
 .rtm-modal-header h3{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
 .rtm-modal-header .close-btn{position:absolute;top:10px;right:12px;background:transparent;border:none;font-size:20px;cursor:pointer;width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;color:#666;transition:background-color .2s,color .2s;line-height:32px;flex:0 0 auto}
 .rtm-modal-header .close-btn:hover{background:#f0f0f0;color:#333}
-.rtm-modal-body{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;padding:20px;overflow:auto;flex:1;min-height:0}
-.rtm-pane{border:1px solid #eee;border-radius:8px;padding:16px;display:flex;flex-direction:column;overflow:auto;min-height:0}
+.rtm-modal-body{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px;overflow:hidden;flex:1;min-height:0}
+.rtm-column-left{display:flex;flex-direction:column;gap:16px;overflow:hidden;min-height:0}
+.rtm-column-right{display:flex;flex-direction:column;gap:16px;overflow:hidden;min-height:0}
+.rtm-pane{border:1px solid #eee;border-radius:8px;padding:16px;display:flex;flex-direction:column;overflow:auto;min-height:0;flex-shrink:0;max-height:100%}
 .rtm-pane h4{margin:0 0 16px 0;font-size:16px;font-weight:600;flex-shrink:0}
 .form-row{display:flex;flex-direction:column;margin:12px 0;flex-shrink:0}
 .form-row label{font-weight:500;margin-bottom:4px;color:#333}
