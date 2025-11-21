@@ -320,26 +320,86 @@
   background: #fafbfd;
 }
 
-/* 低解像度PC向け最適化 (1024x768, 1366x768) */
+/* 低解像度PC向け最適化 (1366x768対応) */
 @media (max-width: 1400px) {
-  .ledger-preview-header {
-    grid-template-columns: 1fr;
+  .ledger-view {
+    padding: 14px 16px;
     gap: 12px;
-    padding: 16px 18px;
   }
 
-  .ledger-preview-date-text {
-    font-size: 1.5rem;
+  .ledger-table th,
+  .ledger-table td {
+    padding: 6px 8px;
   }
 
-  .ledger-preview-controls {
-    flex-wrap: wrap;
-    gap: 8px;
+  .ledger-room-header {
+    min-width: 120px;
+    font-size: 0.8rem;
+    padding: 6px 8px;
   }
 
-  .ledger-preview-manage {
+  .ledger-period-header,
+  .ledger-period-cell {
+    min-width: 90px;
+  }
+
+  .ledger-reservation-cell {
+    min-width: 120px;
+    padding: 4px 6px;
+  }
+
+  .period-cell-inner {
+    padding: 8px 6px;
+    min-height: 48px;
+    gap: 2px;
+  }
+
+  .period-label {
     font-size: 0.82rem;
-    padding: 8px 12px;
+  }
+
+  .period-time {
+    font-size: 0.62rem;
+  }
+
+  .ledger-reservation-button {
+    padding: 6px 8px;
+    min-height: 42px;
+    border-radius: 8px;
+    gap: 2px;
+  }
+
+  .ledger-reservation-title {
+    font-size: 0.72rem;
+  }
+
+  .ledger-reservation-owner {
+    font-size: 0.62rem;
+  }
+  
+  .ledger-reservation-list {
+    gap: 4px;
+  }
+  
+  /* ヘッダー部分もコンパクトに */
+  .ledger-toolbar {
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  
+  .ledger-nav-button {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .ledger-date-picker,
+  .ledger-filter-mine {
+    font-size: 0.8rem;
+  }
+  
+  .ledger-date-picker input[type="date"] {
+    padding: 4px 8px;
+    min-width: 130px;
   }
 }
 

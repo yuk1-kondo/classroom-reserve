@@ -135,8 +135,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       // 台帳/カレンダーの即時反映
       try { await refetch(); } catch {}
       try {
+        // 一部削除の場合は更新扱い、全削除の場合は削除扱い
+        const eventType = (deleteMode === 'partial' && selectedPeriodsToDelete.size > 0) ? 'updated' : 'deleted';
         window.dispatchEvent(new CustomEvent('reservation:changed', {
-          detail: { type: 'deleted', id: String(reservation.id) }
+          detail: { type: eventType, id: String(reservation.id) }
         }));
       } catch {}
       
