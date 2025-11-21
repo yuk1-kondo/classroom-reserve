@@ -125,22 +125,31 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         await reservationsService.deletePartialPeriods(reservation.id, periodsToDelete);
         console.log('✅ 一部削除成功');
         toast.success(`${periodsToDelete.length}時限を削除しました`);
+
+        // 削除後に残りの時限があるかどうかを確認（簡易的判定）
+        const currentPeriods = getPeriods(reservation);
+        const remainingCount = currentPeriods.length - periodsToDelete.length;
+        
+        // イベント発行
+        // 残りが0になる場合は deleted、残る場合は updated
+        const eventType = remainingCount <= 0 ? 'deleted' : 'updated';
+        window.dispatchEvent(new CustomEvent('reservation:changed', {
+          detail: { type: eventType, id: String(reservation.id) }
+        }));
+
       } else {
         // 全部削除
         await reservationsService.deleteReservationWithKnown(reservation as Reservation);
         console.log('✅ 予約削除成功');
         toast.success('予約を削除しました');
+        
+        window.dispatchEvent(new CustomEvent('reservation:changed', {
+          detail: { type: 'deleted', id: String(reservation.id) }
+        }));
       }
       
-      // 台帳/カレンダーの即時反映
+      // 台帳/カレンダーの即時反映（念のため）
       try { await refetch(); } catch {}
-      try {
-        // 一部削除の場合は更新扱い、全削除の場合は削除扱い
-        const eventType = (deleteMode === 'partial' && selectedPeriodsToDelete.size > 0) ? 'updated' : 'deleted';
-        window.dispatchEvent(new CustomEvent('reservation:changed', {
-          detail: { type: eventType, id: String(reservation.id) }
-        }));
-      } catch {}
       
       onClose();
       

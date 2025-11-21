@@ -322,73 +322,90 @@
 
 /* 低解像度PC向け最適化 (1366x768対応) */
 @media (max-width: 1400px) {
+  /* 全体を少し縮小して情報量を増やす */
   .ledger-view {
-    padding: 14px 16px;
-    gap: 12px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  
+  /* テーブル全体を縮小表示 */
+  .ledger-table-wrapper {
+    zoom: 0.85; /* 非標準だがChrome/Edge等で有効 */
+  }
+  /* Firefox等 zoom非対応ブラウザ向けのフォールバック（必要なら transform: scale() を使うがレイアウト崩れしやすいので今回はzoom優先） */
+  @supports not (zoom: 1) {
+    .ledger-table {
+      font-size: 0.8rem;
+    }
+    .ledger-table th, .ledger-table td {
+      padding: 4px;
+    }
   }
 
   .ledger-table th,
   .ledger-table td {
-    padding: 6px 8px;
+    padding: 4px 6px;
   }
 
   .ledger-room-header {
-    min-width: 120px;
-    font-size: 0.8rem;
-    padding: 6px 8px;
+    min-width: 100px;
+    font-size: 0.85rem;
+    padding: 4px 6px;
   }
 
   .ledger-period-header,
   .ledger-period-cell {
-    min-width: 90px;
+    min-width: 80px;
   }
 
   .ledger-reservation-cell {
-    min-width: 120px;
-    padding: 4px 6px;
+    min-width: 100px;
+    padding: 2px 4px;
   }
 
   .period-cell-inner {
-    padding: 8px 6px;
-    min-height: 48px;
-    gap: 2px;
+    padding: 4px;
+    min-height: 40px;
+    gap: 0;
   }
 
   .period-label {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
   }
 
   .period-time {
-    font-size: 0.62rem;
+    font-size: 0.65rem;
+    margin-top: -2px;
   }
 
   .ledger-reservation-button {
-    padding: 6px 8px;
-    min-height: 42px;
-    border-radius: 8px;
-    gap: 2px;
+    padding: 4px 6px;
+    min-height: 36px;
+    border-radius: 6px;
+    gap: 1px;
   }
 
   .ledger-reservation-title {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 
   .ledger-reservation-owner {
-    font-size: 0.62rem;
+    font-size: 0.65rem;
   }
   
   .ledger-reservation-list {
-    gap: 4px;
+    gap: 2px;
   }
   
   /* ヘッダー部分もコンパクトに */
   .ledger-toolbar {
-    gap: 10px;
-    margin-bottom: 4px;
+    gap: 8px;
+    margin-bottom: 0;
+    zoom: 0.9;
   }
   
   .ledger-nav-button {
-    padding: 4px 10px;
+    padding: 4px 8px;
     font-size: 0.8rem;
   }
   
@@ -398,8 +415,9 @@
   }
   
   .ledger-date-picker input[type="date"] {
-    padding: 4px 8px;
-    min-width: 130px;
+    padding: 2px 6px;
+    min-width: 120px;
+    height: 28px;
   }
 }
 
