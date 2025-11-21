@@ -131,11 +131,15 @@
 .ledger-period-header {
   position: sticky;
   left: 0;
-  z-index: 8;
+  z-index: 10; /* z-indexを少し上げて確実に手前に */
   background: #edf1f7;
   min-width: 108px;
-  border-right: 1px solid #c5ccd7;
+  /* border-right は削除して box-shadow で代用 */
+  /* border-right: 1px solid #c5ccd7; */
   border-left: 1px solid #c5ccd7;
+  border-top: 1px solid #c5ccd7;
+  border-bottom: 1px solid #c5ccd7;
+  box-shadow: 1px 0 0 0 #c5ccd7; /* 右側の線を影で表現 */
 }
 
 .ledger-period-cell {
@@ -143,9 +147,13 @@
   min-width: 108px;
   position: sticky;
   left: 0;
-  z-index: 7;
+  z-index: 9; /* z-indexを少し上げて確実に手前に */
   padding: 0;
-  border-right: 1px solid #c5ccd7;
+  /* border-right: 1px solid #c5ccd7; */
+  border-left: 1px solid #c5ccd7;
+  border-top: 1px solid #c5ccd7;
+  border-bottom: 1px solid #c5ccd7;
+  box-shadow: 1px 0 0 0 #c5ccd7; /* 右側の線を影で表現 */
 }
 
 .period-cell-inner {
@@ -356,6 +364,7 @@
   .ledger-period-header,
   .ledger-period-cell {
     min-width: 80px;
+    /* border-right: 1px solid #c5ccd7; box-shadowで代用済み */
   }
 
   .ledger-reservation-cell {
