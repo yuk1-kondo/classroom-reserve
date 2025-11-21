@@ -139,7 +139,18 @@
   border-left: 1px solid #c5ccd7;
   border-top: 1px solid #c5ccd7;
   border-bottom: 1px solid #c5ccd7;
-  box-shadow: 1px 0 0 0 #c5ccd7; /* 右側の線を影で表現 */
+  /* box-shadow: 1px 0 0 0 #c5ccd7; */ /* box-shadowも削除し、::afterで対応 */
+}
+
+.ledger-period-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background-color: #c5ccd7;
+  z-index: 11;
 }
 
 .ledger-period-cell {
@@ -153,7 +164,18 @@
   border-left: 1px solid #c5ccd7;
   border-top: 1px solid #c5ccd7;
   border-bottom: 1px solid #c5ccd7;
-  box-shadow: 1px 0 0 0 #c5ccd7; /* 右側の線を影で表現 */
+  /* box-shadow: 1px 0 0 0 #c5ccd7; */ /* box-shadowも削除し、::afterで対応 */
+}
+
+.ledger-period-cell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background-color: #c5ccd7;
+  z-index: 11;
 }
 
 .period-cell-inner {
