@@ -350,8 +350,8 @@
   background: #fafbfd;
 }
 
-/* 低解像度PC向け最適化 (1366x768対応) */
-@media (max-width: 1400px) {
+/* 低解像度PCおよびフルHD(1920x1080)向け最適化 - スクロールなしで全時限表示を目指す */
+@media (max-width: 2200px) {
   /* 全体を少し縮小して情報量を増やす */
   .ledger-view {
     padding: 8px 12px;
