@@ -360,7 +360,7 @@
   
   /* テーブル全体を縮小表示 */
   .ledger-table-wrapper {
-    zoom: 0.93; /* フルHD向けに0.93程度 */
+    zoom: 0.97; /* フルHD向けに0.97程度 */
   }
   /* Firefox等 zoom非対応ブラウザ向けのフォールバック（必要なら transform: scale() を使うがレイアウト崩れしやすいので今回はzoom優先） */
   @supports not (zoom: 1) {
@@ -432,7 +432,7 @@
   .ledger-toolbar {
     gap: 8px;
     margin-bottom: 0;
-    zoom: 0.95;
+    zoom: 0.98;
   }
   
   .ledger-nav-button {
