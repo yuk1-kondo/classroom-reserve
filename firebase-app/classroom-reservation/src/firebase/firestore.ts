@@ -588,13 +588,19 @@ export const reservationsService = {
     throw lastErr;
   },
 
-  // 読み取りを行わず、既知の予約情報を用いて削除（429対策）
+  // 既知の予約情報を用いて削除（セキュリティルール評価のため読み取りは必須）
   async deleteReservationWithKnown(reservation: Reservation): Promise<void> {
     const dateStr = toDateStr((reservation.startTime as Timestamp).toDate());
     const periods = this._periods(reservation.period);
     await runTransaction(db, async (tx: Transaction) => {
       const resRef = doc(db, RESERVATIONS_COLLECTION, String(reservation.id));
-      // 本体削除（存在しなくても no-op 扱い）
+      // セキュリティルールで resource.data を評価するため、読み取りが必須
+      const snap = await tx.get(resRef);
+      if (!snap.exists()) {
+        // 既に削除済みの場合は何もしない
+        return;
+      }
+      // 本体削除
       tx.delete(resRef);
       // スロット開放
       for (const p of periods) {
