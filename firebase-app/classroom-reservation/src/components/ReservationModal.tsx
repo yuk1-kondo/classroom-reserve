@@ -431,32 +431,32 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   </div>
                 ) : (
                   // 全部削除または単一時限予約の場合
-                  <div className="confirm-left">
-                    <span className="confirm-text-strong">削除しますか？</span>
-                    <span className="confirm-sub">取り消しはできません</span>
-                  </div>
-                )}
-                {deleteMode === 'full' && (
-                  <div className="inline-buttons">
-                    <button 
-                      ref={confirmDeleteBtnRef}
-                      className="confirm-delete-btn"
-                      onClick={handleDelete}
-                      disabled={loading}
-                    >
-                      確定
-                    </button>
-                    <button 
-                      className="cancel-delete-btn"
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                        setDeleteMode(null);
-                      }}
-                      disabled={loading}
-                    >
-                      キャンセル
-                    </button>
-                  </div>
+                  <>
+                    <div className="confirm-left">
+                      <span className="confirm-text-strong">削除しますか？</span>
+                      <span className="confirm-sub">取り消しはできません</span>
+                    </div>
+                    <div className="inline-buttons">
+                      <button 
+                        ref={confirmDeleteBtnRef}
+                        className="confirm-delete-btn"
+                        onClick={handleDelete}
+                        disabled={loading}
+                      >
+                        確定
+                      </button>
+                      <button 
+                        className="cancel-delete-btn"
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteMode(null);
+                        }}
+                        disabled={loading}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             )}
