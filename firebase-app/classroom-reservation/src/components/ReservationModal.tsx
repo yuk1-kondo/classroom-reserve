@@ -33,7 +33,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editReservationName, setEditReservationName] = useState('');
-  const { refetch } = useMonthlyReservations();
+  const { refetch, removeReservation } = useMonthlyReservations();
 
   const loadReservation = useCallback(async () => {
     if (!reservationId) return;
@@ -130,6 +130,11 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         const currentPeriods = getPeriods(reservation);
         const remainingCount = currentPeriods.length - periodsToDelete.length;
         
+        // 残りが0になる場合はローカルステートからも削除
+        if (remainingCount <= 0) {
+          removeReservation(String(reservation.id));
+        }
+        
         // イベント発行
         // 残りが0になる場合は deleted、残る場合は updated
         const eventType = remainingCount <= 0 ? 'deleted' : 'updated';
@@ -143,12 +148,15 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         console.log('✅ 予約削除成功');
         toast.success('予約を削除しました');
         
+        // ローカルステートを即座に更新（キャッシュの問題を回避）
+        removeReservation(String(reservation.id));
+        
         window.dispatchEvent(new CustomEvent('reservation:changed', {
           detail: { type: 'deleted', id: String(reservation.id) }
         }));
       }
       
-      // 台帳/カレンダーの即時反映（念のため）
+      // サーバーと同期（バックグラウンド）
       try { await refetch(); } catch {}
       
       onClose();
