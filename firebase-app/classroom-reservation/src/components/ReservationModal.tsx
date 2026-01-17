@@ -8,6 +8,8 @@ import { Timestamp } from 'firebase/firestore';
 import './ReservationModal.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
+import { systemSettingsService } from '../firebase/settings';
+import PasscodeModal from './PasscodeModal';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -34,6 +36,29 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editReservationName, setEditReservationName] = useState('');
   const { refetch, removeReservation } = useMonthlyReservations();
+  
+  // パスコード関連の状態
+  const [showPasscodeModal, setShowPasscodeModal] = useState(false);
+  const [meetingRoomPasscode, setMeetingRoomPasscode] = useState<string | null>(null);
+  const [passcodeLoading, setPasscodeLoading] = useState(true);
+
+  // 会議室削除パスコードを取得
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setPasscodeLoading(true);
+        const settings = await systemSettingsService.get();
+        if (!mounted) return;
+        setMeetingRoomPasscode(settings?.meetingRoomDeletePasscode || null);
+      } catch (e) {
+        console.error('パスコード取得エラー:', e);
+      } finally {
+        if (mounted) setPasscodeLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const loadReservation = useCallback(async () => {
     if (!reservationId) return;
@@ -80,6 +105,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       setDeleteMode(null);
       setSelectedPeriodsToDelete(new Set());
       setIsEditing(false);
+      setShowPasscodeModal(false);
     }
   }, [isOpen, reservationId, loadReservation]);
 
@@ -211,12 +237,27 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   // 仕様変更（要望に合わせて更新）:
   // - 管理者（super/regular 共通）は誰の予約でも削除・編集可能
   // - 一般ユーザーは作成者本人のみ削除可能（編集は不可）
+  // - 会議室の場合、パスコードを知っている人も削除可能
   const { isAdmin } = useAuth();
   const isCreator = reservation?.createdBy && authService.getCurrentUser()?.uid === reservation?.createdBy;
+  
+  // 会議室かどうかを判定
+  const isMeetingRoom = reservation?.roomName === '会議室';
+  
+  // パスコード削除が可能か（会議室かつパスコードが設定されている）
+  const canDeleteWithPasscode = isMeetingRoom && !!meetingRoomPasscode && !passcodeLoading;
+  
   // 管理者は常に削除可能。一般ユーザーは作成者のみ。
-  const canDelete = isAdmin || (isCreator === true);
+  const canDeleteDirectly = isAdmin || (isCreator === true);
+  
+  // 削除可能（直接削除またはパスコード削除）
+  const canDelete = canDeleteDirectly || canDeleteWithPasscode;
+  
   // 編集は管理者のみ可能（一般ユーザーには編集ボタンを非表示）
   const canEdit = isAdmin;
+  
+  // パスコード削除が必要かどうか（直接削除できないが、パスコード削除は可能な場合）
+  const needsPasscodeForDelete = !canDeleteDirectly && canDeleteWithPasscode;
 
   useEffect(() => {
     if (showDeleteConfirm && confirmDeleteBtnRef.current) {
@@ -345,10 +386,18 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             {canDelete && !showDeleteConfirm && (
               <button 
                 className="delete-button"
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => {
+                  if (needsPasscodeForDelete) {
+                    // パスコードが必要な場合はパスコードモーダルを表示
+                    setShowPasscodeModal(true);
+                  } else {
+                    // 直接削除可能な場合は確認画面を表示
+                    setShowDeleteConfirm(true);
+                  }
+                }}
                 disabled={loading}
               >
-                🗑️ 予約を削除
+                🗑️ 予約を削除{needsPasscodeForDelete ? '（要パスコード）' : ''}
               </button>
             )}
 
@@ -471,6 +520,18 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* パスコード入力モーダル */}
+      <PasscodeModal
+        isOpen={showPasscodeModal}
+        onClose={() => setShowPasscodeModal(false)}
+        onSuccess={() => {
+          setShowPasscodeModal(false);
+          setShowDeleteConfirm(true);
+        }}
+        correctPasscode={meetingRoomPasscode || ''}
+        roomName={reservation?.roomName}
+      />
     </div>
   );
 };
