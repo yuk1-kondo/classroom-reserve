@@ -16,6 +16,8 @@ import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel'; // 追
 import { getPeriodOrderForDate } from '../utils/periods';
 import { authService } from '../firebase/auth';
 import { useAuth } from '../hooks/useAuth';
+import { systemSettingsService } from '../firebase/settings';
+import PasscodeModal from './PasscodeModal';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -53,6 +55,12 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // パスコード関連の状態
+  const [meetingRoomPasscode, setMeetingRoomPasscode] = useState<string | null>(null);
+  const [passcodeLoading, setPasscodeLoading] = useState(true);
+  const [showPasscodeModal, setShowPasscodeModal] = useState(false);
+  const [passcodeTargetReservation, setPasscodeTargetReservation] = useState<Reservation | null>(null);
   // 教室リストのソート（useMemoで最適化）
   const sortedRooms = React.useMemo(() => {
     const customOrder = [
@@ -85,6 +93,24 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
       return a.name.localeCompare(b.name);
     });
   }, [rooms]);
+
+  // 会議室削除パスコードを取得
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setPasscodeLoading(true);
+        const settings = await systemSettingsService.get();
+        if (!mounted) return;
+        setMeetingRoomPasscode(settings?.meetingRoomDeletePasscode || null);
+      } catch (e) {
+        console.error('パスコード取得エラー:', e);
+      } finally {
+        if (mounted) setPasscodeLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const selectedDateInputValue = React.useMemo(() => {
     if (!selectedDate) return '';
@@ -386,9 +412,28 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
   const currentUser = authService.getCurrentUser();
   // 仕様変更（要望に合わせて更新）: 管理者（super/regular 共通）は誰の予約でも削除可
-  const canDeleteReservation = (r: Reservation) => {
+  // 会議室の場合、パスコードを知っている人も削除可能
+  const canDeleteDirectly = (r: Reservation) => {
     if (isAdmin) return true;
     return currentUser && r.createdBy === currentUser.uid;
+  };
+  
+  // 会議室かどうかを判定
+  const isMeetingRoom = (r: Reservation) => r.roomName === '会議室';
+  
+  // パスコード削除が可能か
+  const canDeleteWithPasscode = (r: Reservation) => {
+    return isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
+  };
+  
+  // 削除可能（直接削除またはパスコード削除）
+  const canDeleteReservation = (r: Reservation) => {
+    return canDeleteDirectly(r) || canDeleteWithPasscode(r);
+  };
+  
+  // パスコード削除が必要かどうか
+  const needsPasscodeForDelete = (r: Reservation) => {
+    return !canDeleteDirectly(r) && canDeleteWithPasscode(r);
   };
 
   const handleInlineDelete = async (r: Reservation) => {
@@ -545,7 +590,21 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                     <td className="col-user"><div className="reservation-user">{reservation.reservationName}</div></td>
                     <td className="col-actions">
                       {isMine && !isConfirming && (
-                        <button className="inline-delete-btn" onClick={()=>setConfirmingId(reservation.id!)}>削除</button>
+                        <button 
+                          className="inline-delete-btn" 
+                          onClick={() => {
+                            if (needsPasscodeForDelete(reservation)) {
+                              // パスコードが必要な場合はパスコードモーダルを表示
+                              setPasscodeTargetReservation(reservation);
+                              setShowPasscodeModal(true);
+                            } else {
+                              // 直接削除可能な場合は確認状態へ
+                              setConfirmingId(reservation.id!);
+                            }
+                          }}
+                        >
+                          削除{needsPasscodeForDelete(reservation) ? '🔑' : ''}
+                        </button>
                       )}
                       {isMine && isConfirming && (
                         <div className="inline-confirm">
@@ -572,6 +631,25 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
           </table>
         </div>
       </div>
+
+      {/* パスコード入力モーダル */}
+      <PasscodeModal
+        isOpen={showPasscodeModal}
+        onClose={() => {
+          setShowPasscodeModal(false);
+          setPasscodeTargetReservation(null);
+        }}
+        onSuccess={() => {
+          setShowPasscodeModal(false);
+          if (passcodeTargetReservation) {
+            // パスコード認証成功後、確認状態へ移行
+            setConfirmingId(passcodeTargetReservation.id!);
+          }
+          setPasscodeTargetReservation(null);
+        }}
+        correctPasscode={meetingRoomPasscode || ''}
+        roomName={passcodeTargetReservation?.roomName}
+      />
     </div>
   );
 };

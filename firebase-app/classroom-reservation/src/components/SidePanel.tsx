@@ -17,6 +17,7 @@ import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
 // import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
+import PasscodeSettings from './admin/PasscodeSettings';
 // import { authService } from '../firebase/auth';
 // import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
@@ -233,6 +234,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               {/* CSV処理メッセージ（現在未使用） */}
               {/* 予約制限設定（全管理者が利用可能）*/}
               <ReservationLimitSettings currentUserId={currentUser?.uid} />
+              {/* 会議室削除パスコード設定（全管理者が利用可能）*/}
+              <PasscodeSettings currentUserId={currentUser?.uid} />
               {/* スーパー管理者専用ツール */}
               {isSuperAdmin && (
                 <div className="admin-actions-row">

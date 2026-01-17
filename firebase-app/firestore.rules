@@ -62,12 +62,11 @@ service cloud.firestore {
     allow update: if isAuthenticated() && (
       request.auth.uid == resource.data.createdBy || isAdmin()
     );
-    // 削除は作成者 または 管理者（uid/email のどちらかが admin_users に存在）
+    // 削除は作成者 または 管理者 または 会議室予約（パスコード認証はクライアント側で実施）
     allow delete: if isAuthenticated() && (
-      request.auth.uid == resource.data.createdBy || (
-        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
-        (request.auth.token.email != null && exists(/databases/$(database)/documents/admin_users/$(request.auth.token.email)))
-      )
+      request.auth.uid == resource.data.createdBy ||
+      isAdmin() ||
+      resource.data.roomName == '会議室'
     );
     }
 
