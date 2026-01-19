@@ -242,8 +242,11 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const currentUser = authService.getCurrentUser();
   const isCreator = reservation?.createdBy && currentUser?.uid === reservation?.createdBy;
   
-  // 会議室かどうかを判定
-  const isMeetingRoom = reservation?.roomName === '会議室';
+  // 会議室かどうかを判定（表記ゆれ/付加情報に強くする）
+  const isMeetingRoom = (() => {
+    const name = String(reservation?.roomName || '').replace(/\s+/g, '');
+    return name.includes('会議室');
+  })();
   
   // パスコード削除が可能か（会議室かつパスコードが設定されている）
   const canDeleteWithPasscode = !!currentUser && isMeetingRoom && !!meetingRoomPasscode && !passcodeLoading;
