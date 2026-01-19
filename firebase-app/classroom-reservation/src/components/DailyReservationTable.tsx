@@ -423,7 +423,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
   
   // パスコード削除が可能か
   const canDeleteWithPasscode = (r: Reservation) => {
-    return isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
+    return !!currentUser && isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
   };
   
   // 削除可能（直接削除またはパスコード削除）
