@@ -418,12 +418,15 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     return currentUser && r.createdBy === currentUser.uid;
   };
   
-  // 会議室かどうかを判定
-  const isMeetingRoom = (r: Reservation) => r.roomName === '会議室';
+  // 会議室かどうかを判定（表記ゆれ/付加情報に強くする）
+  const isMeetingRoom = (r: Reservation) => {
+    const name = String(r.roomName || '').replace(/\s+/g, '');
+    return name.includes('会議室');
+  };
   
   // パスコード削除が可能か
   const canDeleteWithPasscode = (r: Reservation) => {
-    return isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
+    return !!currentUser && isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
   };
   
   // 削除可能（直接削除またはパスコード削除）

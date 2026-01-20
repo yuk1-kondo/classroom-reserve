@@ -77,6 +77,13 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // 月次サマリー（現在は利用していないが削除処理の整合性維持に必要）
+    match /month_overview/{monthId} {
+      allow read: if true;
+      // 運用上問題ないため認証済みユーザーに書き込みを許可
+      allow write: if isAuthenticated();
+    }
+
     // システム設定（予約制限など）
     match /system_settings/{docId} {
       // 誰でも読み取り可能（UI 表示用）。必要に応じて認証済みに制限可。

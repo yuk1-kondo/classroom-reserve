@@ -239,13 +239,17 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   // - 一般ユーザーは作成者本人のみ削除可能（編集は不可）
   // - 会議室の場合、パスコードを知っている人も削除可能
   const { isAdmin } = useAuth();
-  const isCreator = reservation?.createdBy && authService.getCurrentUser()?.uid === reservation?.createdBy;
+  const currentUser = authService.getCurrentUser();
+  const isCreator = reservation?.createdBy && currentUser?.uid === reservation?.createdBy;
   
-  // 会議室かどうかを判定
-  const isMeetingRoom = reservation?.roomName === '会議室';
+  // 会議室かどうかを判定（表記ゆれ/付加情報に強くする）
+  const isMeetingRoom = (() => {
+    const name = String(reservation?.roomName || '').replace(/\s+/g, '');
+    return name.includes('会議室');
+  })();
   
   // パスコード削除が可能か（会議室かつパスコードが設定されている）
-  const canDeleteWithPasscode = isMeetingRoom && !!meetingRoomPasscode && !passcodeLoading;
+  const canDeleteWithPasscode = !!currentUser && isMeetingRoom && !!meetingRoomPasscode && !passcodeLoading;
   
   // 管理者は常に削除可能。一般ユーザーは作成者のみ。
   const canDeleteDirectly = isAdmin || (isCreator === true);
