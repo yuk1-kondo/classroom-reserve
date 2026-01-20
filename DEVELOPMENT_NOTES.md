@@ -2,6 +2,38 @@
 
 ## 重要な修正履歴
 
+### 2026/01/20 - 会議室パスコード削除の安定化
+
+#### 🐛 問題
+会議室の予約をパスコードで削除しようとしても失敗する事例が発生。
+
+#### 🔍 原因分析
+1. `deleteReservation` のトランザクション内で `month_overview` を更新しているが、
+   Firestore ルールで `month_overview` の書き込みが許可されていなかったため、
+   **permission-denied で削除自体が失敗**していた。
+2. 会議室判定が `roomName === '会議室'` の完全一致で、
+   **表記ゆれ（例: 余分な空白や付加情報）でボタンが表示されない**可能性があった。
+3. 未ログインでもパスコード削除UIが出ると、削除は必ず失敗する（ルールは認証必須）。
+
+#### ✅ 解決策
+1. **Firestore ルール**で `month_overview` の書き込みを認証済みに許可  
+   - 削除フローは既存のまま維持し、失敗を回避  
+2. **会議室判定を柔軟化**  
+   - `roomName` の空白を除去し、`'会議室'` を含むかで判定  
+3. **未ログイン時はパスコード削除UIを非表示**  
+   - UIとルールの整合性を確保
+
+#### 🧭 仕組みのメモ
+- **パスコード認証はUI側のみ**で実施（PasscodeModal）
+- Firestore ルール側には「パスコード判定」は存在しない  
+  → 認証済みユーザーであれば `roomName == '会議室'` の削除は許可される
+- `month_overview` は現状UI/運用で参照していない
+
+#### 🧩 変更ファイル
+- `firebase-app/firestore.rules`
+- `firebase-app/classroom-reservation/src/components/ReservationModal.tsx`
+- `firebase-app/classroom-reservation/src/components/DailyReservationTable.tsx`
+
 ### 2025/08/06 - 予約重複検知機能の修正
 
 #### 🐛 問題
