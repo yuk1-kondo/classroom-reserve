@@ -12,12 +12,14 @@ import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { validateDatesWithinMax } from '../utils/dateValidation';
+import { blockedPeriodsService } from '../firebase/blockedPeriods';
 // import { reservationsService } from '../firebase/firestore';
 import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
 // import { formatPeriodDisplay } from '../utils/periodLabel';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
 import PasscodeSettings from './admin/PasscodeSettings';
+import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
 // import { authService } from '../firebase/auth';
 // import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
@@ -99,15 +101,27 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
-  // 予約作成: 先日付制限の検証を噛ませる（管理者の場合はスキップ）
+  // 予約作成: 先日付制限・禁止期間の検証を噛ませる（管理者の場合はスキップ）
   const handleCreateWithLimit = async () => {
-    // 管理者の場合は日付制限をスキップ
+    const dates = formHook.getReservationDates();
+    const roomId = formHook.formData.selectedRoom;
+    
+    // 管理者の場合は全ての制限をスキップ
     if (!isAdmin) {
-      const dates = formHook.getReservationDates();
+      // 先日付制限チェック
       const result = validateDatesWithinMax(dates, maxDateStr);
       if (!result.ok) {
         const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
         toast.error(msg, { duration: 4000 });
+        return;
+      }
+      
+      // 禁止期間チェック
+      const blocked = await blockedPeriodsService.checkMultiple(dates, roomId);
+      if (blocked) {
+        const roomLabel = blocked.roomId ? `「${blocked.roomName || '指定教室'}」` : '全教室';
+        const reasonText = blocked.reason ? `（${blocked.reason}）` : '';
+        toast.error(`${blocked.startDate}〜${blocked.endDate} は ${roomLabel} の予約が禁止されています${reasonText}`, { duration: 5000 });
         return;
       }
     }
@@ -236,6 +250,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               <ReservationLimitSettings currentUserId={currentUser?.uid} />
               {/* 会議室削除パスコード設定（全管理者が利用可能）*/}
               <PasscodeSettings currentUserId={currentUser?.uid} />
+              {/* 予約禁止期間設定（全管理者が利用可能）*/}
+              <BlockedPeriodsSettings currentUserId={currentUser?.uid} roomOptions={roomOptions} />
               {/* スーパー管理者専用ツール */}
               {isSuperAdmin && (
                 <div className="admin-actions-row">

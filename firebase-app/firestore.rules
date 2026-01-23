@@ -97,5 +97,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 予約禁止期間（管理者が設定、一般ユーザーは読み取りのみ）
+    match /blocked_periods/{blockId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
