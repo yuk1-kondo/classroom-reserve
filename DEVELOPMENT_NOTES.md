@@ -2,6 +2,82 @@
 
 ## 重要な修正履歴
 
+### 2026/01/23 - 予約禁止期間設定機能の追加
+
+#### 🎯 要件
+管理者が指定した期間の予約を一般ユーザーに対してブロックする機能。
+- 例: 春休み期間中は予約不可
+- 全教室 or 特定教室を選択可能
+- 管理者は例外として禁止期間中も予約可能
+
+#### 🛠️ 実装内容
+
+**1. Firestoreコレクション: `blocked_periods`**
+```typescript
+{
+  startDate: "2026-03-25",  // YYYY-MM-DD
+  endDate: "2026-04-07",
+  roomId?: "room-1",        // nullなら全教室
+  roomName?: "PC室",
+  reason?: "春休み",
+  createdBy: "uid",
+  createdAt: Timestamp
+}
+```
+
+**2. Firestoreルール**
+```javascript
+match /blocked_periods/{blockId} {
+  allow read: if true;        // 全員読み取り可（バリデーション用）
+  allow write: if isAdmin();  // 管理者のみ書き込み
+}
+```
+
+**3. サービス層: `blockedPeriodsService`**
+- `getAll()`: 全禁止期間を取得
+- `add()`: 禁止期間を追加
+- `remove()`: 禁止期間を削除
+- `check()`: 単一日付のブロックチェック
+- `checkMultiple()`: 複数日付のブロックチェック（予約フォーム用）
+
+**4. 予約作成時のバリデーション（`SidePanel.tsx`）**
+```typescript
+// 管理者でない場合のみチェック
+if (!isAdmin) {
+  const blocked = await blockedPeriodsService.checkMultiple(dates, roomId);
+  if (blocked) {
+    toast.error(`${blocked.startDate}〜${blocked.endDate} は予約禁止期間です`);
+    return;
+  }
+}
+```
+
+#### 🐞 遭遇した問題と解決
+
+**Firestore undefined エラー**
+- 問題: `addDoc()` で `undefined` 値を含むオブジェクトを渡すとエラー
+- 原因: `roomId: roomId || undefined` のように書くと `undefined` がFirestoreに渡される
+- 解決: サービス層で明示的にオブジェクトを構築し、値がある場合のみフィールドを追加
+
+```typescript
+const data: Record<string, any> = {
+  startDate: block.startDate,
+  endDate: block.endDate,
+  createdBy: block.createdBy,
+  createdAt: Timestamp.now()
+};
+// オプションフィールドは値がある場合のみ追加
+if (block.roomId !== undefined) data.roomId = block.roomId;
+```
+
+#### 🧩 変更ファイル
+- `firebase-app/firestore.rules`
+- `firebase-app/classroom-reservation/src/firebase/blockedPeriods.ts`（新規）
+- `firebase-app/classroom-reservation/src/components/admin/BlockedPeriodsSettings.tsx`（新規）
+- `firebase-app/classroom-reservation/src/components/SidePanel.tsx`
+
+---
+
 ### 2026/01/20 - 会議室パスコード削除の安定化
 
 #### 🐛 問題
