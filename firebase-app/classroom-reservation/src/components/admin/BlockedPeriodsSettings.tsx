@@ -56,13 +56,14 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
 
     try {
       setSaving(true);
-      const roomName = roomId ? roomOptions.find(r => r.id === roomId)?.name : undefined;
+      const roomName = roomId ? roomOptions.find(r => r.id === roomId)?.name : null;
+      // Firestoreはundefinedを受け付けないため、nullを使用
       await blockedPeriodsService.add({
         startDate,
         endDate,
-        roomId: roomId || undefined,
+        roomId: roomId || null,
         roomName,
-        reason: reason || undefined,
+        reason: reason || null,
         createdBy: currentUserId
       });
       toast.success('禁止期間を追加しました');

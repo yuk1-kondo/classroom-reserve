@@ -8,9 +8,9 @@ export interface BlockedPeriod {
   id?: string;
   startDate: string;  // YYYY-MM-DD
   endDate: string;    // YYYY-MM-DD
-  roomId?: string;    // 省略なら全教室
-  roomName?: string;  // 表示用
-  reason?: string;    // 理由メモ
+  roomId?: string | null;    // nullなら全教室
+  roomName?: string | null;  // 表示用
+  reason?: string | null;    // 理由メモ
   createdBy: string;
   createdAt?: Timestamp;
 }
@@ -54,7 +54,7 @@ export const blockedPeriodsService = {
     for (const block of all) {
       // 日付範囲チェック
       if (dateStr >= block.startDate && dateStr <= block.endDate) {
-        // 全教室対象 or 指定教室が一致
+        // 全教室対象（roomIdがnullまたは空）or 指定教室が一致
         if (!block.roomId || block.roomId === roomId) {
           return block;
         }
@@ -74,6 +74,7 @@ export const blockedPeriodsService = {
     for (const dateStr of dates) {
       for (const block of all) {
         if (dateStr >= block.startDate && dateStr <= block.endDate) {
+          // 全教室対象（roomIdがnullまたは空）or 指定教室が一致
           if (!block.roomId || block.roomId === roomId) {
             return block;
           }
