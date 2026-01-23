@@ -29,10 +29,19 @@ export const blockedPeriodsService = {
    * 禁止期間を追加
    */
   async add(block: Omit<BlockedPeriod, 'id' | 'createdAt'>): Promise<string> {
-    const docRef = await addDoc(collection(db, COLLECTION), {
-      ...block,
+    // Firestoreはundefinedを受け付けないので、明示的にデータを構築
+    const data: Record<string, any> = {
+      startDate: block.startDate,
+      endDate: block.endDate,
+      createdBy: block.createdBy,
       createdAt: Timestamp.now()
-    });
+    };
+    // オプションフィールドはnullまたは値がある場合のみ追加
+    if (block.roomId !== undefined) data.roomId = block.roomId;
+    if (block.roomName !== undefined) data.roomName = block.roomName;
+    if (block.reason !== undefined) data.reason = block.reason;
+    
+    const docRef = await addDoc(collection(db, COLLECTION), data);
     return docRef.id;
   },
 
