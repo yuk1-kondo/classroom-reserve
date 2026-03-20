@@ -23,7 +23,7 @@ import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
 // import { authService } from '../firebase/auth';
 // import { adminService } from '../firebase/admin';
 import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
-import AdminUserManager from './admin/AdminUserManager';
+import UserAccessManager from './admin/UserAccessManager';
 
 
 interface SidePanelProps {
@@ -57,7 +57,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
   [rooms]);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showAdminManager, setShowAdminManager] = useState(false);
+  const [showUserAccessManager, setShowUserAccessManager] = useState(false);
   // 直後の重複チェックを抑止するためのクールダウン時刻
   const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
@@ -256,7 +256,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               {isSuperAdmin && (
                 <div className="admin-actions-row">
                   <button className="admin-btn" onClick={() => setShowTemplates(true)}>固定予約テンプレートを開く</button>
-                  <button className="admin-btn" onClick={() => setShowAdminManager(true)}>管理者権限管理</button>
+                  <button className="admin-btn" onClick={() => setShowUserAccessManager(true)}>ユーザー管理</button>
                   <RecurringTemplatesModal 
                     open={showTemplates}
                     onClose={() => setShowTemplates(false)}
@@ -299,14 +299,14 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         </div>
       )}
 
-      {/* 管理者管理モーダル */}
-      {showAdminManager && (
-        <div className="modal-overlay" onClick={() => setShowAdminManager(false)}>
+      {/* ユーザー管理モーダル */}
+      {showUserAccessManager && (
+        <div className="modal-overlay" onClick={() => setShowUserAccessManager(false)}>
           <div className="modal-content admin-manager-modal" onClick={(e) => e.stopPropagation()}>
-            <AdminUserManager />
-            <button 
+            <UserAccessManager />
+            <button
               className="modal-close-btn"
-              onClick={() => setShowAdminManager(false)}
+              onClick={() => setShowUserAccessManager(false)}
             >
               ✕
             </button>

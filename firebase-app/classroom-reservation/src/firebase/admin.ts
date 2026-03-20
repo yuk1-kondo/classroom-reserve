@@ -51,36 +51,48 @@ export const adminService = {
       
       return await adminCache.getIsAdmin(key, async () => {
         debugLog('🔍 管理者権限チェック:', { uid, email });
-        
-        // 1. uid ドキュメント（最速・推奨）
-        const uidDoc = await getDoc(doc(db, 'admin_users', uid));
-        if (uidDoc.exists()) {
-          debugLog('✅ 管理者権限: true (by uid)');
-          return true;
-        }
-        
-        // 2. email ドキュメント（後方互換性）
-        if (email) {
-          const emailDoc = await getDoc(doc(db, 'admin_users', email));
-          if (emailDoc.exists()) {
-            debugLog('✅ 管理者権限: true (by email)');
+
+        const doCheck = async (): Promise<boolean> => {
+          // 1. uid ドキュメント（最速・推奨）
+          const uidDoc = await getDoc(doc(db, 'admin_users', uid));
+          if (uidDoc.exists()) {
+            debugLog('✅ 管理者権限: true (by uid)');
             return true;
           }
           
-          // 3. 過去データ互換: メールを生成ID化したキー
-          const legacyId = this.generateUidFromEmail(email);
-          const legacyDoc = await getDoc(doc(db, 'admin_users', legacyId));
-          if (legacyDoc.exists()) {
-            debugLog('✅ 管理者権限: true (by legacyId)');
-            return true;
+          // 2. email ドキュメント（後方互換性）
+          if (email) {
+            const emailDoc = await getDoc(doc(db, 'admin_users', email));
+            if (emailDoc.exists()) {
+              debugLog('✅ 管理者権限: true (by email)');
+              return true;
+            }
+            
+            // 3. 過去データ互換: メールを生成ID化したキー
+            const legacyId = this.generateUidFromEmail(email);
+            const legacyDoc = await getDoc(doc(db, 'admin_users', legacyId));
+            if (legacyDoc.exists()) {
+              debugLog('✅ 管理者権限: true (by legacyId)');
+              return true;
+            }
           }
+          
+          debugLog('❌ 管理者権限: false');
+          return false;
+        };
+
+        // 初回トライ
+        try {
+          return await doCheck();
+        } catch (err: any) {
+          // Auth トークン未反映の場合リトライ（permission-denied は典型的なトークン遅延）
+          if (err?.code === 'permission-denied' || err?.message?.includes('permissions')) {
+            debugLog('⏳ 管理者チェック: トークン待ちリトライ (1s)');
+            await new Promise(r => setTimeout(r, 1000));
+            return await doCheck();
+          }
+          throw err;
         }
-        
-        // 4. 全スキャンは削除（コストが高すぎるため）
-        // 必要な場合は uid または email でドキュメントを作成すること
-        
-        debugLog('❌ 管理者権限: false');
-        return false;
       });
     } catch (error) {
       console.error('❌ 管理者チェックエラー:', error);
@@ -106,43 +118,55 @@ export const adminService = {
           debugLog('✅ スーパー管理者: true (by SUPER_ADMIN_EMAIL)');
           return true;
         }
-        
-        // uid ドキュメント優先
-        const uidRef = doc(db, 'admin_users', uid);
-        const uidSnap = await getDoc(uidRef);
-        if (uidSnap.exists()) {
-          const data = uidSnap.data() as AdminUser;
-          // 互換性のため tier 未設定(null)はスーパー扱い
-          const isSuper = (data.tier ?? 'super') === 'super';
-          debugLog(`✅ スーパー管理者: ${isSuper} (by uid, tier=${data.tier})`);
-          return isSuper;
-        }
-        
-        // email ドキュメント（後方互換性）
-        if (email) {
-          const emailRef = doc(db, 'admin_users', email);
-          const emailSnap = await getDoc(emailRef);
-          if (emailSnap.exists()) {
-            const data = emailSnap.data() as AdminUser;
+
+        const doCheck = async (): Promise<boolean> => {
+          // uid ドキュメント優先
+          const uidRef = doc(db, 'admin_users', uid);
+          const uidSnap = await getDoc(uidRef);
+          if (uidSnap.exists()) {
+            const data = uidSnap.data() as AdminUser;
             const isSuper = (data.tier ?? 'super') === 'super';
-            debugLog(`✅ スーパー管理者: ${isSuper} (by email, tier=${data.tier})`);
+            debugLog(`✅ スーパー管理者: ${isSuper} (by uid, tier=${data.tier})`);
             return isSuper;
           }
           
-          // 過去データ互換: 生成ID
-          const legacyId = this.generateUidFromEmail(email);
-          const legacyRef = doc(db, 'admin_users', legacyId);
-          const legacySnap = await getDoc(legacyRef);
-          if (legacySnap.exists()) {
-            const data = legacySnap.data() as AdminUser;
-            const isSuper = (data.tier ?? 'super') === 'super';
-            debugLog(`✅ スーパー管理者: ${isSuper} (by legacyId, tier=${data.tier})`);
-            return isSuper;
+          // email ドキュメント（後方互換性）
+          if (email) {
+            const emailRef = doc(db, 'admin_users', email);
+            const emailSnap = await getDoc(emailRef);
+            if (emailSnap.exists()) {
+              const data = emailSnap.data() as AdminUser;
+              const isSuper = (data.tier ?? 'super') === 'super';
+              debugLog(`✅ スーパー管理者: ${isSuper} (by email, tier=${data.tier})`);
+              return isSuper;
+            }
+            
+            // 過去データ互換: 生成ID
+            const legacyId = this.generateUidFromEmail(email);
+            const legacyRef = doc(db, 'admin_users', legacyId);
+            const legacySnap = await getDoc(legacyRef);
+            if (legacySnap.exists()) {
+              const data = legacySnap.data() as AdminUser;
+              const isSuper = (data.tier ?? 'super') === 'super';
+              debugLog(`✅ スーパー管理者: ${isSuper} (by legacyId, tier=${data.tier})`);
+              return isSuper;
+            }
           }
+          
+          debugLog('❌ スーパー管理者: false');
+          return false;
+        };
+
+        try {
+          return await doCheck();
+        } catch (err: any) {
+          if (err?.code === 'permission-denied' || err?.message?.includes('permissions')) {
+            debugLog('⏳ スーパー管理者チェック: トークン待ちリトライ (1s)');
+            await new Promise(r => setTimeout(r, 1000));
+            return await doCheck();
+          }
+          throw err;
         }
-        
-        debugLog('❌ スーパー管理者: false');
-        return false;
       });
     } catch (error) {
       console.error('❌ スーパー管理者チェックエラー:', error);

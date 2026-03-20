@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { adminService } from './admin';
+import { userAccessService } from './userAccess';
 import { setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 // 許可されたドメイン設定
@@ -64,6 +65,19 @@ export const authService = {
       console.log('✅ Googleログイン成功:', user.email);
       // UID とメールの紐付けを user_profiles に保存（管理者追加のための逆引きに使用）
       try { await adminService.upsertUserProfile(user.uid, user.email, user.displayName); } catch {}
+
+      // user_access に upsert → blocked ならサインアウト
+      try {
+        const status = await userAccessService.upsertOnLogin(user.uid, user.email, user.displayName);
+        if (status === 'blocked') {
+          console.error('❌ アクセスがブロックされています:', user.email);
+          await signOut(auth);
+          throw new Error('このアカウントはブロックされています。管理者にお問い合わせください。');
+        }
+      } catch (e: any) {
+        if (e?.message?.includes('ブロック')) throw e;
+      }
+
       try { localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}
       return result;
     } catch (error) {
@@ -156,6 +170,17 @@ export const authService = {
           callback(null);
           return;
         }
+
+        // blocked チェック（セッション復元時にも効かせる）
+        try {
+          const status = await userAccessService.getUserStatus(user.uid);
+          if (status === 'blocked') {
+            console.error('❌ ブロックされたユーザー:', user.email);
+            await signOut(auth);
+            callback(null);
+            return;
+          }
+        } catch {}
 
         const isAdmin = !!(user.email && ADMIN_EMAILS.includes(user.email));
         try { if (!localStorage.getItem(this.LAST_LOGIN_KEY)) localStorage.setItem(this.LAST_LOGIN_KEY, String(Date.now())); } catch {}

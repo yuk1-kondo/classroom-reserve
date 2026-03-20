@@ -33,6 +33,15 @@ service cloud.firestore {
       allow write: if isAuthenticated() && request.auth.uid == uid;
     }
 
+    // ユーザーアクセス管理（ログイン済みユーザー一覧 + アクセス制御）
+    match /user_access/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
     // 教室と時限データは誰でも読み取り可能
     match /rooms/{roomId} {
       allow read: if true;
