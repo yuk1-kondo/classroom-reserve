@@ -7,9 +7,10 @@ import toast from 'react-hot-toast';
 interface Props {
   currentUserId?: string | null;
   roomOptions?: { id: string; name: string }[];
+  hideTitle?: boolean;
 }
 
-export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOptions = [] }) => {
+export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOptions = [], hideTitle }) => {
   const [blockedPeriods, setBlockedPeriods] = useState<BlockedPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,44 +105,28 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
   if (!isAdmin) return null;
 
   return (
-    <div className="admin-card rls-card">
-      <h5 className="rls-title">🚫 予約禁止期間設定</h5>
+    <div className="admin-settings-block">
+      {!hideTitle && <h5 className="admin-settings-block__title">予約禁止期間設定</h5>}
 
-      {loading && <div className="rls-loading">読み込み中…</div>}
+      {loading && <div className="admin-settings-block__loading">読み込み中…</div>}
 
       {/* 登録済み一覧 */}
       {!loading && blockedPeriods.length > 0 && (
-        <div style={{ marginBottom: '12px' }}>
-          <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>登録済みの禁止期間:</p>
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <div className="admin-settings-block__list-wrap">
+          <p className="admin-settings-block__sub-title">登録済みの禁止期間:</p>
+          <ul className="admin-settings-block__list">
             {blockedPeriods.map(bp => (
-              <li key={bp.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px',
-                marginBottom: '4px',
-                background: '#fff3f3',
-                borderRadius: '4px',
-                fontSize: '13px'
-              }}>
+              <li key={bp.id} className="admin-settings-block__list-item">
                 <div>
                   <strong>{formatDate(bp.startDate)} 〜 {formatDate(bp.endDate)}</strong>
-                  {bp.roomName && <span style={{ marginLeft: '8px', color: '#666' }}>({bp.roomName})</span>}
-                  {!bp.roomId && <span style={{ marginLeft: '8px', color: '#c00' }}>(全教室)</span>}
-                  {bp.reason && <div style={{ fontSize: '12px', color: '#888' }}>{bp.reason}</div>}
+                  {bp.roomName && <span className="admin-settings-block__meta">({bp.roomName})</span>}
+                  {!bp.roomId && <span className="admin-settings-block__meta admin-settings-block__meta--danger">(全教室)</span>}
+                  {bp.reason && <div className="admin-settings-block__reason">{bp.reason}</div>}
                 </div>
                 <button
+                  type="button"
+                  className="admin-settings-block__btn admin-settings-block__btn--small admin-settings-block__btn--danger"
                   onClick={() => bp.id && handleRemove(bp.id)}
-                  style={{
-                    background: '#dc3545',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
                 >
                   削除
                 </button>
@@ -152,22 +137,15 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
       )}
 
       {!loading && blockedPeriods.length === 0 && !showForm && (
-        <p style={{ fontSize: '13px', color: '#888', marginBottom: '12px' }}>禁止期間は設定されていません</p>
+        <p className="admin-settings-block__empty">禁止期間は設定されていません</p>
       )}
 
       {/* 追加ボタン */}
       {!showForm && (
         <button
+          type="button"
+          className="admin-settings-block__btn admin-settings-block__btn--primary"
           onClick={() => setShowForm(true)}
-          style={{
-            background: '#007bff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '13px'
-          }}
         >
           ＋ 禁止期間を追加
         </button>
@@ -175,42 +153,37 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
 
       {/* 追加フォーム */}
       {showForm && (
-        <div style={{ 
-          background: '#f8f9fa', 
-          padding: '12px', 
-          borderRadius: '6px',
-          marginTop: '8px'
-        }}>
-          <div style={{ marginBottom: '8px' }}>
-            <label htmlFor="blocked-start-date" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>開始日</label>
+        <div className="admin-settings-block__form">
+          <div className="admin-settings-block__field-wrap">
+            <label htmlFor="blocked-start-date" className="admin-settings-block__label admin-settings-block__label--block">開始日</label>
             <input
               id="blocked-start-date"
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
               title="開始日"
-              style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="admin-settings-block__field"
             />
           </div>
-          <div style={{ marginBottom: '8px' }}>
-            <label htmlFor="blocked-end-date" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>終了日</label>
+          <div className="admin-settings-block__field-wrap">
+            <label htmlFor="blocked-end-date" className="admin-settings-block__label admin-settings-block__label--block">終了日</label>
             <input
               id="blocked-end-date"
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
               title="終了日"
-              style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="admin-settings-block__field"
             />
           </div>
-          <div style={{ marginBottom: '8px' }}>
-            <label htmlFor="blocked-room" style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>対象教室（空欄=全教室）</label>
+          <div className="admin-settings-block__field-wrap">
+            <label htmlFor="blocked-room" className="admin-settings-block__label admin-settings-block__label--block">対象教室（空欄=全教室）</label>
             <select
               id="blocked-room"
               value={roomId}
               onChange={e => setRoomId(e.target.value)}
               title="対象教室"
-              style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="admin-settings-block__field"
             >
               <option value="">全教室</option>
               {roomOptions.map(r => (
@@ -218,33 +191,28 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
               ))}
             </select>
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>理由（任意）</label>
+          <div className="admin-settings-block__field-wrap admin-settings-block__field-wrap--last">
+            <label className="admin-settings-block__label admin-settings-block__label--block">理由（任意）</label>
             <input
               type="text"
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="例: 春休み、設備点検"
-              style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="admin-settings-block__field"
             />
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="admin-settings-block__actions">
             <button
+              type="button"
+              className="admin-settings-block__btn admin-settings-block__btn--primary"
               onClick={handleAdd}
               disabled={saving}
-              style={{
-                background: '#28a745',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '8px 16px',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                fontSize: '13px'
-              }}
             >
               {saving ? '保存中...' : '保存'}
             </button>
             <button
+              type="button"
+              className="admin-settings-block__btn admin-settings-block__btn--muted"
               onClick={() => {
                 setShowForm(false);
                 setStartDate('');
@@ -253,15 +221,6 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
                 setReason('');
               }}
               disabled={saving}
-              style={{
-                background: '#6c757d',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '8px 16px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}
             >
               キャンセル
             </button>
@@ -269,7 +228,7 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
         </div>
       )}
 
-      <p style={{ fontSize: '11px', color: '#888', marginTop: '12px' }}>
+      <p className="admin-settings-block__note">
         ※ 禁止期間中は一般ユーザーが予約できません（管理者は可能）
       </p>
     </div>

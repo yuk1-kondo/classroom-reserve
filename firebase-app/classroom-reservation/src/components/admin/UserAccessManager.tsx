@@ -11,7 +11,12 @@ interface UserRow extends UserAccessRecord {
   isSuperAdmin: boolean;
 }
 
-export const UserAccessManager: React.FC = () => {
+interface UserAccessManagerProps {
+  /** 左ナビで見出しを出す場合、カード内の重複見出しを隠す */
+  hideTitle?: boolean;
+}
+
+export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle }) => {
   const { currentUser, isAdmin, isSuperAdmin, refreshAdminStatus } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -171,7 +176,7 @@ export const UserAccessManager: React.FC = () => {
   return (
     <div className="user-access-manager">
       <div className="uam-header">
-        <h3>ユーザー管理</h3>
+        {!hideTitle && <h3>ユーザー管理</h3>}
         <p>ログイン済みユーザーの一覧管理・アクセス制御・管理者権限の付与</p>
       </div>
 

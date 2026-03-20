@@ -1,5 +1,5 @@
 // リファクタリング版サイドパネルコンポーネント - 予約作成・表示用
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
@@ -17,15 +17,6 @@ import { blockedPeriodsService } from '../firebase/blockedPeriods';
 import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
 // import { formatPeriodDisplay } from '../utils/periodLabel';
-import ReservationLimitSettings from './admin/ReservationLimitSettings';
-import PasscodeSettings from './admin/PasscodeSettings';
-import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
-// import { authService } from '../firebase/auth';
-// import { adminService } from '../firebase/admin';
-import RecurringTemplatesModal from './admin/RecurringTemplatesModal';
-import UserAccessManager from './admin/UserAccessManager';
-
-
 interface SidePanelProps {
   selectedDate?: string;
   selectedEventId?: string;
@@ -46,18 +37,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   prefillVersion
 }) => {
   // カスタムフックで状態管理を分離
-  const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin, isSuperAdmin } = useAuth();
+  const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin } = useAuth();
   const { rooms, reservations: reservationsFromDaily, addReservations: addReservationsToDaily } = useReservationDataContext();
   const { reservations: monthlyReservations, addReservations: addReservationsToMonthly } = useMonthlyReservations();
   const reservations = React.useMemo(()=>{
     if (Array.isArray(reservationsFromDaily) && reservationsFromDaily.length > 0) return reservationsFromDaily;
     return Array.isArray(monthlyReservations) ? monthlyReservations : [];
   }, [reservationsFromDaily, monthlyReservations]);
-  const roomOptions = useMemo(() =>
-    rooms.filter(r => !!r.id).map(r => ({ id: r.id as string, name: r.name })),
-  [rooms]);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showUserAccessManager, setShowUserAccessManager] = useState(false);
   // 直後の重複チェックを抑止するためのクールダウン時刻
   const skipCheckUntilRef = useRef<number>(0);
   // 予約作成後に重複警告をクリアするため、コールバックをラップ
@@ -105,7 +91,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const handleCreateWithLimit = async () => {
     const dates = formHook.getReservationDates();
     const roomId = formHook.formData.selectedRoom;
-    
+
     // 管理者の場合は全ての制限をスキップ
     if (!isAdmin) {
       // 先日付制限チェック
@@ -241,33 +227,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             isAdmin={isAdmin}
           />
 
-          {/* 管理者機能セクション */}
           {isAdmin && (
-            <div className="admin-section">
-              <h4>🔧 管理者機能</h4>
-              {/* CSV処理メッセージ（現在未使用） */}
-              {/* 予約制限設定（全管理者が利用可能）*/}
-              <ReservationLimitSettings currentUserId={currentUser?.uid} />
-              {/* 会議室削除パスコード設定（全管理者が利用可能）*/}
-              <PasscodeSettings currentUserId={currentUser?.uid} />
-              {/* 予約禁止期間設定（全管理者が利用可能）*/}
-              <BlockedPeriodsSettings currentUserId={currentUser?.uid} roomOptions={roomOptions} />
-              {/* スーパー管理者専用ツール */}
-              {isSuperAdmin && (
-                <div className="admin-actions-row">
-                  <button className="admin-btn" onClick={() => setShowTemplates(true)}>固定予約テンプレートを開く</button>
-                  <button className="admin-btn" onClick={() => setShowUserAccessManager(true)}>ユーザー管理</button>
-                  <RecurringTemplatesModal 
-                    open={showTemplates}
-                    onClose={() => setShowTemplates(false)}
-                    isAdmin={isSuperAdmin}
-                    currentUserId={currentUser?.uid}
-                    roomOptions={roomOptions}
-                  />
-                </div>
-              )}
-
-              <div className="admin-functions" />
+            <div className="side-panel-admin-hint">
+              <p>
+                予約上限・禁止期間・ユーザー管理などは{' '}
+                <strong>ヘッダーの「管理・設定」</strong>から行えます。
+              </p>
             </div>
           )}
 
@@ -292,21 +257,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             <button 
               className="modal-close-btn"
               onClick={() => setShowLoginModal(false)}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ユーザー管理モーダル */}
-      {showUserAccessManager && (
-        <div className="modal-overlay" onClick={() => setShowUserAccessManager(false)}>
-          <div className="modal-content admin-manager-modal" onClick={(e) => e.stopPropagation()}>
-            <UserAccessManager />
-            <button
-              className="modal-close-btn"
-              onClick={() => setShowUserAccessManager(false)}
             >
               ✕
             </button>

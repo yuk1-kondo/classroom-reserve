@@ -1,5 +1,6 @@
 // メインアプリケーションコンポーネント
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
@@ -53,7 +54,7 @@ const DateNavigationButtons: React.FC<{
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin, loading: authLoading } = useAuth();
   
   // 常に今日の日付を初期値として設定（UX向上：毎回当日の予約を表示）
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateStr(new Date()));
@@ -200,6 +201,12 @@ export const MainApp: React.FC = () => {
           </h1>
           <div className="header-info">
             <div className="system-info">v{APP_VERSION}</div>
+            {/* ログイン済みの管理者のみ表示（一般ユーザー・未ログインでは非表示） */}
+            {currentUser && isAdmin && !authLoading && (
+              <Link to="/admin" className="admin-settings-link">
+                管理・設定
+              </Link>
+            )}
             <button 
               className="toggle-panel-button"
               onClick={() => setShowSidePanel(!showSidePanel)}

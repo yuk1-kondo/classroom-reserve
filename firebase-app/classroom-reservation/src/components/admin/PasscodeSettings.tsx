@@ -4,9 +4,10 @@ import { useAuth } from '../../hooks/useAuth';
 
 interface Props {
   currentUserId?: string | null;
+  hideTitle?: boolean;
 }
 
-export const PasscodeSettings: React.FC<Props> = ({ currentUserId }) => {
+export const PasscodeSettings: React.FC<Props> = ({ currentUserId, hideTitle }) => {
   const [passcode, setPasscode] = useState<string>('');
   const [currentPasscode, setCurrentPasscode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,43 +113,35 @@ export const PasscodeSettings: React.FC<Props> = ({ currentUserId }) => {
   const maskedPasscode = currentPasscode ? '●'.repeat(currentPasscode.length) : '未設定';
 
   return (
-    <div className="admin-card rls-card">
-      <h5 className="rls-title">🔑 会議室削除パスコード設定</h5>
-      {loading && <div className="rls-loading">設定を読み込み中…</div>}
+    <div className="admin-settings-block">
+      {!hideTitle && <h5 className="admin-settings-block__title">会議室削除パスコード設定</h5>}
+      {loading && <div className="admin-settings-block__loading">設定を読み込み中…</div>}
 
-      <div className="rls-info" style={{ marginBottom: '12px' }}>
-        <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#666' }}>
+      <div className="admin-settings-block__info admin-settings-block__info--compact">
+        <p className="admin-settings-block__text">
           進路指導部の先生に会議室の予約削除権限を与えるためのパスコードです。<br />
           このパスコードを知っている人は、他の人が作成した会議室の予約を削除できます。
         </p>
       </div>
 
-      <div className="rls-row">
-        <label className="rls-label">現在のパスコード</label>
-        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+      <div className="admin-settings-block__row">
+        <label className="admin-settings-block__label">現在のパスコード</label>
+        <span className="admin-settings-block__mono">
           {showPasscode ? (currentPasscode || '未設定') : maskedPasscode}
         </span>
         {currentPasscode && (
-          <button 
-            type="button" 
+          <button
+            type="button"
+            className="admin-settings-block__btn admin-settings-block__btn--small admin-settings-block__btn--offset"
             onClick={() => setShowPasscode(!showPasscode)}
-            style={{ 
-              marginLeft: '8px', 
-              padding: '2px 8px', 
-              fontSize: '12px',
-              background: 'transparent',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
           >
             {showPasscode ? '隠す' : '表示'}
           </button>
         )}
       </div>
 
-      <div className="rls-row" style={{ marginTop: '12px' }}>
-        <label className="rls-label">新しいパスコード</label>
+      <div className="admin-settings-block__row admin-settings-block__row--spaced">
+        <label className="admin-settings-block__label">新しいパスコード</label>
         <input
           type="text"
           value={passcode}
@@ -156,50 +149,42 @@ export const PasscodeSettings: React.FC<Props> = ({ currentUserId }) => {
           placeholder="英数字6桁"
           maxLength={6}
           disabled={!canWrite || saving}
-          style={{ 
-            fontFamily: 'monospace', 
-            fontSize: '14px',
-            width: '120px',
-            textTransform: 'uppercase'
-          }}
+          className="admin-settings-block__field admin-settings-block__field--mono"
         />
-        <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
+        <span className="admin-settings-block__counter">
           {passcode.length}/6文字
         </span>
       </div>
 
-      <div className="rls-hint" style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
+      <div className="admin-settings-block__hint admin-settings-block__hint--spaced">
         ※ 英数字6桁で設定してください（例: ABC123）
       </div>
 
-      <div className="rls-actions" style={{ marginTop: '16px' }}>
-        <button 
-          type="button" 
-          onClick={handleSave} 
+      <div className="admin-settings-block__actions admin-settings-block__actions--spaced">
+        <button
+          type="button"
+          className="admin-settings-block__btn admin-settings-block__btn--primary"
+          onClick={handleSave}
           disabled={saving || !canWrite || !validatePasscode(passcode)}
         >
           {saving ? '保存中…' : '保存'}
         </button>
         {currentPasscode && (
-          <button 
-            type="button" 
-            onClick={handleClear} 
+          <button
+            type="button"
+            className="admin-settings-block__btn admin-settings-block__btn--danger"
+            onClick={handleClear}
             disabled={saving || !canWrite}
-            style={{ 
-              marginLeft: '8px',
-              background: '#dc3545',
-              color: 'white'
-            }}
           >
             削除
           </button>
         )}
         {!canWrite && (
-          <div className="rls-note">
+          <div className="admin-settings-block__note">
             設定の変更には管理者メールでのログインが必要です。
           </div>
         )}
-        {message && <div className="rls-msg">{message}</div>}
+        {message && <div className="admin-settings-block__msg">{message}</div>}
       </div>
     </div>
   );

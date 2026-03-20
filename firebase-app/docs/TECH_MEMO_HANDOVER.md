@@ -173,6 +173,27 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 
 ---
 
+## 6.5. 管理画面の権限（管理者 vs スーパー管理者）
+
+`admin_users` に登録されたユーザーはフロントでは **`isAdmin`**（管理者）として扱う。  
+さらに Firestore の `tier` や所定メール等で **`isSuperAdmin`**（スーパー管理者）を判定する（`src/firebase/admin.ts`）。
+
+| 区分 | 管理画面で**操作できる**設定 |
+|------|------------------------------|
+| **管理者（Admin）** | **予約制限**（`system_settings` の予約最終日）<br>**会議室削除パスコード**（同上）<br>**予約禁止期間**（`blocked_periods`） |
+| **スーパー管理者（Super Admin）** | 上記の **すべて** に加え、<br>**固定予約テンプレート**（`weekly_templates`、テンプレ適用・CSV・一括削除を含む）<br>**ユーザー管理**（`user_access` / `admin_users` への操作など） |
+
+**UI の挙動（`AdminPage.tsx`）**
+
+- 左ナビは **全項目を表示**。スーパー専用の 2 項目は、一般管理者には **グレーアウト＋disabled**（ツールチップで「スーパー管理者のみ」）。
+- 予約画面ヘッダーの「管理・設定」リンクは **ログイン済みかつ管理者かつ認証判定完了後**のみ表示（一般ユーザー・未ログインでは非表示）。
+
+**Firestore Rules との差（補足）**
+
+- `weekly_templates` の **write** は Rules 上は **`isAdmin()`** でも可。ただし **アプリは当該ペインをスーパーのみが開ける**ようにしており、通常管理者はテンプレート機能にアクセスできない（運用は UI 前提）。
+
+---
+
 ## 7. 関連ファイル（変更時の起点）
 
 | 内容 | パス例 |
@@ -184,6 +205,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 管理者 | `classroom-reservation/src/firebase/admin.ts` |
 | ユーザーアクセス管理 | `classroom-reservation/src/firebase/userAccess.ts` |
 | ユーザー管理画面 | `classroom-reservation/src/components/admin/UserAccessManager.tsx` |
+| 管理・設定ページ（左ナビ） | `classroom-reservation/src/components/AdminPage.tsx` / `AdminPage.css`（`/admin?section=`） |
 | システム設定 | `classroom-reservation/src/firebase/settings.ts` |
 
 ---
@@ -194,6 +216,12 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 |------|-----------|------|
 | 2026-01-26 | v2.7.0 | 初版作成（技術メモ・Mermaid・コレクション一覧） |
 | 2026-03-20 | v2.8.0 | ユーザーアクセス管理機能を追加。`user_access` コレクション新設、管理者画面で全ログインユーザーの一覧表示・ブロック/許可切替・Admin権限付与/解除・ユーザー削除が可能に。`user_profiles` からの過去ユーザー自動同期機能。Firebase Auth トークン遅延対応（admin チェックのリトライロジック追加）。旧「管理者権限管理」画面を廃止し「ユーザー管理」に統合。 |
+| 2026-01-21 | v2.9.3 | 管理画面のスタイル整理：`admin-settings-blocks.css` に予約制限・パスコード・禁止期間のブロックを集約（`admin-card`+`rls-*` の二重クラスを廃止）。`AdminPage` は `AdminUserManager.css` に依存しない。スーパー管理者セクションのユーザー管理ラッパー div を削除。 |
+| 2026-01-21 | v2.9.4 | UI統一の第1段：`PasscodeSettings` と `BlockedPeriodsSettings` の inline style を `admin-settings-blocks.css` の共通クラスへ移行。管理画面のボタン/入力/注意表示の色と余白をトークン準拠に統一。`MainApp.css` の `.toggle-panel-button` 重複定義を解消。 |
+| 2026-01-21 | v2.9.5 | 管理画面の再設計：固定予約テンプレート機能をモーダルから管理ページ内へ常設化（`RecurringTemplatesWorkspace` 新設）。テンプレート管理・期間適用・CSV一括予約・期間削除を同一画面で整理。配色は既存トークンへ寄せ、色数を増やさずに統一。 |
+| 2026-03-21 | v2.9.6 | 管理・設定を **左ナビ（項目一覧）＋右ペイン（選択内容）** に変更。`?section=` クエリで表示項目を同期（ブックマーク・共有可）。スーパー管理者のみ「固定予約テンプレート」「ユーザー管理」を表示。 |
+| 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
+| 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
 
 ---
 

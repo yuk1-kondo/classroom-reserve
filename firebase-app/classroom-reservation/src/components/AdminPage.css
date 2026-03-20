@@ -1,0 +1,315 @@
+/* 管理・設定ページ（左ナビ + 右ペイン） */
+.admin-page {
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  box-sizing: border-box;
+}
+
+.admin-page--loading,
+.admin-page__denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.admin-page__denied h1 {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 1.15rem;
+  color: var(--color-brand-text);
+}
+
+.admin-page__denied p {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+/* 予約画面 .main-header と同系の高さ・タイポ（MainApp.css に合わせる） */
+.admin-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 16px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-outline);
+  color: var(--color-on-surface);
+  box-shadow: var(--elevation-header);
+  position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 1440px) and (max-height: 900px) {
+  .admin-page__header {
+    padding: 12px 20px;
+  }
+
+  .admin-page__title {
+    font-size: 1.5em;
+  }
+}
+
+/* MainApp .main-header の @media (max-width: 1366px) / 1024px に合わせる */
+@media (max-width: 1366px) {
+  .admin-page__header {
+    padding: 12px 16px;
+  }
+
+  .admin-page__title {
+    font-size: 1.5em;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-page__header {
+    padding: 12px 16px;
+  }
+
+  .admin-page__title {
+    font-size: 1.4em;
+  }
+
+  .admin-page__version {
+    font-size: 0.85em;
+  }
+
+  .admin-page__home-link,
+  .admin-page__back {
+    font-size: 0.85em;
+    padding: 8px 14px;
+  }
+}
+
+.admin-page__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-page__logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.admin-page__title {
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  color: var(--color-header-text);
+}
+
+.admin-page__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+/* 予約画面 .system-info に合わせる */
+.admin-page__version {
+  background: none;
+  color: var(--color-on-surface-variant);
+  opacity: 0.9;
+  padding: 0;
+  font-size: 0.9em;
+  font-weight: 600;
+  border: none;
+  box-shadow: none;
+}
+
+/* 予約画面 .admin-settings-link / .toggle-panel-button と同程度のタップ高さ */
+.admin-page__home-link,
+.admin-page__back {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  text-decoration: none;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-alt);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.admin-page__home-link:hover,
+.admin-page__back:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.admin-page__main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
+}
+
+/* 左ナビ + 右ペイン */
+.admin-page__layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.admin-page__nav {
+  position: sticky;
+  top: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  padding: var(--spacing-xs);
+}
+
+.admin-page__nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-page__nav-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-page__nav-btn:hover {
+  background: var(--color-surface-alt);
+}
+
+.admin-page__nav-btn--active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* スーパー管理者専用（一般管理者にはグレーアウト・操作不可） */
+.admin-page__nav-btn--locked {
+  opacity: 0.45;
+  color: var(--color-on-surface-variant);
+  cursor: not-allowed;
+}
+
+.admin-page__nav-btn--locked:hover {
+  background: transparent;
+}
+
+.admin-page__panel {
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  padding: var(--spacing-md);
+}
+
+.admin-page__panel-head {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.admin-page__panel-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-brand-text);
+}
+
+.admin-page__panel-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.45;
+}
+
+.admin-page__panel-body {
+  min-width: 0;
+}
+
+/* テンプレートワークスペースは独自グリッドのため下の余白のみ */
+.admin-page__panel-body > .rtw-root {
+  margin-top: 0;
+}
+
+/* ユーザー管理をパネル内で全幅に */
+.admin-page__panel-body .user-access-manager {
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .admin-page__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page__nav {
+    position: static;
+  }
+
+  .admin-page__nav-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-page__nav-list li {
+    flex: 0 0 auto;
+  }
+
+  .admin-page__nav-btn {
+    width: auto;
+    white-space: nowrap;
+    padding: 8px 12px;
+    border: 1px solid var(--color-outline-variant);
+  }
+
+  .admin-page__nav-btn--active {
+    border-color: var(--color-primary);
+  }
+}
+
+/* MainApp .main-header のモバイル（768px）に近いレイアウト */
+@media (max-width: 768px) {
+  .admin-page__header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .admin-page__actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}

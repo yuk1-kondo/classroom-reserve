@@ -1,0 +1,262 @@
+/**
+ * 管理画面の「設定ブロック」共通スタイル（予約制限・パスコード・禁止期間）
+ * — 単一ルート .admin-settings-block。AdminUserManager.css には依存しない。
+ */
+.admin-settings-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-medium);
+  padding: 0.75rem 1rem;
+  box-shadow: none;
+}
+
+.admin-settings-block__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-brand-text);
+}
+
+.admin-settings-block__loading {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__error {
+  font-size: 0.75rem;
+  color: var(--color-error);
+}
+
+.admin-settings-block__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-settings-block__label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.admin-settings-block__info {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-on-surface);
+}
+
+.admin-settings-block__hint {
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.625rem;
+}
+
+.admin-settings-block__note {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__msg {
+  font-size: 0.75rem;
+}
+
+.admin-settings-block__info--compact {
+  margin-bottom: 0.75rem;
+}
+
+.admin-settings-block__text {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.45;
+}
+
+.admin-settings-block__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+}
+
+.admin-settings-block__counter {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__hint--spaced {
+  margin-top: 0.5rem;
+}
+
+.admin-settings-block__actions--spaced {
+  margin-top: 1rem;
+}
+
+.admin-settings-block__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-settings-block__btn:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: var(--color-outline-variant);
+}
+
+.admin-settings-block__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-settings-block__btn--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.admin-settings-block__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.admin-settings-block__btn--danger {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-on-primary);
+}
+
+.admin-settings-block__btn--danger:hover:not(:disabled) {
+  background: #a72628;
+  border-color: #a72628;
+}
+
+.admin-settings-block__btn--muted {
+  background: var(--color-on-surface-variant);
+  border-color: var(--color-on-surface-variant);
+  color: var(--color-on-primary);
+}
+
+.admin-settings-block__btn--muted:hover:not(:disabled) {
+  background: #4a5661;
+  border-color: #4a5661;
+}
+
+.admin-settings-block__btn--small {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
+
+.admin-settings-block__btn--offset {
+  margin-left: 0.5rem;
+}
+
+.admin-settings-block__row--spaced {
+  margin-top: 0.75rem;
+}
+
+.admin-settings-block__field {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  box-sizing: border-box;
+}
+
+.admin-settings-block__field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(45, 127, 211, 0.15);
+}
+
+.admin-settings-block__field--mono {
+  width: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.admin-settings-block__list-wrap {
+  margin-bottom: 0.75rem;
+}
+
+.admin-settings-block__sub-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-settings-block__list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  background: var(--color-error-light);
+  border-radius: var(--radius-small);
+  font-size: 0.8125rem;
+}
+
+.admin-settings-block__meta {
+  margin-left: 0.5rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__meta--danger {
+  color: var(--color-error);
+}
+
+.admin-settings-block__reason {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__empty {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+}
+
+.admin-settings-block__form {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-outline);
+  padding: 0.75rem;
+  border-radius: var(--radius-small);
+  margin-top: 0.5rem;
+}
+
+.admin-settings-block__field-wrap {
+  margin-bottom: 0.5rem;
+}
+
+.admin-settings-block__field-wrap--last {
+  margin-bottom: 0.75rem;
+}
+
+.admin-settings-block__label--block {
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}

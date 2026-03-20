@@ -7,6 +7,8 @@ import { useAuth } from '../../hooks/useAuth';
 
 interface Props {
   currentUserId?: string | null;
+  /** 管理画面の左ナビ＋右ペイン利用時、カード見出しを隠す */
+  hideTitle?: boolean;
 }
 
 const fmt = (d: Date) => {
@@ -16,7 +18,7 @@ const fmt = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
-export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => {
+export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId, hideTitle }) => {
   const { loading, error, maxDate, maxDateStr } = useSystemSettings();
   const [absoluteDate, setAbsoluteDate] = useState<string>(maxDateStr || '');
   const [saving, setSaving] = useState(false);
@@ -64,13 +66,13 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
   };
 
   return (
-    <div className="admin-card rls-card">
-      <h5 className="rls-title">🛡️ 予約制限設定</h5>
-      {loading && <div className="rls-loading">設定を読み込み中…</div>}
-      {error && <div className="rls-error">{error}</div>}
+    <div className="admin-settings-block">
+      {!hideTitle && <h5 className="admin-settings-block__title">予約制限設定</h5>}
+      {loading && <div className="admin-settings-block__loading">設定を読み込み中…</div>}
+      {error && <div className="admin-settings-block__error">{error}</div>}
 
-      <div className="rls-row">
-        <label className="rls-label">固定日付で制限</label>
+      <div className="admin-settings-block__row">
+        <label className="admin-settings-block__label">固定日付で制限</label>
         <input
           type="date"
           value={absoluteDate}
@@ -80,22 +82,22 @@ export const ReservationLimitSettings: React.FC<Props> = ({ currentUserId }) => 
         />
       </div>
 
-      <div className="rls-info">
+      <div className="admin-settings-block__info">
         <div>現在の適用上限: <strong>{maxDate ? fmt(maxDate) : '未設定'}</strong></div>
         <div>今回の保存内容プレビュー: <strong>{absoluteDate || '—'}</strong></div>
-        <div className="rls-hint">保存すると UI と ルール（予約作成の startTime）に即時反映されます。</div>
+        <div className="admin-settings-block__hint">保存すると UI と ルール（予約作成の startTime）に即時反映されます。</div>
       </div>
 
-      <div className="rls-actions">
-        <button type="button" onClick={handleSave} disabled={saving || !canWrite}>
+      <div className="admin-settings-block__actions">
+        <button type="button" className="admin-settings-block__btn admin-settings-block__btn--primary" onClick={handleSave} disabled={saving || !canWrite}>
           {saving ? '保存中…' : '保存'}
         </button>
         {!canWrite && (
-          <div className="rls-note">
+          <div className="admin-settings-block__note">
             設定の変更には管理者メールでのログインが必要です。
           </div>
         )}
-        {message && <div className="rls-msg">{message}</div>}
+        {message && <div className="admin-settings-block__msg">{message}</div>}
       </div>
     </div>
   );

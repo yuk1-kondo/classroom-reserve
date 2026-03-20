@@ -1,0 +1,556 @@
+/* ワークスペースルート */
+.rtw-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* 2カラムグリッド */
+.rtw-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--spacing-sm);
+  align-items: start;
+}
+
+.rtw-grid--secondary {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* パネル共通 */
+.rtw-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  padding: var(--spacing-md);
+  min-width: 0;
+}
+
+.rtw-h3 {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-brand-text);
+}
+
+.rtw-help,
+.rtw-note {
+  margin: 0 0 var(--spacing-sm);
+  font-size: 0.8rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.45;
+}
+
+.rtw-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.rtw-form-row label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+}
+
+.rtw-form-row input[type="date"] {
+  width: 100%;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+/* ─── 統一ボタン ─── */
+.rtw-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.rtw-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.rtw-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rtw-message {
+  margin-top: var(--spacing-sm);
+  padding: 6px 8px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-variant);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+/* =============================================
+   子コンポーネントの完全リセット
+   — 二重ヘッダー解消・ボタン統一・装飾統一
+   ============================================= */
+
+/* --- RecurringTemplatesManager --- */
+.rtw-root .rtm-wrap {
+  padding: 0;
+  background: transparent;
+  height: auto;
+}
+
+/* RTM の h3 は親の rtw-h3 と重複するので非表示 */
+.rtw-root .rtm-header h3 {
+  display: none;
+}
+
+.rtw-root .rtm-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: var(--spacing-sm);
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.rtw-root .rtm-error {
+  padding: 6px 8px;
+  border-radius: var(--radius-small);
+  font-size: 0.8rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.rtw-root .rtm-loading {
+  font-size: 0.8rem;
+  color: var(--color-on-surface-variant);
+}
+
+.rtw-root .rtm-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 6px 8px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  box-shadow: none;
+}
+
+.rtw-root .rtm-selection-info {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rtw-root .rtm-selection-info::before {
+  display: none;
+}
+
+.rtw-root .rtm-action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.rtw-root .rtm-table-container {
+  border-radius: 0 0 var(--radius-small) var(--radius-small);
+  border: 1px solid var(--color-outline);
+  border-top: none;
+  box-shadow: none;
+  max-height: 180px;
+  background: var(--color-surface);
+}
+
+.rtw-root .rtm-table {
+  font-size: 0.8rem;
+}
+
+.rtw-root .rtm-table th {
+  background: var(--color-surface-alt);
+  border-color: var(--color-outline);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 5px 8px;
+}
+
+.rtw-root .rtm-table td {
+  padding: 4px 8px;
+  border-color: var(--color-outline);
+  color: var(--color-on-surface);
+  font-size: 0.8rem;
+}
+
+.rtw-root .rtm-table thead {
+  background: var(--color-surface-alt);
+}
+
+.rtw-root .rtm-table tr.selected {
+  background: var(--color-primary-light);
+}
+
+.rtw-root .rtm-table tr:hover {
+  background: var(--color-surface-alt);
+}
+
+.rtw-root .rtm-table tr.selected:hover {
+  background: var(--color-primary-light);
+}
+
+.rtw-root .rtm-table input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+/* エディター */
+.rtw-root .rtm-editor {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  padding: var(--spacing-sm);
+  background: var(--color-surface);
+  box-shadow: none;
+  margin-top: var(--spacing-sm);
+}
+
+.rtw-root .rtm-editor-actions {
+  border-top: 1px solid var(--color-outline);
+  gap: 6px;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+}
+
+/* --- CSV一括予約 --- */
+.rtw-root .csvb-wrap {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* CSV の h4 は親の rtw-h3 と重複するので非表示 */
+.rtw-root .csvb-wrap > h4 {
+  display: none;
+}
+
+.rtw-root .csvb-help {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+.rtw-root .csvb-help code {
+  font-size: 0.72rem;
+  background: var(--color-surface-alt);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.rtw-root .csvb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.rtw-root .csvb-controls label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+}
+
+.rtw-root .csvb-inline-check {
+  font-size: 0.8rem;
+}
+
+.rtw-root .csvb-message {
+  font-size: 0.8rem;
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-small);
+  padding: 6px 8px;
+}
+
+.rtw-root .csvb-preview-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin: var(--spacing-sm) 0 4px;
+}
+
+.rtw-root .csvb-preview-scroll {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  max-height: 160px;
+}
+
+.rtw-root .csvb-table {
+  font-size: 0.8rem;
+}
+
+.rtw-root .csvb-th {
+  background: var(--color-surface-alt);
+  color: var(--color-on-surface-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* --- BulkDelete --- */
+.rtw-root .bulk-delete-wrap {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* BulkDelete の h4 は親の rtw-h3 と重複するので非表示 */
+.rtw-root .bulk-delete-wrap > h4 {
+  display: none;
+}
+
+.rtw-root .bulk-delete-note {
+  font-size: 0.8rem;
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+.rtw-root .bulk-delete-note strong {
+  color: var(--color-error);
+}
+
+/* --- すべてのボタンを統一 --- */
+.rtw-root .rtm-header button,
+.rtw-root .rtm-action-buttons button,
+.rtw-root .rtm-editor-actions button,
+.rtw-root .csvb-controls button,
+.rtw-root .actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background var(--transition-fast);
+  width: auto;
+  margin: 0;
+}
+
+.rtw-root .rtm-header button:hover:not(:disabled),
+.rtw-root .rtm-action-buttons button:hover:not(:disabled),
+.rtw-root .rtm-editor-actions button:hover:not(:disabled),
+.rtw-root .csvb-controls button:hover:not(:disabled),
+.rtw-root .actions button:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  transform: none;
+  box-shadow: none;
+}
+
+.rtw-root .rtm-header button:disabled,
+.rtw-root .rtm-action-buttons button:disabled,
+.rtw-root .rtm-editor-actions button:disabled,
+.rtw-root .csvb-controls button:disabled,
+.rtw-root .actions button:disabled {
+  background: var(--color-outline-variant);
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* キャンセルボタン（エディターの最初のボタン） */
+.rtw-root .rtm-editor-actions button:first-child {
+  background: var(--color-surface);
+  border-color: var(--color-outline);
+  color: var(--color-on-surface);
+}
+
+.rtw-root .rtm-editor-actions button:first-child:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-outline);
+}
+
+/* 危険系ボタン */
+.rtw-root .rtm-action-buttons .remove-locks-button,
+.rtw-root .delete-btn {
+  background: var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  color: var(--color-on-primary) !important;
+  width: auto !important;
+}
+
+.rtw-root .rtm-action-buttons .remove-locks-button:hover:not(:disabled),
+.rtw-root .delete-btn:hover:not(:disabled) {
+  opacity: 0.85;
+  background: var(--color-error) !important;
+}
+
+/* --- すべてのフォーム入力を統一 --- */
+.rtw-root .form-row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.rtw-root .form-row label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 3px;
+}
+
+.rtw-root .form-row input,
+.rtw-root .form-row select,
+.rtw-root .csvb-controls input[type="file"],
+.rtw-root .csvb-controls input[type="date"],
+.rtw-root .csvb-controls select,
+.rtw-root .date-range-inputs input,
+.rtw-root .bulk-delete-wrap select {
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  min-height: auto;
+  box-sizing: border-box;
+}
+
+.rtw-root .form-row input:focus,
+.rtw-root .form-row select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(45, 127, 211, 0.15);
+  transform: none;
+}
+
+.rtw-root .date-range-inputs {
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.rtw-root .date-range-inputs span {
+  color: var(--color-on-surface-variant);
+  font-size: 0.8rem;
+}
+
+/* --- トグルボタン統一 --- */
+.rtw-root .toggle {
+  padding: 4px 7px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-small);
+  font-weight: 600;
+}
+
+.rtw-root .toggle.on {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.rtw-root .toggle.off {
+  background: var(--color-surface);
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+}
+
+.rtw-root .toggle:hover {
+  border-color: var(--color-primary);
+}
+
+.rtw-root .toggle.on:hover {
+  background: var(--color-primary-dark);
+}
+
+.rtw-root .weekday-period-container {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  gap: var(--spacing-sm);
+}
+
+.rtw-root .weekday-label,
+.rtw-root .period-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.rtw-root .weekday-label::before,
+.rtw-root .period-label::before {
+  display: none;
+}
+
+.rtw-root .weekday-toggle,
+.rtw-root .period-toggle {
+  padding: 4px 6px !important;
+  font-size: 0.72rem !important;
+  min-width: 30px;
+  min-height: auto;
+  height: 26px;
+  border-radius: var(--radius-small) !important;
+}
+
+.rtw-root .rtm-export-options {
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+/* メッセージ */
+.rtw-root .msg {
+  margin-top: var(--spacing-sm);
+  padding: 6px 8px;
+  border-radius: var(--radius-small);
+  font-size: 0.8rem;
+}
+
+.rtw-root .msg.error {
+  color: var(--color-error);
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+}
+
+.rtw-root .msg.success {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+}
+
+/* レスポンシブ */
+@media (max-width: 900px) {
+  .rtw-grid,
+  .rtw-grid--secondary {
+    grid-template-columns: 1fr;
+  }
+}

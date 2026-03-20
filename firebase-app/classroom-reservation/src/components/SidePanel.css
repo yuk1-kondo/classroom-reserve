@@ -1,14 +1,29 @@
 /* サイドパネル用スタイル */
 .side-panel {
   width: 100%;
-  max-width: 400px;
+  max-width: none;
   height: 100%;
   background: #f7f9fc;
-  border-left: 1px solid #c5ccd7;
-  box-shadow: inset 1px 0 0 rgba(197, 204, 215, 0.6);
   display: flex;
   flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  min-width: 0;
+}
+
+/* 管理者向け：管理ページへの案内（サイドパネル内は予約中心） */
+.side-panel-admin-hint {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-on-surface-variant);
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+}
+
+.side-panel-admin-hint p {
+  margin: 0;
 }
 
 /* 管理セクション（一時的） */
@@ -90,10 +105,10 @@
 
 /* 日付範囲選択スタイル */
 .date-range-selector {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px;
-  background-color: #f9f9f9;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background-color: transparent;
 }
 
 .date-toggle {
@@ -1084,7 +1099,7 @@
 /* === Theme overrides: Modern Academic === */
 .side-panel {
   background: var(--color-surface);
-  border-left: 1px solid var(--color-outline);
+  border-left: none;
 }
 
 .user-info-section {
@@ -1105,11 +1120,13 @@
   background: var(--color-primary-50);
   color: var(--color-primary-dark);
   border: 1px solid var(--color-outline);
+  box-shadow: none;
 }
 
 .reservation-form {
   background: var(--color-surface-variant);
   border: 1px solid var(--color-outline);
+  box-shadow: none;
 }
 
 .form-group select,
