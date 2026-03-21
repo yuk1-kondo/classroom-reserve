@@ -1,8 +1,14 @@
 // 予約禁止期間設定コンポーネント
-import React, { useEffect, useState } from 'react';
-import { blockedPeriodsService, BlockedPeriod } from '../../firebase/blockedPeriods';
+import React, { useEffect, useState, useCallback } from 'react';
+import { blockedPeriodsService, BlockedPeriod, getRoomLabel } from '../../firebase/blockedPeriods';
 import { useAuth } from '../../hooks/useAuth';
+import { PERIOD_ORDER, periodTimeMap } from '../../utils/periods';
 import toast from 'react-hot-toast';
+
+const PERIOD_OPTIONS = PERIOD_ORDER.map(key => ({
+  key,
+  label: periodTimeMap[key].name,
+}));
 
 interface Props {
   currentUserId?: string | null;
@@ -20,11 +26,17 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
   // フォーム状態
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [roomId, setRoomId] = useState('');
   const [reason, setReason] = useState('');
 
-  // データ読み込み
-  const loadData = async () => {
+  // 教室: all / select
+  const [roomMode, setRoomMode] = useState<'all' | 'select'>('all');
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+
+  // 時限: all / select
+  const [periodMode, setPeriodMode] = useState<'all' | 'select'>('all');
+  const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await blockedPeriodsService.getAll();
@@ -34,13 +46,34 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  // 追加処理
+  const toggleRoom = (id: string) => {
+    setSelectedRoomIds(prev =>
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
+  };
+
+  const togglePeriod = (key: string) => {
+    setSelectedPeriods(prev =>
+      prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key]
+    );
+  };
+
+  const resetForm = () => {
+    setStartDate('');
+    setEndDate('');
+    setReason('');
+    setRoomMode('all');
+    setSelectedRoomIds([]);
+    setPeriodMode('all');
+    setSelectedPeriods([]);
+  };
+
   const handleAdd = async () => {
     if (!currentUserId || !isAdmin) {
       toast.error('管理者権限が必要です');
@@ -54,25 +87,36 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
       toast.error('開始日は終了日より前にしてください');
       return;
     }
+    if (roomMode === 'select' && selectedRoomIds.length === 0) {
+      toast.error('禁止する教室を1つ以上選択してください');
+      return;
+    }
+    if (periodMode === 'select' && selectedPeriods.length === 0) {
+      toast.error('禁止する時限を1つ以上選択してください');
+      return;
+    }
 
     try {
       setSaving(true);
-      const roomName = roomId ? roomOptions.find(r => r.id === roomId)?.name : null;
-      // Firestoreはundefinedを受け付けないため、nullを使用
+      const roomIds = roomMode === 'select' ? selectedRoomIds : null;
+      const roomNames = roomMode === 'select'
+        ? selectedRoomIds.map(id => roomOptions.find(r => r.id === id)?.name || id)
+        : null;
+      const periods = periodMode === 'select' ? selectedPeriods : null;
+
       await blockedPeriodsService.add({
         startDate,
         endDate,
-        roomId: roomId || null,
-        roomName,
+        roomId: null,
+        roomName: null,
+        roomIds,
+        roomNames,
+        periods,
         reason: reason || null,
         createdBy: currentUserId
       });
       toast.success('禁止期間を追加しました');
-      // フォームリセット
-      setStartDate('');
-      setEndDate('');
-      setRoomId('');
-      setReason('');
+      resetForm();
       setShowForm(false);
       await loadData();
     } catch (e: any) {
@@ -83,7 +127,6 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
     }
   };
 
-  // 削除処理
   const handleRemove = async (id: string) => {
     if (!window.confirm('この禁止期間を削除しますか？')) return;
     try {
@@ -96,10 +139,22 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
     }
   };
 
-  // 日付フォーマット
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatPeriods = (bp: BlockedPeriod): string => {
+    if (!bp.periods || bp.periods.length === 0) return '全時限';
+    return bp.periods
+      .map(k => periodTimeMap[k as keyof typeof periodTimeMap]?.name || k)
+      .join(', ');
+  };
+
+  const isAllRooms = (bp: BlockedPeriod): boolean => {
+    if (bp.roomIds && bp.roomIds.length > 0) return false;
+    if (bp.roomId) return false;
+    return true;
   };
 
   if (!isAdmin) return null;
@@ -119,8 +174,11 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
               <li key={bp.id} className="admin-settings-block__list-item">
                 <div>
                   <strong>{formatDate(bp.startDate)} 〜 {formatDate(bp.endDate)}</strong>
-                  {bp.roomName && <span className="admin-settings-block__meta">({bp.roomName})</span>}
-                  {!bp.roomId && <span className="admin-settings-block__meta admin-settings-block__meta--danger">(全教室)</span>}
+                  {isAllRooms(bp)
+                    ? <span className="admin-settings-block__meta admin-settings-block__meta--danger"> (全教室)</span>
+                    : <span className="admin-settings-block__meta"> ({getRoomLabel(bp)})</span>
+                  }
+                  <span className="admin-settings-block__meta"> [{formatPeriods(bp)}]</span>
                   {bp.reason && <div className="admin-settings-block__reason">{bp.reason}</div>}
                 </div>
                 <button
@@ -176,21 +234,97 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
               className="admin-settings-block__field"
             />
           </div>
+
+          {/* 対象教室 */}
           <div className="admin-settings-block__field-wrap">
-            <label htmlFor="blocked-room" className="admin-settings-block__label admin-settings-block__label--block">対象教室（空欄=全教室）</label>
-            <select
-              id="blocked-room"
-              value={roomId}
-              onChange={e => setRoomId(e.target.value)}
-              title="対象教室"
-              className="admin-settings-block__field"
-            >
-              <option value="">全教室</option>
-              {roomOptions.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+            <span className="admin-settings-block__label admin-settings-block__label--block">対象教室</span>
+            <div className="blocked-periods__period-mode">
+              <label className="blocked-periods__radio-label">
+                <input
+                  type="radio"
+                  name="roomMode"
+                  value="all"
+                  checked={roomMode === 'all'}
+                  onChange={() => setRoomMode('all')}
+                />
+                全教室
+              </label>
+              <label className="blocked-periods__radio-label">
+                <input
+                  type="radio"
+                  name="roomMode"
+                  value="select"
+                  checked={roomMode === 'select'}
+                  onChange={() => setRoomMode('select')}
+                />
+                教室を指定
+              </label>
+            </div>
+            {roomMode === 'select' && (
+              <div className="blocked-periods__period-toggles">
+                {roomOptions.map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={
+                      selectedRoomIds.includes(r.id)
+                        ? 'blocked-periods__toggle blocked-periods__toggle--active'
+                        : 'blocked-periods__toggle'
+                    }
+                    onClick={() => toggleRoom(r.id)}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* 対象時限 */}
+          <div className="admin-settings-block__field-wrap">
+            <span className="admin-settings-block__label admin-settings-block__label--block">対象時限</span>
+            <div className="blocked-periods__period-mode">
+              <label className="blocked-periods__radio-label">
+                <input
+                  type="radio"
+                  name="periodMode"
+                  value="all"
+                  checked={periodMode === 'all'}
+                  onChange={() => setPeriodMode('all')}
+                />
+                全時限
+              </label>
+              <label className="blocked-periods__radio-label">
+                <input
+                  type="radio"
+                  name="periodMode"
+                  value="select"
+                  checked={periodMode === 'select'}
+                  onChange={() => setPeriodMode('select')}
+                />
+                時限を指定
+              </label>
+            </div>
+            {periodMode === 'select' && (
+              <div className="blocked-periods__period-toggles">
+                {PERIOD_OPTIONS.map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    className={
+                      selectedPeriods.includes(opt.key)
+                        ? 'blocked-periods__toggle blocked-periods__toggle--active'
+                        : 'blocked-periods__toggle'
+                    }
+                    onClick={() => togglePeriod(opt.key)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="admin-settings-block__field-wrap admin-settings-block__field-wrap--last">
             <label className="admin-settings-block__label admin-settings-block__label--block">理由（任意）</label>
             <input
@@ -215,10 +349,7 @@ export const BlockedPeriodsSettings: React.FC<Props> = ({ currentUserId, roomOpt
               className="admin-settings-block__btn admin-settings-block__btn--muted"
               onClick={() => {
                 setShowForm(false);
-                setStartDate('');
-                setEndDate('');
-                setRoomId('');
-                setReason('');
+                resetForm();
               }}
               disabled={saving}
             >
