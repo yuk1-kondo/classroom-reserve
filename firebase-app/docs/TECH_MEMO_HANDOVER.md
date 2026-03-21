@@ -140,7 +140,7 @@ sequenceDiagram
 | **`user_access`** | ユーザーアクセス管理（一覧・ブロック制御） | uid, email, displayName, status(allowed/blocked), firstSeenAt, lastSeenAt | 認証 read / 本人+admin write / admin delete |
 | **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室削除パスコード** 等 | read 公開（UI用） / admin のみ write |
 | **`weekly_templates`** | 週次固定予約テンプレ | 管理者が定義 | read 公開 / admin のみ write |
-| **`blocked_periods`** | 予約禁止期間 | 期間・教室（任意）・理由 | read 公開 / admin のみ write |
+| **`blocked_periods`** | 予約禁止期間 | 期間・教室（複数可）・時限（複数可）・理由 | read 公開 / admin のみ write |
 
 ### ※ `reservations` の delete 条件（重要）
 
@@ -207,6 +207,8 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | ユーザー管理画面 | `classroom-reservation/src/components/admin/UserAccessManager.tsx` |
 | 管理・設定ページ（左ナビ） | `classroom-reservation/src/components/AdminPage.tsx` / `AdminPage.css`（`/admin?section=`） |
 | システム設定 | `classroom-reservation/src/firebase/settings.ts` |
+| 予約禁止期間サービス | `classroom-reservation/src/firebase/blockedPeriods.ts` |
+| 禁止期間管理画面 | `classroom-reservation/src/components/admin/BlockedPeriodsSettings.tsx` |
 
 ---
 
@@ -222,6 +224,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 2026-03-21 | v2.9.6 | 管理・設定を **左ナビ（項目一覧）＋右ペイン（選択内容）** に変更。`?section=` クエリで表示項目を同期（ブックマーク・共有可）。スーパー管理者のみ「固定予約テンプレート」「ユーザー管理」を表示。 |
 | 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
+| 2026-03-21 | v2.10.0 | 予約禁止期間設定を拡張。教室・時限ともに複数選択可能（トグルボタン UI）。BlockedPeriod に roomIds / roomNames / periods フィールドを追加。旧データ（単一 roomId）との後方互換性を維持。予約フォームの禁止チェックに時限情報を連携。 |
 
 ---
 
