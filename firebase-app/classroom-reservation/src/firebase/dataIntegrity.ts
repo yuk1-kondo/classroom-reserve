@@ -24,7 +24,8 @@ export const MASTER_ROOMS = [
   { id: 'room-18', name: 'LL教室', capacity: 25, description: '語学学習・リスニング向け' },
   { id: 'room-19', name: 'モノラボ', capacity: 20, description: 'ものづくり・実習向け' },
   { id: 'room-20', name: '視聴覚教室', capacity: 50, description: '視聴覚教材・プレゼンテーション向け' },
-  { id: 'room-21', name: '多目的室', capacity: 35, description: '多様な用途・イベント向け' }
+  { id: 'room-21', name: '多目的室', capacity: 35, description: '多様な用途・イベント向け' },
+  { id: 'room-22', name: '図書館', capacity: 30, description: '図書・閲覧・学習利用向け' }
 ];
 
 export const MASTER_PERIODS = [

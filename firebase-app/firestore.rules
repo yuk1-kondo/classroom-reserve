@@ -71,11 +71,12 @@ service cloud.firestore {
     allow update: if isAuthenticated() && (
       request.auth.uid == resource.data.createdBy || isAdmin()
     );
-    // 削除は作成者 または 管理者 または 会議室予約（パスコード認証はクライアント側で実施）
+    // 削除は作成者 または 管理者 または 会議室・図書館予約（パスコード認証はクライアント側で実施）
     allow delete: if isAuthenticated() && (
       request.auth.uid == resource.data.createdBy ||
       isAdmin() ||
-      resource.data.roomName == '会議室'
+      resource.data.roomName == '会議室' ||
+      resource.data.roomName == '図書館'
     );
     }
 

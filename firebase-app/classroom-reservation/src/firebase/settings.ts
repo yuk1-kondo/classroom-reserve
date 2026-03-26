@@ -14,7 +14,7 @@ export interface SystemSettings {
     // 7限を有効化する曜日: { 1: true, 3: true }
     enablePeriod7ByDow?: Record<number, boolean>;
   };
-  // 会議室予約削除用パスコード（進路指導部等に共有）
+  // 会議室・図書館の予約削除用パスコード（進路指導部等に共有。フィールド名は後方互換のため据え置き）
   meetingRoomDeletePasscode?: string;
 }
 
