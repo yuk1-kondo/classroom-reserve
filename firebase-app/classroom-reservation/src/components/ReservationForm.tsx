@@ -59,6 +59,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
     const customOrder = [
       'サテライト',
       '会議室',
+      '図書館',
       '社会科教室',
       'グローバル教室①',
       'グローバル教室②',

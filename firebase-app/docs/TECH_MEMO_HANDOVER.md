@@ -138,14 +138,14 @@ sequenceDiagram
 | **`admin_users`** | 管理者フラグ | uid または email キー、tier 等 | 認証ユーザ read / admin のみ write |
 | **`user_profiles`** | UID↔メール等（管理者追加の逆引き） | uid, email, displayName | 認証 read / 本人 write |
 | **`user_access`** | ユーザーアクセス管理（一覧・ブロック制御） | uid, email, displayName, status(allowed/blocked), firstSeenAt, lastSeenAt | 認証 read / 本人+admin write / admin delete |
-| **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室削除パスコード** 等 | read 公開（UI用） / admin のみ write |
+| **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室・図書館削除パスコード**（`meetingRoomDeletePasscode`）等 | read 公開（UI用） / admin のみ write |
 | **`weekly_templates`** | 週次固定予約テンプレ | 管理者が定義 | read 公開 / admin のみ write |
-| **`blocked_periods`** | 予約禁止期間 | 期間・教室（複数可）・時限（複数可）・理由 | read 公開 / admin のみ write |
+| **`blocked_periods`** | 予約禁止期間 | 期間・教室（任意）・理由 | read 公開 / admin のみ write |
 
 ### ※ `reservations` の delete 条件（重要）
 
-- **作成者本人**、または **管理者（`admin_users`）**、または **`roomName == '会議室'`** のドキュメントは **認証ユーザーが delete 可能**  
-- **会議室のパスコード認証はアプリ側のみ**。ルール単体ではパスコードは検証できない（学校運用向けの割り切り）
+- **作成者本人**、または **管理者（`admin_users`）**、または **`roomName == '会議室'`**、または **`roomName == '図書館'`** のドキュメントは **認証ユーザーが delete 可能**  
+- **会議室・図書館のパスコード認証はアプリ側のみ**。ルール単体ではパスコードは検証できない（学校運用向けの割り切り）
 
 ---
 
@@ -157,6 +157,8 @@ sequenceDiagram
 | 本番ビルド | `npm run build` |
 | 本番反映 | `cd firebase-app && firebase deploy --only hosting,firestore:rules` |
 | プレビュー | `firebase hosting:channel:deploy <チャネル名> --expires 7d` |
+
+**補足（プレビューと Rules）:** Hosting のプレビューチャンネルも **本番と同一の Firestore** を参照する。`firestore.rules` を変更した機能（例: 特定 `roomName` の delete 許可追加）を**端まで試す**には、**`firebase deploy --only firestore:rules`** で Rules を反映するか、本番反映時に **`hosting` と `firestore:rules` を同時にデプロイ**すること（Hosting のみ更新すると Rules 未反映で delete が失敗しうる）。
 
 Firebase プロジェクトの選択は **`.firebaserc`** / `firebase use` で確認。
 
@@ -180,7 +182,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 
 | 区分 | 管理画面で**操作できる**設定 |
 |------|------------------------------|
-| **管理者（Admin）** | **予約制限**（`system_settings` の予約最終日）<br>**会議室削除パスコード**（同上）<br>**予約禁止期間**（`blocked_periods`） |
+| **管理者（Admin）** | **予約制限**（`system_settings` の予約最終日）<br>**会議室・図書館削除パスコード**（同上）<br>**予約禁止期間**（`blocked_periods`） |
 | **スーパー管理者（Super Admin）** | 上記の **すべて** に加え、<br>**固定予約テンプレート**（`weekly_templates`、テンプレ適用・CSV・一括削除を含む）<br>**ユーザー管理**（`user_access` / `admin_users` への操作など） |
 
 **UI の挙動（`AdminPage.tsx`）**
@@ -207,8 +209,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | ユーザー管理画面 | `classroom-reservation/src/components/admin/UserAccessManager.tsx` |
 | 管理・設定ページ（左ナビ） | `classroom-reservation/src/components/AdminPage.tsx` / `AdminPage.css`（`/admin?section=`） |
 | システム設定 | `classroom-reservation/src/firebase/settings.ts` |
-| 予約禁止期間サービス | `classroom-reservation/src/firebase/blockedPeriods.ts` |
-| 禁止期間管理画面 | `classroom-reservation/src/components/admin/BlockedPeriodsSettings.tsx` |
+| パスコード対象教室の判定 | `classroom-reservation/src/utils/passcodeDeletableRooms.ts` |
 
 ---
 
@@ -224,7 +225,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 2026-03-21 | v2.9.6 | 管理・設定を **左ナビ（項目一覧）＋右ペイン（選択内容）** に変更。`?section=` クエリで表示項目を同期（ブックマーク・共有可）。スーパー管理者のみ「固定予約テンプレート」「ユーザー管理」を表示。 |
 | 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
-| 2026-03-21 | v2.10.0 | 予約禁止期間設定を拡張。教室・時限ともに複数選択可能（トグルボタン UI）。BlockedPeriod に roomIds / roomNames / periods フィールドを追加。旧データ（単一 roomId）との後方互換性を維持。予約フォームの禁止チェックに時限情報を連携。 |
+| 2026-03-21 | v2.11.0 | 教室マスタに **図書館**（`room-22`）を追加。会議室と同様、共有パスコード（`meetingRoomDeletePasscode`）で他者予約削除可能に。`isPasscodeDeletableRoom`（`passcodeDeletableRooms.ts`）で判定を集約。Firestore Rules の `reservations` delete に `roomName == '図書館'` を追加。§5 にプレビューと Rules の関係を追記。 |
 
 ---
 

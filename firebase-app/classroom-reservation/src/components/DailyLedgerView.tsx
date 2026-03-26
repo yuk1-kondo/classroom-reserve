@@ -29,6 +29,7 @@ interface LedgerCellReservation {
 const LEDGER_ROOM_ORDER = [
   'サテライト',
   '会議室',
+  '図書館',
   '社会科教室',
   'グローバル教室①',
   'グローバル教室②',
@@ -148,7 +149,7 @@ const classifyRoom = (roomName: string): string => {
   if (/^大演習室/.test(roomName)) return 'room-cat-large';
   if (/社会|LL|グローバル/.test(roomName)) return 'room-cat-purple';
   if (/モノラボ|視聴覚|多目的/.test(roomName)) return 'room-cat-blue';
-  if (/サテライト|会議室/.test(roomName)) return 'room-cat-red';
+  if (/サテライト|会議室|図書館/.test(roomName)) return 'room-cat-red';
   return 'room-cat-default';
 };
 

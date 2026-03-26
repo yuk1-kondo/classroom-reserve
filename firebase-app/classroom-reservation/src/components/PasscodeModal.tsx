@@ -1,4 +1,4 @@
-// 会議室予約削除用パスコード入力モーダル
+// 会議室・図書館予約削除用パスコード入力モーダル
 import React, { useState, useEffect, useRef } from 'react';
 import './PasscodeModal.css';
 

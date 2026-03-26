@@ -82,6 +82,11 @@ export const initialRoomsData: Omit<Room, 'id' | 'createdAt'>[] = [
     capacity: 15
   },
   {
+    name: '図書館',
+    description: '図書館（定員30名）',
+    capacity: 30
+  },
+  {
     name: '社会科教室',
     description: '社会科専用教室（定員35名）',
     capacity: 35

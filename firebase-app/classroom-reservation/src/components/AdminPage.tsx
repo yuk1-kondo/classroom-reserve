@@ -28,7 +28,7 @@ const SECTION_DEF: {
   description: string;
 }[] = [
   { id: 'reservation-limit', label: '予約制限', description: '予約の最終日（固定日）を設定します。' },
-  { id: 'passcode', label: '会議室パスコード', description: '会議室予約削除用のパスコードを設定します。' },
+  { id: 'passcode', label: '会議室・図書館パスコード', description: '会議室・図書館の予約削除用パスコードを設定します。' },
   { id: 'blocked-periods', label: '予約禁止期間', description: '予約できない期間を登録します。' },
   {
     id: 'templates',

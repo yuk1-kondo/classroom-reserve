@@ -18,6 +18,7 @@ import { authService } from '../firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 import { systemSettingsService } from '../firebase/settings';
 import PasscodeModal from './PasscodeModal';
+import { isPasscodeDeletableRoom } from '../utils/passcodeDeletableRooms';
 
 interface DailyReservationTableProps {
   selectedDate?: string;
@@ -66,6 +67,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     const customOrder = [
       'サテライト',
       '会議室',
+      '図書館',
       '社会科教室',
       'グローバル教室①',
       'グローバル教室②',
@@ -94,7 +96,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
     });
   }, [rooms]);
 
-  // 会議室削除パスコードを取得
+  // 会議室・図書館削除用パスコードを取得
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -412,21 +414,15 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
 
   const currentUser = authService.getCurrentUser();
   // 仕様変更（要望に合わせて更新）: 管理者（super/regular 共通）は誰の予約でも削除可
-  // 会議室の場合、パスコードを知っている人も削除可能
+  // 会議室・図書館の場合、パスコードを知っている人も削除可能
   const canDeleteDirectly = (r: Reservation) => {
     if (isAdmin) return true;
     return currentUser && r.createdBy === currentUser.uid;
   };
   
-  // 会議室かどうかを判定（表記ゆれ/付加情報に強くする）
-  const isMeetingRoom = (r: Reservation) => {
-    const name = String(r.roomName || '').replace(/\s+/g, '');
-    return name.includes('会議室');
-  };
-  
   // パスコード削除が可能か
   const canDeleteWithPasscode = (r: Reservation) => {
-    return !!currentUser && isMeetingRoom(r) && !!meetingRoomPasscode && !passcodeLoading;
+    return !!currentUser && isPasscodeDeletableRoom(r.roomName) && !!meetingRoomPasscode && !passcodeLoading;
   };
   
   // 削除可能（直接削除またはパスコード削除）

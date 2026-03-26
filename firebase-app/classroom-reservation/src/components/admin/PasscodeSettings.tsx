@@ -86,7 +86,7 @@ export const PasscodeSettings: React.FC<Props> = ({ currentUserId, hideTitle }) 
       return;
     }
 
-    if (!window.confirm('パスコードを削除しますか？\n削除すると、進路指導部の先生は会議室の予約を削除できなくなります。')) {
+    if (!window.confirm('パスコードを削除しますか？\n削除すると、進路指導部の先生は会議室・図書館の予約を削除できなくなります。')) {
       return;
     }
 
@@ -114,13 +114,13 @@ export const PasscodeSettings: React.FC<Props> = ({ currentUserId, hideTitle }) 
 
   return (
     <div className="admin-settings-block">
-      {!hideTitle && <h5 className="admin-settings-block__title">会議室削除パスコード設定</h5>}
+      {!hideTitle && <h5 className="admin-settings-block__title">会議室・図書館 削除パスコード設定</h5>}
       {loading && <div className="admin-settings-block__loading">設定を読み込み中…</div>}
 
       <div className="admin-settings-block__info admin-settings-block__info--compact">
         <p className="admin-settings-block__text">
-          進路指導部の先生に会議室の予約削除権限を与えるためのパスコードです。<br />
-          このパスコードを知っている人は、他の人が作成した会議室の予約を削除できます。
+          進路指導部の先生に、会議室・図書館の予約削除権限を与えるためのパスコードです。<br />
+          このパスコードを知っている人は、他の人が作成した会議室・図書館の予約を削除できます。
         </p>
       </div>
 
