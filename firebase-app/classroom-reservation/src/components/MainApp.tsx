@@ -1,11 +1,9 @@
 // メインアプリケーションコンポーネント
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
-import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
 import DailyLedgerView from './DailyLedgerView';
 import { useAuth } from '../hooks/useAuth';
@@ -61,7 +59,7 @@ export const MainApp: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
   const [dailyTableDate, setDailyTableDate] = useState<string>(() => toDateStr(new Date()));
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
@@ -73,21 +71,6 @@ export const MainApp: React.FC = () => {
     setSelectedDate(normalized);
     setDailyTableDate(normalized);
   }, []);
-
-  const handleDateClick = (dateStr: string) => {
-    if (!currentUser) {
-      toast.error('予約機能を利用するにはログインが必要です');
-      return;
-    }
-    console.log('📅 日付クリック:', dateStr);
-    handleDateNavigate(dateStr);
-    setSelectedEventId('');
-    if (window.innerWidth >= 600) {
-      setShowSidePanel(true);
-    } else {
-      setShowSheet(true);
-    }
-  };
 
   // イベントクリック処理
   const handleEventClick = useCallback((eventId: string) => {
@@ -147,21 +130,6 @@ export const MainApp: React.FC = () => {
     });
     handleOpenReservationPanel();
   }, [handleDateNavigate, handleOpenReservationPanel]);
-
-  const formattedSelectedDate = useMemo(() => {
-    if (!selectedDate) return '日付を選択してください';
-    try {
-      const date = new Date(selectedDate);
-      return date.toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-      });
-    } catch {
-      return selectedDate;
-    }
-  }, [selectedDate]);
 
   const previewDateText = useMemo(() => {
     if (!selectedDate) return '';
