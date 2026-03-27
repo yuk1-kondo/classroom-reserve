@@ -42,14 +42,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 教室と時限データは誰でも読み取り可能
+    // 教室と時限データは誰でも読み取り可能、書き込みは管理者のみ
     match /rooms/{roomId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
     match /periods/{periodId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 予約情報は誰でも読み取り可能、書き込みは認証済みユーザーのみ
