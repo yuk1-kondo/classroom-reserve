@@ -12,7 +12,7 @@ import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { validateDatesWithinMax } from '../utils/dateValidation';
-import { blockedPeriodsService, getRoomLabel } from '../firebase/blockedPeriods';
+import { blockedPeriodsService } from '../firebase/blockedPeriods';
 // import { reservationsService } from '../firebase/firestore';
 import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
@@ -106,10 +106,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       const selectedPeriods = formHook.getReservationPeriods();
       const blocked = await blockedPeriodsService.checkMultiple(dates, roomId, selectedPeriods);
       if (blocked) {
-        const roomLabel = getRoomLabel(blocked);
-        const periodLabel = blocked.periods ? `（${blocked.periods.join(', ')}限）` : '';
         const reasonText = blocked.reason ? `（${blocked.reason}）` : '';
-        toast.error(`${blocked.startDate}〜${blocked.endDate} は ${roomLabel}${periodLabel} の予約が禁止されています${reasonText}`, { duration: 5000 });
+        toast.error(`${blocked.startDate}〜${blocked.endDate} は予約が禁止されています${reasonText}`, { duration: 5000 });
         return;
       }
     }

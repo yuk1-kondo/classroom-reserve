@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import MainApp from './components/MainApp';
 import AdminPage from './components/AdminPage';
+import { initializeDataIntegrity } from './firebase/dataIntegrity';
 import './App.css';
 
 function App() {
+  useEffect(() => {
+    initializeDataIntegrity().catch(() => {});
+  }, []);
   return (
     <div className="App">
       <Toaster
