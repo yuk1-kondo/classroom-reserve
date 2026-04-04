@@ -194,6 +194,33 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 
 - `weekly_templates` の **write** は Rules 上は **`isAdmin()`** でも可。ただし **アプリは当該ペインをスーパーのみが開ける**ようにしており、通常管理者はテンプレート機能にアクセスできない（運用は UI 前提）。
 
+### 6.6 CSV一括固定予約（週間定義 × 期間適用）
+
+**画面**: 管理・設定 → **固定予約テンプレート** → 「CSV一括固定予約」。スーパー管理者のみ。実装は `CsvBulkReservations.tsx`。
+
+**役割**: CSV で「曜日 × 教室 × 時限 × タイトル」を定義し、指定した **開始日〜終了日** の範囲で、該当曜日にだけ実予約を一括作成する。
+
+**列（ヘッダー行は任意）**
+
+| 意味 | 推奨ヘッダー例 | 備考 |
+|------|----------------|------|
+| 曜日 | `weekday` / `曜日` | `0`〜`6`（日〜土）、または `月` `火` …、`mon` 等 |
+| 教室 | `room` / `room_name` / `教室` | マスタの **教室名** または **room の id**（名寄せあり） |
+| 時限 | `period` / `periods` / `時限` | `1-3` のような範囲、`1,2,lunch` のような複数可。内部キーは `utils/periods.ts` の `PERIOD_ORDER`（`0`〜`7`、`lunch`、`after` 等） |
+| 予約タイトル（任意） | `title` / `entry` / `内容` | 省略可 |
+
+ヘッダー行がある場合、列名で位置を解決する。**タイトル列として認識されるのは `title` / `entry` / `内容` のみ**（`entry_raw` 等は未対応）。タイトル列が認識されないときのフォールバックは「4列目以降をカンマ結合」となるため、**不要な列（例: 定員）を挟むとタイトルに時限が混ざる**ことがある。運用では **`room_name, weekday, period, entry` の4列**のように、余計な列を入れないか、タイトルは必ず `entry` 等の認識される列名にする。
+
+**行頭 `#` はコメント行**として無視。文字コードは **UTF-8**（Excel は「CSV UTF-8」推奨）。
+
+**サンプル（ヘッダー付き）**
+
+```csv
+room_name,weekday,period,entry
+小演習室1,月,1-3,英語演習
+会議室,火,2,学年会
+```
+
 ---
 
 ## 7. 関連ファイル（変更時の起点）
@@ -210,6 +237,8 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 管理・設定ページ（左ナビ） | `classroom-reservation/src/components/AdminPage.tsx` / `AdminPage.css`（`/admin?section=`） |
 | システム設定 | `classroom-reservation/src/firebase/settings.ts` |
 | パスコード対象教室の判定 | `classroom-reservation/src/utils/passcodeDeletableRooms.ts` |
+| CSV一括固定予約 | `classroom-reservation/src/components/admin/CsvBulkReservations.tsx` |
+| 予約禁止期間 | `classroom-reservation/src/firebase/blockedPeriods.ts` / `BlockedPeriodsSettings.tsx` |
 
 ---
 
@@ -226,6 +255,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
 | 2026-03-21 | v2.11.0 | 教室マスタに **図書館**（`room-22`）を追加。会議室と同様、共有パスコード（`meetingRoomDeletePasscode`）で他者予約削除可能に。`isPasscodeDeletableRoom`（`passcodeDeletableRooms.ts`）で判定を集約。Firestore Rules の `reservations` delete に `roomName == '図書館'` を追加。§5 にプレビューと Rules の関係を追記。 |
+| 2026-04-05 | （ドキュメントのみ） | **§6.6** に CSV一括固定予約の列仕様・ヘッダー名・サンプル・注意（`entry` 列、`entry_raw` 非対応、余計な列とタイトル混入）を追記。§7 に `CsvBulkReservations.tsx`・禁止期間関連パスを追加。 |
 
 ---
 
