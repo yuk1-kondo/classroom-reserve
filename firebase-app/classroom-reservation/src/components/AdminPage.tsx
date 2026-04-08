@@ -10,6 +10,7 @@ import PasscodeSettings from './admin/PasscodeSettings';
 import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
 import RecurringTemplatesWorkspace from './admin/RecurringTemplatesWorkspace';
 import UserAccessManager from './admin/UserAccessManager';
+import GuidancePrivilegeSettings from './admin/GuidancePrivilegeSettings';
 import { APP_VERSION } from '../version';
 import './admin/admin-settings-blocks.css';
 import './AdminPage.css';
@@ -18,6 +19,7 @@ export type AdminSectionId =
   | 'reservation-limit'
   | 'passcode'
   | 'blocked-periods'
+  | 'guidance-privilege'
   | 'templates'
   | 'users';
 
@@ -30,6 +32,12 @@ const SECTION_DEF: {
   { id: 'reservation-limit', label: '予約制限', description: '予約の最終日（固定日）を設定します。' },
   { id: 'passcode', label: '会議室パスコード', description: '会議室予約削除用のパスコードを設定します。' },
   { id: 'blocked-periods', label: '予約禁止期間', description: '予約できない期間を登録します。' },
+  {
+    id: 'guidance-privilege',
+    label: '進路・会議室特例',
+    superOnly: true,
+    description: '進路指導部メンバーの会議室のみ、先日付制限を免除します。',
+  },
   {
     id: 'templates',
     label: '固定予約テンプレート',
@@ -208,6 +216,9 @@ const AdminPage: React.FC = () => {
                   roomOptions={roomOptions}
                   hideTitle
                 />
+              )}
+              {activeSection === 'guidance-privilege' && isSuperAdmin && (
+                <GuidancePrivilegeSettings currentUserId={currentUser?.uid} hideTitle />
               )}
               {activeSection === 'templates' && isSuperAdmin && (
                 <RecurringTemplatesWorkspace

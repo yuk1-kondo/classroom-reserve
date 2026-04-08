@@ -17,6 +17,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // 進路指導部など：会議室の先日付特例メンバーか
+    function isGuidanceGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid));
+    }
+
+    // 特例の対象教室（system_settings/guidance_privilege.meetingRoomId と一致）
+    function isGuidanceMeetingRoomReservation() {
+      return exists(/databases/$(database)/documents/system_settings/guidance_privilege)
+        && request.resource.data.roomId
+          == get(/databases/$(database)/documents/system_settings/guidance_privilege).data.meetingRoomId;
+    }
+
     // 管理者ユーザー管理コレクション
     match /admin_users/{userId} {
       // 認証済みユーザーは読み取り可能（管理者判定のため）
@@ -40,6 +53,12 @@ service cloud.firestore {
         request.auth.uid == uid || isAdmin()
       );
       allow delete: if isAdmin();
+    }
+
+    // 進路指導部など：先日付特例メンバー（UID=ドキュメントID）
+    match /guidance_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
     }
 
     // 教室と時限データは誰でも読み取り可能、書き込みは管理者のみ
@@ -66,6 +85,8 @@ service cloud.firestore {
           || !exists(/databases/$(database)/documents/system_settings/global)
           || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
           || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
+          // 進路指導部メンバーが会議室（guidance_privilege で指定した roomId）のみ先日付制限を免除
+          || (isGuidanceGroupMember() && isGuidanceMeetingRoomReservation())
         );
     // 更新は作成者 または 管理者
     allow update: if isAuthenticated() && (

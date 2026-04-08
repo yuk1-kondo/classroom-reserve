@@ -13,6 +13,8 @@ interface DateRangeSelectorProps {
   limitMonths?: number;
   // 管理者フラグ（管理者の場合は日付制限をスキップ）
   isAdmin?: boolean;
+  /** 進路指導部＋会議室など、先日付制限をスキップする場合 */
+  bypassSystemReservationDateLimit?: boolean;
 }
 
 export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
@@ -21,10 +23,13 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
   loading,
   maxDateStr,
   limitMonths,
-  isAdmin = false
+  isAdmin = false,
+  bypassSystemReservationDateLimit = false
 }) => {
-  // 管理者の場合は日付制限を無効化
-  const effectiveMaxDateStr = isAdmin ? undefined : maxDateStr;
+  // 管理者または特例の場合は日付上限を無効化
+  const effectiveMaxDateStr =
+    isAdmin || bypassSystemReservationDateLimit ? undefined : maxDateStr;
+  const noClamp = isAdmin || bypassSystemReservationDateLimit;
   return (
     <div className="form-group">
       <label>日付:</label>
@@ -60,7 +65,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
                 value={dateRange.startDate}
                 max={effectiveMaxDateStr}
                 onChange={(e) => {
-                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
+                  const v = noClamp ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
                   setDateRange(prev => ({ ...prev, startDate: v, endDate: v }));
                 }}
                 disabled={loading}
@@ -76,7 +81,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
                 value={dateRange.startDate}
                 max={effectiveMaxDateStr}
                 onChange={(e) => {
-                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
+                  const v = noClamp ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
                   setDateRange(prev => ({ ...prev, startDate: v }));
                 }}
                 disabled={loading}
@@ -90,7 +95,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
                 value={dateRange.endDate}
                 max={effectiveMaxDateStr}
                 onChange={(e) => {
-                  const v = isAdmin ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
+                  const v = noClamp ? e.target.value : clampToMax(e.target.value, effectiveMaxDateStr);
                   setDateRange(prev => ({ ...prev, endDate: v }));
                 }}
                 disabled={loading}
@@ -100,7 +105,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
             </>
           )}
         </div>
-        {effectiveMaxDateStr && !isAdmin && (
+        {effectiveMaxDateStr && !noClamp && (
           <div className="helper-text" aria-live="polite">
             予約は{effectiveMaxDateStr}まで選択できます。
           </div>

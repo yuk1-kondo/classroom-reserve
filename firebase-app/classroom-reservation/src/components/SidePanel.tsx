@@ -12,7 +12,9 @@ import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { validateDatesWithinMax } from '../utils/dateValidation';
+import { canBypassSystemReservationDateLimit } from '../utils/reservationLimits';
 import { blockedPeriodsService, getRoomLabel } from '../firebase/blockedPeriods';
+import { useGuidancePrivilege } from '../hooks/useGuidancePrivilege';
 // import { reservationsService } from '../firebase/firestore';
 import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
@@ -38,6 +40,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin } = useAuth();
+  const { meetingRoomId: guidanceMeetingRoomId, isGuidanceMember } = useGuidancePrivilege(currentUser?.uid);
   const { rooms, reservations: reservationsFromDaily, addReservations: addReservationsToDaily } = useReservationDataContext();
   const { reservations: monthlyReservations, addReservations: addReservationsToMonthly } = useMonthlyReservations();
   const reservations = React.useMemo(()=>{
@@ -87,22 +90,27 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
-  // 予約作成: 先日付制限・禁止期間の検証を噛ませる（管理者の場合はスキップ）
+  // 予約作成: 先日付は管理者 or 進路指導部+会議室で免除。禁止期間は管理者のみ免除（v1）
   const handleCreateWithLimit = async () => {
     const dates = formHook.getReservationDates();
     const roomId = formHook.formData.selectedRoom;
+    const bypassDate = canBypassSystemReservationDateLimit({
+      isAdmin,
+      isGuidanceMember,
+      selectedRoomId: roomId,
+      guidanceMeetingRoomId
+    });
 
-    // 管理者の場合は全ての制限をスキップ
     if (!isAdmin) {
-      // 先日付制限チェック
-      const result = validateDatesWithinMax(dates, maxDateStr);
-      if (!result.ok) {
-        const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
-        toast.error(msg, { duration: 4000 });
-        return;
+      if (!bypassDate) {
+        const result = validateDatesWithinMax(dates, maxDateStr);
+        if (!result.ok) {
+          const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
+          toast.error(msg, { duration: 4000 });
+          return;
+        }
       }
-      
-      // 禁止期間チェック（時限情報も渡す）
+
       const selectedPeriods = formHook.getReservationPeriods();
       const blocked = await blockedPeriodsService.checkMultiple(dates, roomId, selectedPeriods);
       if (blocked) {
@@ -120,6 +128,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // 必要な値/関数だけ分解（useEffect依存の安定化）
   const { showForm, formData, getReservationDates, getReservationPeriods } = formHook;
   const { selectedRoom } = formData;
+  const bypassSystemReservationDateLimit = canBypassSystemReservationDateLimit({
+    isAdmin,
+    isGuidanceMember,
+    selectedRoomId: selectedRoom,
+    guidanceMeetingRoomId
+  });
   
   // 管理者機能の表示状態（簡素化）
   // const [csvMessage, setCsvMessage] = useState(''); // 未使用のためコメントアウト（将来のCSV処理で再利用）
@@ -224,9 +238,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             onCreateReservation={handleCreateWithLimit}
             reservations={reservations}
             selectedDate={selectedDate}
-            maxDateStr={isAdmin ? undefined : maxDateStr}
+            maxDateStr={bypassSystemReservationDateLimit ? undefined : maxDateStr}
             limitMonths={limitMonths}
             isAdmin={isAdmin}
+            bypassSystemReservationDateLimit={bypassSystemReservationDateLimit}
           />
 
           {isAdmin && (
