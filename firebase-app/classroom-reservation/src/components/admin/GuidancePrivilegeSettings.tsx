@@ -1,8 +1,9 @@
 /**
  * 進路指導部：会議室のみ先日付制限を免除する特例の設定（スーパー管理者向け）
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { guidancePrivilegeService, GuidanceMemberRecord } from '../../firebase/guidancePrivilege';
+import { userAccessService, UserAccessRecord } from '../../firebase/userAccess';
 import { useAuth } from '../../hooks/useAuth';
 import { Room, roomsService } from '../../firebase/firestore';
 
@@ -17,21 +18,41 @@ export const GuidancePrivilegeSettings: React.FC<Props> = ({ currentUserId, hide
   const [meetingRoomId, setMeetingRoomId] = useState('');
   const [members, setMembers] = useState<GuidanceMemberRecord[]>([]);
   const [newUid, setNewUid] = useState('');
+  const [accessUsers, setAccessUsers] = useState<UserAccessRecord[]>([]);
+  const [pickerSearch, setPickerSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const memberUidSet = useMemo(() => new Set(members.map(m => m.uid)), [members]);
+
+  const pickerRows = useMemo(() => {
+    let list = accessUsers.filter(u => u.status === 'allowed');
+    const q = pickerSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        u =>
+          (u.email?.toLowerCase().includes(q)) ||
+          (u.displayName?.toLowerCase().includes(q)) ||
+          u.uid.toLowerCase().includes(q)
+      );
+    }
+    return list.slice(0, 80);
+  }, [accessUsers, pickerSearch]);
+
   const load = async () => {
     setLoading(true);
     try {
-      const [list, rlist, mid] = await Promise.all([
+      const [list, rlist, mid, accessList] = await Promise.all([
         guidancePrivilegeService.listMembers(),
         roomsService.getAllRooms(),
-        guidancePrivilegeService.getMeetingRoomId()
+        guidancePrivilegeService.getMeetingRoomId(),
+        userAccessService.getAllUsers()
       ]);
       setMembers(list.sort((a, b) => (a.uid || '').localeCompare(b.uid || '')));
       setRooms(Array.isArray(rlist) ? rlist : []);
       setMeetingRoomId(mid || '');
+      setAccessUsers(accessList);
     } catch (e) {
       console.error(e);
       setMessage('読み込みに失敗しました');
@@ -69,6 +90,21 @@ export const GuidancePrivilegeSettings: React.FC<Props> = ({ currentUserId, hide
     try {
       await guidancePrivilegeService.addMember(uid, currentUserId);
       setNewUid('');
+      await load();
+      setMessage(`メンバーを追加しました（${uid}）`);
+    } catch (e: any) {
+      setMessage(e?.message || '追加に失敗しました');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddFromAccessList = async (uid: string) => {
+    if (!currentUserId || memberUidSet.has(uid)) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      await guidancePrivilegeService.addMember(uid, currentUserId);
       await load();
       setMessage(`メンバーを追加しました（${uid}）`);
     } catch (e: any) {
@@ -136,7 +172,71 @@ export const GuidancePrivilegeSettings: React.FC<Props> = ({ currentUserId, hide
           </div>
 
           <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label htmlFor="gp-new-uid">メンバー追加（Firebase UID）</label>
+            <label htmlFor="gp-picker-search">メンバー追加（ログイン済みユーザー一覧）</label>
+            <input
+              id="gp-picker-search"
+              type="search"
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              placeholder="氏名・メール・UID で検索"
+              style={{ width: '100%', maxWidth: '420px', marginBottom: '8px' }}
+              disabled={saving}
+            />
+            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
+              「許可」状態かつログイン履歴のあるユーザーを最大80件表示します。年度初めのログイン後に一覧へ反映されます。
+            </p>
+            <div
+              style={{
+                maxHeight: '240px',
+                overflow: 'auto',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '4px 8px'
+              }}
+            >
+              {pickerRows.length === 0 ? (
+                <p style={{ margin: '8px 0', fontSize: '0.9rem', color: '#666' }}>
+                  該当するユーザーがありません（検索条件を変えるか、ユーザー管理で同期してください）。
+                </p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {pickerRows.map(u => {
+                    const already = memberUidSet.has(u.uid);
+                    return (
+                      <li
+                        key={u.uid}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 4px',
+                          borderBottom: '1px solid #eee',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        <span>
+                          <strong>{u.displayName || '（名前なし）'}</strong>
+                          <span style={{ color: '#555', marginLeft: '8px' }}>{u.email}</span>
+                          <code style={{ display: 'block', fontSize: '0.75rem', marginTop: '2px' }}>{u.uid}</code>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleAddFromAccessList(u.uid)}
+                          disabled={saving || already}
+                        >
+                          {already ? '登録済' : '進路に追加'}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '1rem' }}>
+            <label htmlFor="gp-new-uid">メンバー追加（Firebase UID・手入力）</label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
               <input
                 id="gp-new-uid"
@@ -152,7 +252,7 @@ export const GuidancePrivilegeSettings: React.FC<Props> = ({ currentUserId, hide
               </button>
             </div>
             <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '6px' }}>
-              UID は管理画面のユーザー一覧や Firebase Authentication から確認できます。
+              まだ一度もログインしておらず一覧に出ない場合などに利用できます。
             </p>
           </div>
 

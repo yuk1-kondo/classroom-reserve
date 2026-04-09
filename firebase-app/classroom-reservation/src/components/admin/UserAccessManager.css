@@ -196,6 +196,16 @@
   color: #1565c0;
 }
 
+.uam-badge-guidance {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.uam-badge-none {
+  background: transparent;
+  color: #bdbdbd;
+}
+
 .uam-date {
   font-size: 0.78rem;
   color: #888;
@@ -266,6 +276,24 @@
 
 .uam-btn-admin-remove:hover:not(:disabled) {
   background: #757575;
+}
+
+.uam-btn-guidance-add {
+  background: #5c6bc0;
+  color: white;
+}
+
+.uam-btn-guidance-add:hover:not(:disabled) {
+  background: #3949ab;
+}
+
+.uam-btn-guidance-remove {
+  background: #b0bec5;
+  color: #37474f;
+}
+
+.uam-btn-guidance-remove:hover:not(:disabled) {
+  background: #90a4ae;
 }
 
 .uam-loading,

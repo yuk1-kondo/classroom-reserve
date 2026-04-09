@@ -55,6 +55,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 管理者が user_access から削除した UID（同期・再ログインで再作成しない）
+    match /user_access_exclusions/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
     // 進路指導部など：先日付特例メンバー（UID=ドキュメントID）
     match /guidance_group_members/{memberUid} {
       allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());

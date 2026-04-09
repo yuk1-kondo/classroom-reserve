@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { userAccessService, UserAccessRecord, UserStatus } from '../../firebase/userAccess';
 import { adminService, SUPER_ADMIN_EMAIL } from '../../firebase/admin';
+import { guidancePrivilegeService } from '../../firebase/guidancePrivilege';
 import { useAuth } from '../../hooks/useAuth';
 import './UserAccessManager.css';
 
@@ -9,6 +10,7 @@ type FilterMode = 'all' | 'allowed' | 'blocked' | 'admin';
 interface UserRow extends UserAccessRecord {
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isGuidanceMember: boolean;
 }
 
 interface UserAccessManagerProps {
@@ -30,20 +32,23 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
       setLoading(true);
       setError(null);
 
-      const [accessList, adminList] = await Promise.all([
+      const [accessList, adminList, guidanceList] = await Promise.all([
         userAccessService.getAllUsers(),
-        adminService.getAdminUsers()
+        adminService.getAdminUsers(),
+        guidancePrivilegeService.listMembers()
       ]);
 
       const adminUids = new Set(adminList.map(a => a.uid));
       const superUids = new Set(
         adminList.filter(a => a.tier === 'super' || a.email === SUPER_ADMIN_EMAIL).map(a => a.uid)
       );
+      const guidanceUids = new Set(guidanceList.map(g => g.uid));
 
       const rows: UserRow[] = accessList.map(u => ({
         ...u,
         isAdmin: adminUids.has(u.uid),
-        isSuperAdmin: superUids.has(u.uid)
+        isSuperAdmin: superUids.has(u.uid),
+        isGuidanceMember: guidanceUids.has(u.uid)
       }));
 
       setUsers(rows);
@@ -126,7 +131,7 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
       if (row?.isAdmin && !row.isSuperAdmin) {
         try { await adminService.removeAdmin(uid); } catch {}
       }
-      await userAccessService.deleteUser(uid);
+      await userAccessService.deleteUser(uid, currentUser?.uid ?? null);
       setSuccess(`${email} を削除しました`);
       await loadUsers();
     } catch (e: any) {
@@ -151,6 +156,25 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
       await loadUsers();
     } catch (e: any) {
       setError(e.message || '管理者権限の変更に失敗しました');
+    }
+  };
+
+  const handleGuidanceToggle = async (uid: string, email: string, currentlyMember: boolean) => {
+    const label = currentlyMember ? '進路グループから解除' : '進路グループに追加';
+    if (!window.confirm(`${email} を「${label}」しますか？`)) return;
+    try {
+      setError(null);
+      setSuccess(null);
+      if (currentlyMember) {
+        await guidancePrivilegeService.removeMember(uid);
+        setSuccess(`${email} を進路グループから解除しました`);
+      } else {
+        await guidancePrivilegeService.addMember(uid, currentUser?.uid || 'unknown');
+        setSuccess(`${email} を進路グループに追加しました`);
+      }
+      await loadUsers();
+    } catch (e: any) {
+      setError(e.message || '進路グループの変更に失敗しました');
     }
   };
 
@@ -225,15 +249,16 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
               <th>ユーザー</th>
               <th>ステータス</th>
               <th>権限</th>
+              {isSuperAdmin && <th>進路</th>}
               <th>最終ログイン</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="uam-loading">読み込み中...</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 6 : 5} className="uam-loading">読み込み中...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={5} className="uam-empty">該当するユーザーがいません</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 6 : 5} className="uam-empty">該当するユーザーがいません</td></tr>
             ) : filtered.map(user => {
               const isSelf = user.uid === currentUser?.uid;
               const isSuperTarget = user.isSuperAdmin || user.email === SUPER_ADMIN_EMAIL;
@@ -257,6 +282,15 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
                       <span className="uam-badge uam-badge-teacher">Teacher</span>
                     )}
                   </td>
+                  {isSuperAdmin && (
+                    <td>
+                      {user.isGuidanceMember ? (
+                        <span className="uam-badge uam-badge-guidance">進路</span>
+                      ) : (
+                        <span className="uam-badge uam-badge-none">-</span>
+                      )}
+                    </td>
+                  )}
                   <td><span className="uam-date">{formatDate(user.lastSeenAt)}</span></td>
                   <td>
                     <div className="uam-actions">
@@ -288,6 +322,20 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
                           </button>
                         )
                       )}
+                      {/* 進路グループ */}
+                      {isSuperAdmin && !isSelf && !isSuperTarget && (
+                        user.isGuidanceMember ? (
+                          <button className="uam-btn uam-btn-guidance-remove" disabled={loading}
+                            onClick={() => handleGuidanceToggle(user.uid, user.email, true)}>
+                            進路解除
+                          </button>
+                        ) : (
+                          <button className="uam-btn uam-btn-guidance-add" disabled={loading}
+                            onClick={() => handleGuidanceToggle(user.uid, user.email, false)}>
+                            進路追加
+                          </button>
+                        )
+                      )}
                       {/* 削除 */}
                       {isSuperAdmin && !isSelf && !isSuperTarget && (
                         <button className="uam-btn uam-btn-delete" disabled={loading}
@@ -312,6 +360,7 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
         <span>許可: {users.filter(u => u.status === 'allowed').length}人</span>
         <span>ブロック: {users.filter(u => u.status === 'blocked').length}人</span>
         <span>管理者: {users.filter(u => u.isAdmin).length}人</span>
+        {isSuperAdmin && <span>進路: {users.filter(u => u.isGuidanceMember).length}人</span>}
       </div>
     </div>
   );
