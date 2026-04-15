@@ -29,7 +29,8 @@ export interface Room {
   id?: string;
   name: string;
   description?: string;
-  capacity?: number;
+  /** true の教室は理科グループメンバー（と管理者）のみ一覧・予約対象（Firestore ルールと併用） */
+  scienceGroupOnly?: boolean;
   createdAt?: Timestamp;
 }
 
@@ -151,9 +152,10 @@ export const roomsService = {
 
       const inflight: Promise<Room[]> = (async () => {
         const querySnapshot = await getDocs(collection(db, ROOMS_COLLECTION));
+        // data() に id が含まれると docSnap.id が上書きされ、予約の roomId（ドキュメントID）とずれて in クエリが 0 件になる
         const rooms = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => ({
-          id: docSnap.id,
-          ...docSnap.data()
+          ...docSnap.data(),
+          id: docSnap.id
         } as Room));
         // 依頼により「大演習室5」「大演習室6」は一覧から除外（全UIで非表示）
         const EXCLUDED_NAMES = new Set<string>(['大演習室5','大演習室6','大演習室５','大演習室６']);
@@ -170,6 +172,12 @@ export const roomsService = {
       console.error('教室データ取得エラー:', error);
       throw error;
     }
+  },
+
+  /** ログイン切替などで教室キャッシュを破棄（理科グループ表示の取り違え防止） */
+  clearRoomsCache(): void {
+    (roomsService as any)._cache = null;
+    (roomsService as any)._inflight = null;
   },
 
   // 教室を追加
@@ -202,7 +210,7 @@ export const reservationsService = {
     if (!period) return [];
     return period.includes(',') ? period.split(',').map(p => p.trim()).filter(Boolean) : [period];
   },
-  // 期間内の予約を取得
+  // 期間内の予約を取得（Firestore ルールは認証済み read と整合。roomId in は廃止）
   async getReservations(startDate: Date, endDate: Date, opts?: { noCache?: boolean; fromServer?: boolean }): Promise<Reservation[]> {
     try {
       // セッション内 短TTLキャッシュ + 同時発火重複排除
@@ -231,29 +239,33 @@ export const reservationsService = {
           startTime_gte: startDate.toISOString(),
           startTime_lte: endDate.toISOString()
         });
+        const startTs = Timestamp.fromDate(startDate);
+        const endTs = Timestamp.fromDate(endDate);
         const q = query(
           collection(db, RESERVATIONS_COLLECTION),
-          where('startTime', '>=', Timestamp.fromDate(startDate)),
-          where('startTime', '<=', Timestamp.fromDate(endDate)),
+          where('startTime', '>=', startTs),
+          where('startTime', '<=', endTs),
           orderBy('startTime', 'asc')
         );
-        const querySnapshot: any = opts?.fromServer ? await getDocsFromServer(q as any) : await getDocs(q);
-        const list = (querySnapshot.docs as Array<QueryDocumentSnapshot<DocumentData>>).map((docSnap) => {
+        const runQuery = async () =>
+          opts?.fromServer ? await getDocsFromServer(q as any) : await getDocs(q);
+        const querySnapshot = await runQuery();
+        const list = querySnapshot.docs.map((docSnap) => {
           const data = docSnap.data() as Reservation;
           return {
-            id: docSnap.id,
             ...data,
-            // createdBy は UID を保持（過去データで未設定の場合のみ undefined）
+            id: docSnap.id,
             createdBy: data.createdBy || undefined,
             periodName: normalizePeriodName(data.period, data.periodName)
           } as Reservation;
         });
-        console.log(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0,10)} ~ ${endDate.toISOString().slice(0,10)}`);
-        // noCache でもキャッシュは最新で更新しておく
+        console.log(`✅ Firestore returned ${list.length} docs for ${startDate.toISOString().slice(0, 10)} ~ ${endDate.toISOString().slice(0, 10)}`);
         g._rangeCache.set(key, { at: Date.now(), data: list });
         return list;
       })().finally(() => {
-        try { (reservationsService as any)._inflight.delete(key); } catch {}
+        try {
+          (reservationsService as any)._inflight.delete(key);
+        } catch {}
       });
 
       if (!opts?.noCache) {
@@ -421,8 +433,8 @@ export const reservationsService = {
   return querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data() as Reservation;
         return {
-          id: docSnap.id,
           ...data,
+          id: docSnap.id,
           createdBy: data.createdBy || undefined,
           periodName: normalizePeriodName(data.period, data.periodName)
         };
@@ -807,8 +819,8 @@ export const reservationsService = {
       if (docSnap.exists()) {
         const data = docSnap.data() as Reservation;
         return {
-          id: docSnap.id,
           ...data,
+          id: docSnap.id,
           createdBy: data.createdBy || undefined,
           periodName: normalizePeriodName(data.period, data.periodName)
         };

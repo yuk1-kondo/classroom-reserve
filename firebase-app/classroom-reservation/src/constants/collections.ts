@@ -7,6 +7,8 @@ export const COLLECTIONS = {
   SYSTEM_SETTINGS: 'system_settings',
   /** 進路指導部など：先日付制限の特例メンバー（ドキュメントID=UID） */
   GUIDANCE_GROUP_MEMBERS: 'guidance_group_members',
+  /** 理科グループ：実験室など `scienceGroupOnly` 教室の利用メンバー（ドキュメントID=UID） */
+  SCIENCE_GROUP_MEMBERS: 'science_group_members',
 } as const;
 
 /** system_settings 配下：会議室の roomId を保持（ルールとクライアントで共通） */

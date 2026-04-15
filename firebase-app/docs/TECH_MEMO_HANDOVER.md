@@ -67,6 +67,8 @@ flowchart TB
     SS[system_settings]
     WT[weekly_templates]
     BP[blocked_periods]
+    GG[guidance_group_members]
+    SG[science_group_members]
   end
 
   UI --> CTX --> SV
@@ -81,6 +83,8 @@ flowchart TB
   SV --> SS
   SV --> WT
   SV --> BP
+  SV --> GG
+  SV --> SG
 ```
 
 ### 2.3 認証フロー（概要）
@@ -130,10 +134,10 @@ sequenceDiagram
 
 | コレクション | 主な用途 | 代表データのイメージ | Security Rules（概要） |
 |--------------|----------|----------------------|-------------------------|
-| **`rooms`** | 教室マスタ | 名称・定員・説明 | 読み取り公開 / 認証で write |
+| **`rooms`** | 教室マスタ | 名称・説明・`scienceGroupOnly` 等（定員フィールドは使用しない） | **認証済み read**（一覧クエリ整合のため緩和）。理科の非表示は主にクライアント※ |
 | **`periods`** | 時限マスタ（未使用に近い場合あり） | 時限定義 | 読み取り公開 / 認証で write |
-| **`reservations`** | 予約本体 | roomId, 日時, period, title, createdBy, roomName など | read 公開 / create・update・delete は条件付き※ |
-| **`reservation_slots`** | 同時予約防止用の占有スロット | room×日×時限 などのID | read 公開 / 認証で write |
+| **`reservations`** | 予約本体 | roomId, 日時, period, title, createdBy, roomName など | **認証済み read**。**create** は本人（`createdBy == uid`）。update/delete は従来の条件あり※ |
+| **`reservation_slots`** | 同時予約防止用の占有スロット | room×日×時限 などのID | **認証済み read/write**（トランザクション・未作成 doc 対応のため緩和）※ |
 | **`month_overview`** | 月次集計（削除処理等との整合） | 月IDごとのカウンタ等 | read 公開 / 認証で write |
 | **`admin_users`** | 管理者フラグ | uid または email キー、tier 等 | 認証ユーザ read / admin のみ write |
 | **`user_profiles`** | UID↔メール等（管理者追加の逆引き） | uid, email, displayName | 認証 read / 本人 write |
@@ -141,11 +145,18 @@ sequenceDiagram
 | **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室削除パスコード** 等 | read 公開（UI用） / admin のみ write |
 | **`weekly_templates`** | 週次固定予約テンプレ | 管理者が定義 | read 公開 / admin のみ write |
 | **`blocked_periods`** | 予約禁止期間 | 期間・教室（複数可）・時限（複数可）・理由 | read 公開 / admin のみ write |
+| **`guidance_group_members`** | 進路特例メンバー（先日付免除の対象者） | ドキュメントID=UID、`active` 等 | 本人+admin read / admin のみ write |
+| **`science_group_members`** | 理科グループ（実験室の閲覧・予約対象者） | ドキュメントID=UID、`active` 等 | 本人+admin read / admin のみ write |
 
 ### ※ `reservations` の delete 条件（重要）
 
 - **作成者本人**、または **管理者（`admin_users`）**、または **`roomName == '会議室'`** のドキュメントは **認証ユーザーが delete 可能**  
 - **会議室のパスコード認証はアプリ側のみ**。ルール単体ではパスコードは検証できない（学校運用向けの割り切り）
+
+### ※ 進路・理科の特例（要約）
+
+- **進路**: `guidance_privilege` で会議室 `roomId` を指定し、`guidance_group_members` の有効メンバーがその教室のみ先日付免除（**ルール上の先日付強制は 2026-04 時点で reservations create から外している**。運用は管理画面・UI）。
+- **理科**: 台帳・教室一覧では **`filterScienceOnlyRoomsForViewer` 等で UI から除外**。Firestore ルールは **一覧・作成で詰まらないよう認証ベースに緩和**しているため、**厳密な秘匿はクライアント＋運用前提**（詳細は `HANDOVER_2026-04-15_ledger-firestore-rules.md`）。
 
 ---
 
@@ -201,6 +212,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | Firestore Rules | `firebase-app/firestore.rules` |
 | Hosting 設定 | `firebase-app/firebase.json` |
 | 予約・スロット実装 | `classroom-reservation/src/firebase/firestore.ts` |
+| 引き継ぎ（2026-04 台帳・ルール対応の記録） | `firebase-app/docs/HANDOVER_2026-04-15_ledger-firestore-rules.md` |
 | 認証 | `classroom-reservation/src/firebase/auth.ts` |
 | 管理者 | `classroom-reservation/src/firebase/admin.ts` |
 | ユーザーアクセス管理 | `classroom-reservation/src/firebase/userAccess.ts` |
@@ -225,6 +237,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
 | 2026-03-21 | v2.10.0 | 予約禁止期間設定を拡張。教室・時限ともに複数選択可能（トグルボタン UI）。BlockedPeriod に roomIds / roomNames / periods フィールドを追加。旧データ（単一 roomId）との後方互換性を維持。予約フォームの禁止チェックに時限情報を連携。 |
+| 2026-04-15 | — | 一般ユーザー台帳・予約まわり：`rooms` / `reservations` / `reservation_slots` の Security Rules を認証ベースに整理（一覧クエリ・トランザクション・作成失敗の解消）。`getAllRooms` 等の `id` マッピング修正（`...data` 後に `id: docSnap.id`）。詳細は `HANDOVER_2026-04-15_ledger-firestore-rules.md`。 |
 
 ---
 

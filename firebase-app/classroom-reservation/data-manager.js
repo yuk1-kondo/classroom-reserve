@@ -18,27 +18,27 @@ const db = getFirestore(app);
 
 // 教室データ（不変マスターデータ）
 const ROOMS_DATA = [
-  { id: 'room-1', name: '小演習室1', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-2', name: '小演習室2', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-3', name: '小演習室3', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-4', name: '小演習室4', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-5', name: '小演習室5', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-6', name: '小演習室6', capacity: 20, description: '少人数での演習・グループワーク向け' },
-  { id: 'room-7', name: '大演習室1', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-8', name: '大演習室2', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-9', name: '大演習室3', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-10', name: '大演習室4', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-11', name: '大演習室5', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-12', name: '大演習室6', capacity: 40, description: '大人数での演習・講義向け' },
-  { id: 'room-13', name: 'サテライト', capacity: 30, description: 'サテライト授業・遠隔授業向け' },
-  { id: 'room-14', name: '会議室', capacity: 15, description: '会議・打ち合わせ向け' },
-  { id: 'room-15', name: '社会科教室', capacity: 35, description: '社会科授業・専門授業向け' },
-  { id: 'room-16', name: 'グローバル教室①', capacity: 30, description: '国際教育・語学学習向け' },
-  { id: 'room-17', name: 'グローバル教室②', capacity: 30, description: '国際教育・語学学習向け' },
-  { id: 'room-18', name: 'LL教室', capacity: 25, description: '語学学習・リスニング向け' },
-  { id: 'room-19', name: 'モノラボ', capacity: 20, description: 'ものづくり・実習向け' },
-  { id: 'room-20', name: '視聴覚教室', capacity: 50, description: '視聴覚教材・プレゼンテーション向け' },
-  { id: 'room-21', name: '多目的室', capacity: 35, description: '多様な用途・イベント向け' }
+  { id: 'room-1', name: '小演習室1', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-2', name: '小演習室2', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-3', name: '小演習室3', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-4', name: '小演習室4', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-5', name: '小演習室5', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-6', name: '小演習室6', description: '少人数での演習・グループワーク向け' },
+  { id: 'room-7', name: '大演習室1', description: '大人数での演習・講義向け' },
+  { id: 'room-8', name: '大演習室2', description: '大人数での演習・講義向け' },
+  { id: 'room-9', name: '大演習室3', description: '大人数での演習・講義向け' },
+  { id: 'room-10', name: '大演習室4', description: '大人数での演習・講義向け' },
+  { id: 'room-11', name: '大演習室5', description: '大人数での演習・講義向け' },
+  { id: 'room-12', name: '大演習室6', description: '大人数での演習・講義向け' },
+  { id: 'room-13', name: 'サテライト', description: 'サテライト授業・遠隔授業向け' },
+  { id: 'room-14', name: '会議室', description: '会議・打ち合わせ向け' },
+  { id: 'room-15', name: '社会科教室', description: '社会科授業・専門授業向け' },
+  { id: 'room-16', name: 'グローバル教室①', description: '国際教育・語学学習向け' },
+  { id: 'room-17', name: 'グローバル教室②', description: '国際教育・語学学習向け' },
+  { id: 'room-18', name: 'LL教室', description: '語学学習・リスニング向け' },
+  { id: 'room-19', name: 'モノラボ', description: 'ものづくり・実習向け' },
+  { id: 'room-20', name: '視聴覚教室', description: '視聴覚教材・プレゼンテーション向け' },
+  { id: 'room-21', name: '多目的室', description: '多様な用途・イベント向け' }
 ];
 
 // 時限データ（不変マスターデータ）
@@ -81,7 +81,6 @@ async function setupRooms() {
     try {
       await setDoc(doc(db, 'rooms', room.id), {
         name: room.name,
-        capacity: room.capacity,
         description: room.description,
         createdAt: new Date(),
         isActive: true

@@ -37,8 +37,7 @@ async function checkRooms() {
       rooms.push({
         id: doc.id,
         name: room.name,
-        description: room.description,
-        capacity: room.capacity
+        description: room.description
       });
     });
     
@@ -49,7 +48,6 @@ async function checkRooms() {
       console.log('  ID:', largeRoom5.id);
       console.log('  名前:', largeRoom5.name);
       console.log('  説明:', largeRoom5.description);
-      console.log('  定員:', largeRoom5.capacity);
     } else {
       console.log('❌ 大演習室5は存在しません');
     }

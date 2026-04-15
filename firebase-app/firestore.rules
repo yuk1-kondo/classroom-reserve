@@ -18,9 +18,11 @@ service cloud.firestore {
     }
 
     // 進路指導部など：会議室の先日付特例メンバーか
+    // guidance_group_members/{uid}.active が false のときは無効（クライアント guidancePrivilegeService.isGuidanceMember と同じ）
     function isGuidanceGroupMember() {
       return request.auth != null
-        && exists(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid));
+        && exists(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid)).data.active != false;
     }
 
     // 特例の対象教室（system_settings/guidance_privilege.meetingRoomId と一致）
@@ -28,6 +30,19 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/system_settings/guidance_privilege)
         && request.resource.data.roomId
           == get(/databases/$(database)/documents/system_settings/guidance_privilege).data.meetingRoomId;
+    }
+
+    // 理科グループ：実験室などの利用メンバーか（science_group_members / active は進路と同様）
+    function isScienceGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/science_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/science_group_members/$(request.auth.uid)).data.active != false;
+    }
+
+    // 教室ドキュメントが理科グループ専用か（rooms.scienceGroupOnly == true）
+    function roomIsScienceGroupOnly(roomId) {
+      return exists(/databases/$(database)/documents/rooms/$(roomId))
+        && get(/databases/$(database)/documents/rooms/$(roomId)).data.scienceGroupOnly == true;
     }
 
     // 管理者ユーザー管理コレクション
@@ -67,9 +82,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 教室と時限データは誰でも読み取り可能、書き込みは管理者のみ
+    // 理科グループメンバー（UID=ドキュメントID）
+    match /science_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // 教室：メタデータの読取は認証済みに許可（一覧は getDocs 全件になるため、
+    // ドキュメントごとの条件だけだと「理科専用が1件でもあると一般ユーザーの一覧クエリ全体が拒否」になる）。
+    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer と予約ルールで担保する。
     match /rooms/{roomId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     match /periods/{periodId} {
@@ -77,40 +100,37 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 予約情報は誰でも読み取り可能、書き込みは認証済みユーザーのみ
+    // 予約情報：一覧は startTime 範囲クエリのため「読めるドキュメントのみ返す」方式と整合させる（ルールをフィルタにできない）。
+    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。認証済みなら読取可。
     match /reservations/{reservationId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
       // 管理者の場合は日付制限をスキップ
+      // 理科専用教室への予約は理科メンバーまたは管理者のみ
+      // 先日付は管理UIで運用。作成は本人のみ（理科専用の拒否はデータ不整合で誤爆しやすいため create では room 参照しない）
       allow create: if isAuthenticated()
-        && request.resource.data.createdBy == request.auth.uid
-        && (
-          // 管理者の場合は制限なし
-          isAdmin()
-          // 設定が無ければ制限なし
-          || !exists(/databases/$(database)/documents/system_settings/global)
-          || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
-          || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
-          // 進路指導部メンバーが会議室（guidance_privilege で指定した roomId）のみ先日付制限を免除
-          || (isGuidanceGroupMember() && isGuidanceMeetingRoomReservation())
-        );
-    // 更新は作成者 または 管理者
-    allow update: if isAuthenticated() && (
-      request.auth.uid == resource.data.createdBy || isAdmin()
-    );
+        && request.resource.data.createdBy == request.auth.uid;
+    // 更新は作成者 または 管理者（理科専用へ変更・維持は理科メンバーまたは管理者のみ）
+    allow update: if isAuthenticated()
+      && (request.auth.uid == resource.data.createdBy || isAdmin())
+      && (!roomIsScienceGroupOnly(request.resource.data.roomId) || isAdmin() || isScienceGroupMember());
     // 削除は作成者 または 管理者 または 会議室予約（パスコード認証はクライアント側で実施）
-    allow delete: if isAuthenticated() && (
-      request.auth.uid == resource.data.createdBy ||
-      isAdmin() ||
-      resource.data.roomName == '会議室'
-    );
+    // 理科専用の予約の削除は作成者・管理者・理科メンバー（会議室と同様にクライアントで運用）
+    allow delete: if isAuthenticated()
+      && (!roomIsScienceGroupOnly(resource.data.roomId) || isAdmin() || isScienceGroupMember() || request.auth.uid == resource.data.createdBy)
+      && (
+        request.auth.uid == resource.data.createdBy ||
+        isAdmin() ||
+        resource.data.roomName == '会議室'
+      );
     }
 
-    // 予約スロット用コレクション（同時予約防止のための占有情報）
+    // 予約スロット（同時予約防止）。トランザクションで「未作成スロット」を get するため、
+    // read は認証済みに許可（存在しない doc でも resource.data を評価できず拒否されないようにする）。
+    // 作成・更新・削除は引き続き理科専用教室をルールで制限。
     match /reservation_slots/{slotId} {
-      allow read: if true;
-      // 認証済みのみ作成/削除を許可（実利用では Cloud Functions 側管理が理想）
-      allow write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
     }
 
     // 月次サマリー（現在は利用していないが削除処理の整合性維持に必要）

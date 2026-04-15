@@ -40,7 +40,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin } = useAuth();
-  const { meetingRoomId: guidanceMeetingRoomId, isGuidanceMember } = useGuidancePrivilege(currentUser?.uid);
+  const { meetingRoomId: guidanceMeetingRoomId, isGuidanceMember, refresh: refreshGuidancePrivilege } =
+    useGuidancePrivilege(currentUser?.uid);
   const { rooms, reservations: reservationsFromDaily, addReservations: addReservationsToDaily } = useReservationDataContext();
   const { reservations: monthlyReservations, addReservations: addReservationsToMonthly } = useMonthlyReservations();
   const reservations = React.useMemo(()=>{
@@ -94,11 +95,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const handleCreateWithLimit = async () => {
     const dates = formHook.getReservationDates();
     const roomId = formHook.formData.selectedRoom;
+    // 進路メンバー判定は非同期読み込み後に state が立つまで遅延するため、
+    // 予約直前に Firestore から再取得してから免除判定する（初回クリックで弾かれるのを防ぐ）
+    let member = isGuidanceMember;
+    let meetingMid = guidanceMeetingRoomId;
+    if (!isAdmin && currentUser?.uid) {
+      const snap = await refreshGuidancePrivilege();
+      member = snap.isGuidanceMember;
+      meetingMid = snap.meetingRoomId;
+    }
     const bypassDate = canBypassSystemReservationDateLimit({
       isAdmin,
-      isGuidanceMember,
+      isGuidanceMember: member,
       selectedRoomId: roomId,
-      guidanceMeetingRoomId
+      guidanceMeetingRoomId: meetingMid
     });
 
     if (!isAdmin) {

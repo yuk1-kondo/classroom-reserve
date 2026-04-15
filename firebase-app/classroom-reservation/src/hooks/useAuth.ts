@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { authService, AuthUser } from '../firebase/auth';
 import { adminService } from '../firebase/admin';
+import { roomsService } from '../firebase/firestore';
 
 export const useAuth = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -48,6 +49,8 @@ export const useAuth = () => {
   // 認証状態の変化を監視
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChanged(async (user) => {
+      // ログイン切替で教室一覧キャッシュが残ると、理科専用の見え方が取り違えられるため破棄
+      roomsService.clearRoomsCache();
       setCurrentUser(user);
       console.log('認証状態変更:', user);
       
@@ -73,6 +76,7 @@ export const useAuth = () => {
 
   // ログアウト処理
   const handleLogout = () => {
+    roomsService.clearRoomsCache();
     authService.simpleLogout();
     setCurrentUser(null);
     setIsAdmin(false);

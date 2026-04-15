@@ -19,6 +19,11 @@ export interface GuidanceMemberRecord {
   addedAt?: Timestamp;
 }
 
+/** Firestore ルール isGuidanceGroupMember と同じ：active が明示的に false のときだけ無効 */
+export function isGuidanceMembershipActive(data: { active?: boolean }): boolean {
+  return data.active !== false;
+}
+
 export const guidancePrivilegeService = {
   async getMeetingRoomId(): Promise<string | null> {
     const snap = await getDoc(doc(db, COLLECTIONS.SYSTEM_SETTINGS, GUIDANCE_PRIVILEGE_DOC_ID));
@@ -30,8 +35,7 @@ export const guidancePrivilegeService = {
   async isGuidanceMember(uid: string): Promise<boolean> {
     const snap = await getDoc(doc(db, COLLECTIONS.GUIDANCE_GROUP_MEMBERS, uid));
     if (!snap.exists()) return false;
-    const d = snap.data() as { active?: boolean };
-    return d.active !== false;
+    return isGuidanceMembershipActive(snap.data() as { active?: boolean });
   },
 
   async upsertPrivilegeSettings(

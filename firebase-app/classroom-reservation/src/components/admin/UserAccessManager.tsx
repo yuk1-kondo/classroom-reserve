@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { userAccessService, UserAccessRecord, UserStatus } from '../../firebase/userAccess';
 import { adminService, SUPER_ADMIN_EMAIL } from '../../firebase/admin';
-import { guidancePrivilegeService } from '../../firebase/guidancePrivilege';
+import { guidancePrivilegeService, isGuidanceMembershipActive } from '../../firebase/guidancePrivilege';
+import { sciencePrivilegeService, isScienceMembershipActive } from '../../firebase/sciencePrivilege';
 import { useAuth } from '../../hooks/useAuth';
 import './UserAccessManager.css';
 
@@ -11,6 +12,7 @@ interface UserRow extends UserAccessRecord {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isGuidanceMember: boolean;
+  isScienceMember: boolean;
 }
 
 interface UserAccessManagerProps {
@@ -32,23 +34,26 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
       setLoading(true);
       setError(null);
 
-      const [accessList, adminList, guidanceList] = await Promise.all([
+      const [accessList, adminList, guidanceList, scienceList] = await Promise.all([
         userAccessService.getAllUsers(),
         adminService.getAdminUsers(),
-        guidancePrivilegeService.listMembers()
+        guidancePrivilegeService.listMembers(),
+        sciencePrivilegeService.listMembers()
       ]);
 
       const adminUids = new Set(adminList.map(a => a.uid));
       const superUids = new Set(
         adminList.filter(a => a.tier === 'super' || a.email === SUPER_ADMIN_EMAIL).map(a => a.uid)
       );
-      const guidanceUids = new Set(guidanceList.map(g => g.uid));
+      const guidanceUids = new Set(guidanceList.filter(isGuidanceMembershipActive).map(g => g.uid));
+      const scienceUids = new Set(scienceList.filter(isScienceMembershipActive).map(s => s.uid));
 
       const rows: UserRow[] = accessList.map(u => ({
         ...u,
         isAdmin: adminUids.has(u.uid),
         isSuperAdmin: superUids.has(u.uid),
-        isGuidanceMember: guidanceUids.has(u.uid)
+        isGuidanceMember: guidanceUids.has(u.uid),
+        isScienceMember: scienceUids.has(u.uid)
       }));
 
       setUsers(rows);
@@ -178,6 +183,25 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
     }
   };
 
+  const handleScienceToggle = async (uid: string, email: string, currentlyMember: boolean) => {
+    const label = currentlyMember ? '理科グループから解除' : '理科グループに追加';
+    if (!window.confirm(`${email} を「${label}」しますか？`)) return;
+    try {
+      setError(null);
+      setSuccess(null);
+      if (currentlyMember) {
+        await sciencePrivilegeService.removeMember(uid);
+        setSuccess(`${email} を理科グループから解除しました`);
+      } else {
+        await sciencePrivilegeService.addMember(uid, currentUser?.uid || 'unknown');
+        setSuccess(`${email} を理科グループに追加しました`);
+      }
+      await loadUsers();
+    } catch (e: any) {
+      setError(e.message || '理科グループの変更に失敗しました');
+    }
+  };
+
   const formatDate = (ts: any): string => {
     try {
       if (!ts) return '-';
@@ -250,15 +274,16 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
               <th>ステータス</th>
               <th>権限</th>
               {isSuperAdmin && <th>進路</th>}
+              {isSuperAdmin && <th>理科</th>}
               <th>最終ログイン</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={isSuperAdmin ? 6 : 5} className="uam-loading">読み込み中...</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 7 : 5} className="uam-loading">読み込み中...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={isSuperAdmin ? 6 : 5} className="uam-empty">該当するユーザーがいません</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 7 : 5} className="uam-empty">該当するユーザーがいません</td></tr>
             ) : filtered.map(user => {
               const isSelf = user.uid === currentUser?.uid;
               const isSuperTarget = user.isSuperAdmin || user.email === SUPER_ADMIN_EMAIL;
@@ -286,6 +311,15 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
                     <td>
                       {user.isGuidanceMember ? (
                         <span className="uam-badge uam-badge-guidance">進路</span>
+                      ) : (
+                        <span className="uam-badge uam-badge-none">-</span>
+                      )}
+                    </td>
+                  )}
+                  {isSuperAdmin && (
+                    <td>
+                      {user.isScienceMember ? (
+                        <span className="uam-badge uam-badge-science">理科</span>
                       ) : (
                         <span className="uam-badge uam-badge-none">-</span>
                       )}
@@ -336,6 +370,19 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
                           </button>
                         )
                       )}
+                      {isSuperAdmin && !isSelf && !isSuperTarget && (
+                        user.isScienceMember ? (
+                          <button className="uam-btn uam-btn-science-remove" disabled={loading}
+                            onClick={() => handleScienceToggle(user.uid, user.email, true)}>
+                            理科解除
+                          </button>
+                        ) : (
+                          <button className="uam-btn uam-btn-science-add" disabled={loading}
+                            onClick={() => handleScienceToggle(user.uid, user.email, false)}>
+                            理科追加
+                          </button>
+                        )
+                      )}
                       {/* 削除 */}
                       {isSuperAdmin && !isSelf && !isSuperTarget && (
                         <button className="uam-btn uam-btn-delete" disabled={loading}
@@ -361,6 +408,7 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({ hideTitle 
         <span>ブロック: {users.filter(u => u.status === 'blocked').length}人</span>
         <span>管理者: {users.filter(u => u.isAdmin).length}人</span>
         {isSuperAdmin && <span>進路: {users.filter(u => u.isGuidanceMember).length}人</span>}
+        {isSuperAdmin && <span>理科: {users.filter(u => u.isScienceMember).length}人</span>}
       </div>
     </div>
   );

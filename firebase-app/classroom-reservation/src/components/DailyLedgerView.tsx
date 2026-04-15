@@ -5,6 +5,10 @@ import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { Timestamp } from 'firebase/firestore';
 import { getPeriodOrderForDate, getPeriodTimeMapForDate } from '../utils/periods';
 import { toDateStr } from '../utils/dateRange';
+import { sortRoomsByLedgerOrder } from '../utils/ledgerRoomOrder';
+import { filterScienceOnlyRoomsForViewer } from '../utils/roomAccess';
+import { useAuth } from '../hooks/useAuth';
+import { useScienceGroupMembership } from '../hooks/useScienceGroupMembership';
 import { authService } from '../firebase/auth';
 
 interface DailyLedgerViewProps {
@@ -25,28 +29,6 @@ interface LedgerCellReservation {
   period: string;
   roomId: string;
 }
-
-const LEDGER_ROOM_ORDER = [
-  'サテライト',
-  '会議室',
-  '社会科教室',
-  'グローバル教室①',
-  'グローバル教室②',
-  'LL教室',
-  '小演習室1',
-  '小演習室2',
-  '小演習室3',
-  '小演習室4',
-  '小演習室5',
-  '小演習室6',
-  '大演習室1',
-  '大演習室2',
-  '大演習室3',
-  '大演習室4',
-  'モノラボ',
-  '視聴覚教室',
-  '多目的室'
-];
 
 function normalizeDateInput(dateStr: string): string {
   if (!dateStr) {
@@ -80,17 +62,6 @@ function expandPeriod(raw: string): string[] {
   }
   return [p];
 }
-
-const sortRoomsWithOrder = (rooms: Room[]): Room[] => {
-  const orderMap = new Map<string, number>();
-  LEDGER_ROOM_ORDER.forEach((name, index) => orderMap.set(name, index));
-  return [...rooms].sort((a, b) => {
-    const aOrder = orderMap.has(a.name) ? orderMap.get(a.name)! : Number.MAX_SAFE_INTEGER;
-    const bOrder = orderMap.has(b.name) ? orderMap.get(b.name)! : Number.MAX_SAFE_INTEGER;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return a.name.localeCompare(b.name, 'ja');
-  });
-};
 
 const mapReservationsToCells = (
   reservations: Reservation[],
@@ -163,21 +134,37 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
   onReservationClick
 }) => {
   const normalizedDate = normalizeDateInput(date);
+  const { currentUser, isAdmin } = useAuth();
+  const { isScienceMember } = useScienceGroupMembership(currentUser?.uid);
   const [rooms, setRooms] = useState<Room[]>([]);
+  /** 教室一覧の取得が一度完了したか（件数0でも true。これが無いと列0のとき永遠にスケルトン表示になる） */
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
   const { reservations, setRange, loading: reservationsLoading } = useMonthlyReservations();
   const [loading, setLoading] = useState<boolean>(true);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let active = true;
-    roomsService.getAllRooms().then(list => {
-      if (!active) return;
-      setRooms(sortRoomsWithOrder(Array.isArray(list) ? list : []));
-    }).catch(() => setRooms([]));
+    setRoomsLoaded(false);
+    roomsService
+      .getAllRooms()
+      .then(list => {
+        if (!active) return;
+        const raw = Array.isArray(list) ? list : [];
+        const filtered = filterScienceOnlyRoomsForViewer(raw, { isAdmin, isScienceMember });
+        setRooms(sortRoomsByLedgerOrder(filtered));
+      })
+      .catch(() => {
+        if (!active) return;
+        setRooms([]);
+      })
+      .finally(() => {
+        if (active) setRoomsLoaded(true);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAdmin, isScienceMember]);
 
   useEffect(() => {
     if (!normalizedDate) return;
@@ -238,15 +225,15 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
 
   const toolbarClassName = showFilterMineToggle ? 'ledger-toolbar' : 'ledger-toolbar ledger-toolbar--compact';
 
-  // データが揃うまで全体を隠し、スケルトンを見せる
+  // 教室取得完了まではスケルトン。列0件（閲覧可能教室なし）でも取得後は表示する
   useEffect(() => {
-    if (displayRooms.length > 0) {
-      const timer = setTimeout(() => setLoading(false), 120);
-      return () => clearTimeout(timer);
-    } else {
+    if (!roomsLoaded) {
       setLoading(true);
+      return;
     }
-  }, [displayRooms.length, normalizedDate]);
+    const timer = setTimeout(() => setLoading(false), 120);
+    return () => clearTimeout(timer);
+  }, [roomsLoaded, normalizedDate]);
 
   // Shift+ホイールで横スクロール、縦スクロール時の横移動を防止
   useEffect(() => {

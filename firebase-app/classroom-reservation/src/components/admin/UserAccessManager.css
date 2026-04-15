@@ -201,6 +201,11 @@
   color: #4527a0;
 }
 
+.uam-badge-science {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
 .uam-badge-none {
   background: transparent;
   color: #bdbdbd;
@@ -294,6 +299,24 @@
 
 .uam-btn-guidance-remove:hover:not(:disabled) {
   background: #90a4ae;
+}
+
+.uam-btn-science-add {
+  background: #00897b;
+  color: white;
+}
+
+.uam-btn-science-add:hover:not(:disabled) {
+  background: #00695c;
+}
+
+.uam-btn-science-remove {
+  background: #b2dfdb;
+  color: #004d40;
+}
+
+.uam-btn-science-remove:hover:not(:disabled) {
+  background: #80cbc4;
 }
 
 .uam-loading,

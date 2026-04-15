@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { reservationsService, roomsService, Reservation, Room } from '../firebase/firestore';
 import { dayRange } from '../utils/dateRange';
+import { useAuth } from '../hooks/useAuth';
+import { useScienceGroupMembership } from '../hooks/useScienceGroupMembership';
+import { filterScienceOnlyRoomsForViewer } from '../utils/roomAccess';
 
 interface ReservationDataContextValue {
   rooms: Room[];
@@ -19,17 +22,20 @@ interface ProviderProps {
 }
 
 export const ReservationDataProvider: React.FC<ProviderProps> = ({ children, date }) => {
+  const { currentUser, isAdmin } = useAuth();
+  const { isScienceMember } = useScienceGroupMembership(currentUser?.uid);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
   const loadRooms = useCallback(async () => {
     try {
       const list = await roomsService.getAllRooms();
-      setRooms(Array.isArray(list) ? list : []);
+      const raw = Array.isArray(list) ? list : [];
+      setRooms(filterScienceOnlyRoomsForViewer(raw, { isAdmin, isScienceMember }));
     } catch {
       setRooms([]);
     }
-  }, []);
+  }, [isAdmin, isScienceMember]);
 
   const loadDay = useCallback(async (dateStr: string) => {
     try {
