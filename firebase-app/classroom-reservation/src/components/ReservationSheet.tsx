@@ -69,7 +69,7 @@ const ReservationSheet: React.FC<ReservationSheetProps> = ({ date, open, onClose
       <div className="reservation-sheet" ref={sheetRef} onClick={(e)=>e.stopPropagation()}>
         <div className="sheet-handle" aria-hidden="true"></div>
         <div className="sheet-header">
-          <span id="reservationSheetTitle">📋 予約状況</span>
+          <span id="reservationSheetTitle">予約状況</span>
           <button data-autofocus onClick={onClose} aria-label="閉じる" className="sheet-close-btn">✕</button>
         </div>
         <div className="sheet-content">

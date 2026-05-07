@@ -11,6 +11,7 @@ import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
 import RecurringTemplatesWorkspace from './admin/RecurringTemplatesWorkspace';
 import UserAccessManager from './admin/UserAccessManager';
 import GuidancePrivilegeSettings from './admin/GuidancePrivilegeSettings';
+import ScienceGroupSettings from './admin/ScienceGroupSettings';
 import { APP_VERSION } from '../version';
 import './admin/admin-settings-blocks.css';
 import './AdminPage.css';
@@ -20,6 +21,7 @@ export type AdminSectionId =
   | 'passcode'
   | 'blocked-periods'
   | 'guidance-privilege'
+  | 'science-group'
   | 'templates'
   | 'users';
 
@@ -37,6 +39,11 @@ const SECTION_DEF: {
     label: '進路・会議室特例',
     superOnly: true,
     description: '進路指導部メンバーの会議室のみ、先日付制限を免除します。',
+  },
+  {
+    id: 'science-group',
+    label: '理科・実験室',
+    description: '実験3室の登録と、理科グループメンバー管理（スーパー管理者はユーザー管理からも操作可）。',
   },
   {
     id: 'templates',
@@ -219,6 +226,9 @@ const AdminPage: React.FC = () => {
               )}
               {activeSection === 'guidance-privilege' && isSuperAdmin && (
                 <GuidancePrivilegeSettings currentUserId={currentUser?.uid} hideTitle />
+              )}
+              {activeSection === 'science-group' && (
+                <ScienceGroupSettings currentUserId={currentUser?.uid} hideTitle />
               )}
               {activeSection === 'templates' && isSuperAdmin && (
                 <RecurringTemplatesWorkspace

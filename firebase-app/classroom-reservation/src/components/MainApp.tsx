@@ -179,7 +179,7 @@ export const MainApp: React.FC = () => {
               className="toggle-panel-button"
               onClick={() => setShowSidePanel(!showSidePanel)}
             >
-              {showSidePanel ? '📋 パネルを閉じる' : '📋 予約管理'}
+              {showSidePanel ? 'パネルを閉じる' : '予約管理'}
             </button>
           </div>
         </header>

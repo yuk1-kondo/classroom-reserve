@@ -41,8 +41,8 @@ export const useReservationData = (currentUser: AuthUser | null, selectedDate?: 
       const { start: startOfDay, end: endOfDay } = dayRange(date);
       
       console.log('🔍 loadReservationsForDate: 検索範囲', { startOfDay, endOfDay });
-      
-  const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
+
+      const reservationsData = await reservationsService.getReservations(startOfDay, endOfDay);
       console.log('🔍 loadReservationsForDate: 取得結果', { count: reservationsData.length, data: reservationsData });
   
   // スロット取得は削除（予約データから直接競合チェック可能）

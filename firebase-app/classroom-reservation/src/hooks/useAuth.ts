@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import { authService, AuthUser } from '../firebase/auth';
 import { adminService } from '../firebase/admin';
+import { roomsService } from '../firebase/firestore';
 
 export const useAuth = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  /** Firebase が初回の onAuthStateChanged を返すまで true にしない（この間は Firestore にトークンが載らず rules で拒否されうる） */
+  const [authReady, setAuthReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -48,6 +51,9 @@ export const useAuth = () => {
   // 認証状態の変化を監視
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChanged(async (user) => {
+      setAuthReady(true);
+      // ログイン切替で教室一覧キャッシュが残ると、理科専用の見え方が取り違えられるため破棄
+      roomsService.clearRoomsCache();
       setCurrentUser(user);
       console.log('認証状態変更:', user);
       
@@ -73,6 +79,7 @@ export const useAuth = () => {
 
   // ログアウト処理
   const handleLogout = () => {
+    roomsService.clearRoomsCache();
     authService.simpleLogout();
     setCurrentUser(null);
     setIsAdmin(false);
@@ -90,6 +97,7 @@ export const useAuth = () => {
 
   return {
     currentUser,
+    authReady,
     isAdmin,
     isSuperAdmin,
     loading,
