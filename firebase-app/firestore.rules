@@ -88,10 +88,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 教室：台帳は未ログインでも閲覧できるよう read は公開（書き込みは管理者のみ）。
-    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer で担保。
+    // 教室：メタデータの読取は認証済みに許可（一覧は getDocs 全件になるため、
+    // ドキュメントごとの条件だけだと「理科専用が1件でもあると一般ユーザーの一覧クエリ全体が拒否」になる）。
+    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer と予約ルールで担保する。
     match /rooms/{roomId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     match /periods/{periodId} {
@@ -99,10 +100,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 予約情報：台帳表示のため read は公開（作成・更新・削除は下記どおり認証必須）。
-    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。
+    // 予約情報：一覧は startTime 範囲クエリのため「読めるドキュメントのみ返す」方式と整合させる（ルールをフィルタにできない）。
+    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。認証済みなら読取可。
     match /reservations/{reservationId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
       // 管理者の場合は日付制限をスキップ
       // 理科専用教室への予約は理科メンバーまたは管理者のみ
