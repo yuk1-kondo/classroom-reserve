@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import MainApp from './components/MainApp';
 import AdminPage from './components/AdminPage';
+import QrReception from './components/QrReception';
 import { initializeDataIntegrity } from './firebase/dataIntegrity';
 import './App.css';
 
@@ -28,6 +29,7 @@ function App() {
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/reception" element={<QrReception />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
