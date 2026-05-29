@@ -2,8 +2,6 @@
 
 React + TypeScript + Firebase による現代的な教室予約管理システム
 
-## 🌐 ライブサイト
-**https://owa-cbs.web.app**
 
 ## 📅 バージョン
 現在バージョン: **2.1.0 (2025-10-17)**
