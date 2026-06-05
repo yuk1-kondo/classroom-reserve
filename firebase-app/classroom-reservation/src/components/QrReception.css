@@ -1,0 +1,71 @@
+.qr-reception-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: left;
+}
+
+.qr-reception-page h1 {
+  margin-bottom: 8px;
+}
+
+.qr-reception-page .lead {
+  margin-bottom: 20px;
+  color: #444;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.card textarea,
+.card input {
+  width: 100%;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.card button {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #c42132;
+  color: #fff;
+  cursor: pointer;
+}
+
+.result {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f4f4f4;
+}
+
+.result.ok {
+  background: #e8f7ea;
+  border: 1px solid #9fdbab;
+}
+
+.result.ng {
+  background: #fdecec;
+  border: 1px solid #f3b3b3;
+}
+
+.status {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.time {
+  color: #666;
+  margin: 0;
+}
