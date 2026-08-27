@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './DailyLedgerView.css';
 import { roomsService, Reservation, Room } from '../firebase/firestore';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
@@ -139,9 +139,11 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
   const [rooms, setRooms] = useState<Room[]>([]);
   /** 教室一覧の取得が一度完了したか（件数0でも true。これが無いと列0のとき永遠にスケルトン表示になる） */
   const [roomsLoaded, setRoomsLoaded] = useState(false);
-  const { reservations, setRange, loading: reservationsLoading } = useMonthlyReservations();
+  const { reservations, setRange, refetch, loading: reservationsLoading } = useMonthlyReservations();
   const [loading, setLoading] = useState<boolean>(true);
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const seenUserRef = useRef<string | null | undefined>(undefined);
+  const revealedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -177,17 +179,25 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
     setRange(start, end);
   }, [normalizedDate, setRange, authReady]);
 
-  // 予約変更イベントを受けて当日範囲を即時再読込
+  // 予約変更イベントを受けて当日範囲を即時再読込（同一日付だと setRange は再取得しない）
   useEffect(() => {
     const handler = () => {
-      if (!authReady || !normalizedDate) return;
-      const start = new Date(`${normalizedDate}T00:00:00`);
-      const end = new Date(`${normalizedDate}T23:59:59`);
-      setRange(start, end);
+      if (!authReady) return;
+      void refetch();
     };
     window.addEventListener('reservation:changed', handler as any);
     return () => window.removeEventListener('reservation:changed', handler as any);
-  }, [normalizedDate, setRange, authReady]);
+  }, [refetch, authReady]);
+
+  // authReady 後にユーザーが付いた／切り替わったときは再取得（初回は setRange に任せる）
+  useEffect(() => {
+    if (!authReady) return;
+    const uid = currentUser?.uid ?? null;
+    const prev = seenUserRef.current;
+    seenUserRef.current = uid;
+    if (prev === undefined || prev === uid) return;
+    void refetch();
+  }, [authReady, currentUser?.uid, refetch]);
 
   // ローカル即時反映: 削除IDを保持し、描画から除外
   useEffect(() => {
@@ -229,15 +239,16 @@ export const DailyLedgerView: React.FC<DailyLedgerViewProps> = ({
 
   const toolbarClassName = showFilterMineToggle ? 'ledger-toolbar' : 'ledger-toolbar ledger-toolbar--compact';
 
-  // 教室取得完了まではスケルトン。列0件（閲覧可能教室なし）でも取得後は表示する
+  // 初回は教室と予約の両方が揃うまでスケルトン。出してからは同一日の refetch で点滅させない
   useEffect(() => {
-    if (!roomsLoaded) {
-      setLoading(true);
+    if (!authReady || !roomsLoaded || reservationsLoading) {
+      if (!revealedRef.current) setLoading(true);
       return;
     }
+    revealedRef.current = true;
     const timer = setTimeout(() => setLoading(false), 120);
     return () => clearTimeout(timer);
-  }, [roomsLoaded, normalizedDate]);
+  }, [authReady, roomsLoaded, reservationsLoading, normalizedDate]);
 
   // Shift+ホイールで横スクロール、縦スクロール時の横移動を防止
   useEffect(() => {

@@ -12,6 +12,7 @@ import RecurringTemplatesWorkspace from './admin/RecurringTemplatesWorkspace';
 import UserAccessManager from './admin/UserAccessManager';
 import GuidancePrivilegeSettings from './admin/GuidancePrivilegeSettings';
 import ScienceGroupSettings from './admin/ScienceGroupSettings';
+import ParkingGroupSettings from './admin/ParkingGroupSettings';
 import { APP_VERSION } from '../version';
 import './admin/admin-settings-blocks.css';
 import './AdminPage.css';
@@ -22,6 +23,7 @@ export type AdminSectionId =
   | 'blocked-periods'
   | 'guidance-privilege'
   | 'science-group'
+  | 'parking'
   | 'templates'
   | 'users';
 
@@ -44,6 +46,11 @@ const SECTION_DEF: {
     id: 'science-group',
     label: '理科・実験室',
     description: '実験3室の登録と、理科グループメンバー管理（スーパー管理者はユーザー管理からも操作可）。',
+  },
+  {
+    id: 'parking',
+    label: '駐車場',
+    description: '駐車場4枠の登録、テスト／全員公開の切替、メンバーと削除権限の管理。',
   },
   {
     id: 'templates',
@@ -229,6 +236,9 @@ const AdminPage: React.FC = () => {
               )}
               {activeSection === 'science-group' && (
                 <ScienceGroupSettings currentUserId={currentUser?.uid} hideTitle />
+              )}
+              {activeSection === 'parking' && (
+                <ParkingGroupSettings currentUserId={currentUser?.uid} hideTitle />
               )}
               {activeSection === 'templates' && isSuperAdmin && (
                 <RecurringTemplatesWorkspace

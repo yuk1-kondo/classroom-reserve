@@ -12,6 +12,7 @@ import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 import { MonthlyReservationsProvider, useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { toDateStr } from '../utils/dateRange';
+import { useParkingAccess } from '../hooks/useParkingAccess';
 
 // 日付ナビゲーションボタン用の内部コンポーネント
 const DateNavigationButtons: React.FC<{
@@ -52,7 +53,8 @@ const DateNavigationButtons: React.FC<{
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser, isAdmin, loading: authLoading } = useAuth();
+  const { currentUser, isAdmin, loading: authLoading, authReady } = useAuth();
+  const parking = useParkingAccess(currentUser?.uid, { isAdmin, authReady });
   
   // 常に今日の日付を初期値として設定（UX向上：毎回当日の予約を表示）
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateStr(new Date()));
@@ -170,6 +172,11 @@ export const MainApp: React.FC = () => {
           <div className="header-info">
             <div className="system-info">v{APP_VERSION}</div>
             {/* ログイン済みの管理者のみ表示（一般ユーザー・未ログインでは非表示） */}
+            {currentUser && parking.canAccess && !authLoading && !parking.loading && (
+              <Link to="/parking" className="admin-settings-link">
+                駐車場予約
+              </Link>
+            )}
             {currentUser && isAdmin && !authLoading && (
               <Link to="/admin" className="admin-settings-link">
                 管理・設定

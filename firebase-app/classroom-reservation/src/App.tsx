@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import MainApp from './components/MainApp';
 import AdminPage from './components/AdminPage';
+import ParkingApp from './components/parking/ParkingApp';
 import './App.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<MainApp />} />
+          <Route path="/parking" element={<ParkingApp />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

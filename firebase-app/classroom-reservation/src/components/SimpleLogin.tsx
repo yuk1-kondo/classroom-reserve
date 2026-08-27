@@ -2,6 +2,27 @@ import React, { useState } from 'react';
 import { authService } from '../firebase/auth';
 import './SimpleLogin.css';
 
+function formatGoogleLoginError(error: any): string {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+  if (code === 'auth/unauthorized-domain') {
+    return 'このURLではGoogleログインできません。アドレス欄を http://localhost:3000 にして開き直してください（127.0.0.1 では失敗します）。';
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'ポップアップがブロックされました。ブラウザでポップアップを許可して、もう一度お試しください。';
+  }
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return 'ログインがキャンセルされました。もう一度お試しください。';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'ネットワークエラーです。接続を確認してもう一度お試しください。';
+  }
+  if (message.includes(authService.getAllowedDomain()) || message.includes('ブロック')) {
+    return message;
+  }
+  return `ログインに失敗しました${code ? `（${code}）` : ''}`;
+}
+
 interface SimpleLoginProps {
   onAuthStateChange: () => void;
 }
@@ -19,11 +40,7 @@ const SimpleLogin: React.FC<SimpleLoginProps> = ({ onAuthStateChange }) => {
       onAuthStateChange();
     } catch (error: any) {
       console.error('Googleログインエラー:', error);
-      if (error.message && error.message.includes(authService.getAllowedDomain())) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage(`このシステムは ${authService.getAllowedDomain()} ドメインのGoogleアカウントのみ利用できます`);
-      }
+      setErrorMessage(formatGoogleLoginError(error));
     } finally {
       setIsLoading(false);
     }

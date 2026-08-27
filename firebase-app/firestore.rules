@@ -45,6 +45,26 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/rooms/$(roomId)).data.scienceGroupOnly == true;
     }
 
+    function isParkingGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/parking_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parking_group_members/$(request.auth.uid)).data.active != false;
+    }
+
+    function isParkingDeleter() {
+      return isParkingGroupMember()
+        && get(/databases/$(database)/documents/parking_group_members/$(request.auth.uid)).data.canDelete == true;
+    }
+
+    function isParkingPublic() {
+      return exists(/databases/$(database)/documents/system_settings/parking)
+        && get(/databases/$(database)/documents/system_settings/parking).data.accessMode == 'public';
+    }
+
+    function canUseParking() {
+      return isAuthenticated() && (isAdmin() || isParkingPublic() || isParkingGroupMember());
+    }
+
     // 管理者ユーザー管理コレクション
     match /admin_users/{userId} {
       // 認証済みユーザーは読み取り可能（管理者判定のため）
@@ -88,11 +108,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 教室：メタデータの読取は認証済みに許可（一覧は getDocs 全件になるため、
-    // ドキュメントごとの条件だけだと「理科専用が1件でもあると一般ユーザーの一覧クエリ全体が拒否」になる）。
-    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer と予約ルールで担保する。
+    // 教室：台帳は未ログインでも閲覧できるよう read は公開（書き込みは管理者のみ）。
+    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer で担保する。
     match /rooms/{roomId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /periods/{periodId} {
@@ -100,10 +119,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 予約情報：一覧は startTime 範囲クエリのため「読めるドキュメントのみ返す」方式と整合させる（ルールをフィルタにできない）。
-    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。認証済みなら読取可。
+    // 予約情報：台帳表示のため read は公開（作成・更新・削除は下記どおり認証必須）。
+    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。
     match /reservations/{reservationId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
       // 管理者の場合は日付制限をスキップ
       // 理科専用教室への予約は理科メンバーまたは管理者のみ
@@ -158,6 +177,35 @@ service cloud.firestore {
     match /blocked_periods/{blockId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /parking_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /parking_spots/{spotId} {
+      allow read: if canUseParking();
+      allow write: if isAdmin();
+    }
+
+    match /parking_reservations/{reservationId} {
+      allow read: if canUseParking();
+      allow create: if canUseParking()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if canUseParking()
+        && (request.auth.uid == resource.data.createdBy || isAdmin());
+      allow delete: if canUseParking()
+        && (
+          request.auth.uid == resource.data.createdBy ||
+          isAdmin() ||
+          isParkingDeleter()
+        );
+    }
+
+    match /parking_slots/{slotId} {
+      allow read: if canUseParking();
+      allow create, update, delete: if canUseParking();
     }
   }
 }

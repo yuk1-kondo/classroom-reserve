@@ -4,6 +4,13 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Firebase Auth の許可ドメインは localhost。127.0.0.1 だとポップアップ前に失敗する
+if (process.env.NODE_ENV === 'development' && window.location.hostname === '127.0.0.1') {
+  const { protocol, port, pathname, search, hash } = window.location;
+  const next = `${protocol}//localhost${port ? `:${port}` : ''}${pathname}${search}${hash}`;
+  window.location.replace(next);
+}
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

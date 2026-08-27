@@ -213,6 +213,8 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | Hosting 設定 | `firebase-app/firebase.json` |
 | 予約・スロット実装 | `classroom-reservation/src/firebase/firestore.ts` |
 | 引き継ぎ（2026-04 台帳・ルール対応の記録） | `firebase-app/docs/HANDOVER_2026-04-15_ledger-firestore-rules.md` |
+| 引き継ぎ（2026-08 駐車場追加後の教室台帳初回表示） | `firebase-app/docs/HANDOVER_2026-08-27_ledger-first-load-parking.md` |
+| 週末作業メモ（駐車場テスト・ルール復旧・構想） | `firebase-app/docs/HANDOVER_2026-08-27_weekend-parking-work.md` |
 | 認証 | `classroom-reservation/src/firebase/auth.ts` |
 | 管理者 | `classroom-reservation/src/firebase/admin.ts` |
 | ユーザーアクセス管理 | `classroom-reservation/src/firebase/userAccess.ts` |
@@ -238,6 +240,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
 | 2026-03-21 | v2.10.0 | 予約禁止期間設定を拡張。教室・時限ともに複数選択可能（トグルボタン UI）。BlockedPeriod に roomIds / roomNames / periods フィールドを追加。旧データ（単一 roomId）との後方互換性を維持。予約フォームの禁止チェックに時限情報を連携。 |
 | 2026-04-15 | — | 一般ユーザー台帳・予約まわり：`rooms` / `reservations` / `reservation_slots` の Security Rules を認証ベースに整理（一覧クエリ・トランザクション・作成失敗の解消）。`getAllRooms` 等の `id` マッピング修正（`...data` 後に `id: docSnap.id`）。詳細は `HANDOVER_2026-04-15_ledger-firestore-rules.md`。 |
+| 2026-08-27 | v2.18.1（未デプロイ） / 本番 v2.17.5 | 教室台帳：コード側改修（スケルトン・refetch 等）と、本番障害の原因特定（`rooms`/`reservations` 認証必須化）。本番は rules のみ復旧（read 公開に戻す）。週末駐車場テスト用メモ `HANDOVER_2026-08-27_weekend-parking-work.md`。 |
 
 ---
 
