@@ -28,6 +28,9 @@ yarn-error.log*
 # Node modules (if any)
 node_modules/
 
+# git worktree の作業用ディレクトリ（コミット対象外）
+.worktrees/
+
 # Build outputs
 firebase-app/classroom-reservation/build/
 firebase-app/functions/lib/

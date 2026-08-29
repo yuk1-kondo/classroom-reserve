@@ -2,7 +2,7 @@
  * 管理・設定 — 左ナビで項目を選び、右ペインに内容を表示
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { roomsService, Room } from '../firebase/firestore';
 import ReservationLimitSettings from './admin/ReservationLimitSettings';
@@ -10,7 +10,11 @@ import PasscodeSettings from './admin/PasscodeSettings';
 import BlockedPeriodsSettings from './admin/BlockedPeriodsSettings';
 import RecurringTemplatesWorkspace from './admin/RecurringTemplatesWorkspace';
 import UserAccessManager from './admin/UserAccessManager';
-import { APP_VERSION } from '../version';
+import GuidancePrivilegeSettings from './admin/GuidancePrivilegeSettings';
+import ScienceGroupSettings from './admin/ScienceGroupSettings';
+import ParkingGroupSettings from './admin/ParkingGroupSettings';
+import { AppHeader } from './layout/AppHeader';
+import { AppFooter } from './layout/AppFooter';
 import './admin/admin-settings-blocks.css';
 import './AdminPage.css';
 
@@ -18,6 +22,9 @@ export type AdminSectionId =
   | 'reservation-limit'
   | 'passcode'
   | 'blocked-periods'
+  | 'guidance-privilege'
+  | 'science-group'
+  | 'parking'
   | 'templates'
   | 'users';
 
@@ -28,8 +35,24 @@ const SECTION_DEF: {
   description: string;
 }[] = [
   { id: 'reservation-limit', label: '予約制限', description: '予約の最終日（固定日）を設定します。' },
-  { id: 'passcode', label: '会議室・図書館パスコード', description: '会議室・図書館の予約削除用パスコードを設定します。' },
+  { id: 'passcode', label: '会議室パスコード', description: '会議室予約削除用のパスコードを設定します。' },
   { id: 'blocked-periods', label: '予約禁止期間', description: '予約できない期間を登録します。' },
+  {
+    id: 'guidance-privilege',
+    label: '進路・会議室特例',
+    superOnly: true,
+    description: '進路指導部メンバーの会議室のみ、先日付制限を免除します。',
+  },
+  {
+    id: 'science-group',
+    label: '理科・実験室',
+    description: '実験3室の登録と、理科グループメンバー管理（スーパー管理者はユーザー管理からも操作可）。',
+  },
+  {
+    id: 'parking',
+    label: '駐車場',
+    description: '駐車場4枠の登録、入場パスコード、他人予約の削除権限の管理。',
+  },
   {
     id: 'templates',
     label: '固定予約テンプレート',
@@ -109,15 +132,12 @@ const AdminPage: React.FC = () => {
   if (!isAdmin) {
     return (
       <div className="admin-page">
-        <header className="admin-page__header">
-          <Link to="/" className="admin-page__back">
-            ← トップへ戻る
-          </Link>
-        </header>
+        <AppHeader title="管理・設定" current="admin" />
         <div className="admin-page__denied">
           <h1>アクセスできません</h1>
           <p>この画面は管理者のみが利用できます。</p>
         </div>
+        <AppFooter />
       </div>
     );
   }
@@ -130,28 +150,9 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="admin-page">
-      <header className="admin-page__header">
-        <div className="admin-page__brand">
-          <img
-            src={`${process.env.PUBLIC_URL}/logo_clear.png`}
-            alt=""
-            className="admin-page__logo"
-            width={32}
-            height={32}
-          />
-          <div>
-            <h1 className="admin-page__title">管理・設定</h1>
-          </div>
-        </div>
-        <div className="admin-page__actions">
-          <span className="admin-page__version">v{APP_VERSION}</span>
-          <Link to="/" className="admin-page__home-link">
-            予約画面に戻る
-          </Link>
-        </div>
-      </header>
+      <AppHeader title="管理・設定" current="admin" />
 
-      <main className="admin-page__main">
+      <main id="main-content" className="admin-page__main">
         <div className="admin-page__layout">
           <nav className="admin-page__nav" aria-label="設定メニュー">
             <ul className="admin-page__nav-list">
@@ -175,6 +176,7 @@ const AdminPage: React.FC = () => {
                       title={locked ? 'スーパー管理者のみ利用できます' : undefined}
                     >
                       {item.label}
+                      {locked ? '（スーパー管理者のみ）' : ''}
                     </button>
                   </li>
                 );
@@ -209,6 +211,15 @@ const AdminPage: React.FC = () => {
                   hideTitle
                 />
               )}
+              {activeSection === 'guidance-privilege' && isSuperAdmin && (
+                <GuidancePrivilegeSettings currentUserId={currentUser?.uid} hideTitle />
+              )}
+              {activeSection === 'science-group' && (
+                <ScienceGroupSettings currentUserId={currentUser?.uid} hideTitle />
+              )}
+              {activeSection === 'parking' && (
+                <ParkingGroupSettings currentUserId={currentUser?.uid} hideTitle />
+              )}
               {activeSection === 'templates' && isSuperAdmin && (
                 <RecurringTemplatesWorkspace
                   isAdmin={isSuperAdmin}
@@ -221,6 +232,7 @@ const AdminPage: React.FC = () => {
           </section>
         </div>
       </main>
+      <AppFooter />
     </div>
   );
 };

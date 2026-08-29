@@ -1,4 +1,5 @@
-import { reservationsService, createDateTimeFromPeriod } from './firestore';
+import { Timestamp } from 'firebase/firestore';
+import { reservationsService, roomsService, createDateTimeFromPeriod } from './firestore';
 import { listEnabledTemplates } from './templateLocks';
 
 function toDate(dateStr: string): Date {
@@ -26,7 +27,11 @@ function iterateDates(start: Date, end: Date): Date[] {
 export async function applyTemplateReservations(rangeStart: string, rangeEnd: string, currentUserId?: string): Promise<{created: number; skipped: number; errors: number;}> {
   const start = toDate(rangeStart);
   const end = toDate(rangeEnd);
-  const templates = await listEnabledTemplates();
+  const [templates, rooms] = await Promise.all([
+    listEnabledTemplates(),
+    roomsService.getAllRooms()
+  ]);
+  const roomIdToName = new Map(rooms.map(r => [r.id, r.name]));
   let created = 0;
   let skipped = 0;
   let errors = 0;
@@ -34,8 +39,11 @@ export async function applyTemplateReservations(rangeStart: string, rangeEnd: st
   for (const tpl of templates) {
     const tplStart = toDate(tpl.startDate);
     const tplEnd = tpl.endDate ? toDate(tpl.endDate) : undefined;
+    const targetWeekdays = tpl.weekdays && tpl.weekdays.length > 0
+      ? tpl.weekdays
+      : [tpl.weekday];
     for (const d of iterateDates(start, end)) {
-      if (d.getDay() !== tpl.weekday) continue;
+      if (!targetWeekdays.includes(d.getDay())) continue;
       if (d < tplStart) continue;
       if (tplEnd && d > tplEnd) continue;
       const dateStr = toDateStr(d);
@@ -45,18 +53,17 @@ export async function applyTemplateReservations(rangeStart: string, rangeEnd: st
           if (!dt) { skipped++; continue; }
           await reservationsService.addReservation({
             roomId: tpl.roomId,
-            roomName: tpl.roomId, // 表示は後で正規化されるためIDでも可
+            roomName: roomIdToName.get(tpl.roomId) || tpl.roomId,
             title: tpl.name || '固定予約',
             reservationName: '固定予約',
-            startTime: (await import('firebase/firestore')).Timestamp.fromDate(dt.start),
-            endTime: (await import('firebase/firestore')).Timestamp.fromDate(dt.end),
+            startTime: Timestamp.fromDate(dt.start),
+            endTime: Timestamp.fromDate(dt.end),
             period: String(p),
             periodName: dt.periodName,
             createdBy: currentUserId || 'template'
           });
           created++;
         } catch (e: any) {
-          // 競合などはスキップ扱いにし、その他は errors として計上
           const msg = String(e?.message || '');
           if (/既に存在します|exists/i.test(msg)) skipped++; else errors++;
         }

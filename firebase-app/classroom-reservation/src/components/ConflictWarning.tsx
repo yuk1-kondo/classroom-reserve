@@ -16,7 +16,7 @@ export const ConflictWarning: React.FC<ConflictWarningProps> = ({
   return (
     <div className="conflict-warning">
       <div className="conflict-header">
-        ⚠️ {conflictCheck.conflictMessage}
+        {conflictCheck.conflictMessage}
       </div>
       {conflictCheck.conflictDetails.length > 0 && (
         <div className="conflict-details">

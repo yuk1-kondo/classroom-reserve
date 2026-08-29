@@ -11,7 +11,7 @@
 }
 
 .uam-header h3 {
-  color: #1565c0;
+  color: var(--color-brand-text);
   margin: 0 0 6px 0;
   font-size: 1.4rem;
   font-weight: 600;
@@ -76,41 +76,41 @@
   flex: 1;
   min-width: 180px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
   font-size: 0.85rem;
 }
 
 .uam-search:focus {
   outline: none;
-  border-color: #1565c0;
-  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
 }
 
 .uam-filter {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
   font-size: 0.85rem;
   background: white;
 }
 
 .uam-refresh-btn {
   padding: 8px 14px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .uam-refresh-btn:hover {
-  background: #e8e8e8;
+  background: var(--color-surface-alt);
 }
 
 .uam-table-wrapper {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
   overflow: hidden;
 }
 
@@ -121,15 +121,15 @@
 }
 
 .uam-table thead {
-  background: #f5f5f5;
+  background: var(--color-surface-variant);
 }
 
 .uam-table th {
   padding: 10px 14px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-brand-text);
+  border-bottom: 1px solid var(--color-outline-variant);
   white-space: nowrap;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .uam-table tbody tr:hover {
-  background: #fafafa;
+  background: var(--color-surface-variant);
 }
 
 .uam-table tbody tr:last-child td {
@@ -196,6 +196,21 @@
   color: #1565c0;
 }
 
+.uam-badge-guidance {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.uam-badge-science {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
+.uam-badge-none {
+  background: transparent;
+  color: #bdbdbd;
+}
+
 .uam-date {
   font-size: 0.78rem;
   color: #888;
@@ -211,7 +226,7 @@
 .uam-btn {
   padding: 5px 10px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-small);
   font-size: 0.75rem;
   cursor: pointer;
   white-space: nowrap;
@@ -268,6 +283,42 @@
   background: #757575;
 }
 
+.uam-btn-guidance-add {
+  background: #5c6bc0;
+  color: white;
+}
+
+.uam-btn-guidance-add:hover:not(:disabled) {
+  background: #3949ab;
+}
+
+.uam-btn-guidance-remove {
+  background: #b0bec5;
+  color: #37474f;
+}
+
+.uam-btn-guidance-remove:hover:not(:disabled) {
+  background: #90a4ae;
+}
+
+.uam-btn-science-add {
+  background: #00897b;
+  color: white;
+}
+
+.uam-btn-science-add:hover:not(:disabled) {
+  background: #00695c;
+}
+
+.uam-btn-science-remove {
+  background: #b2dfdb;
+  color: #004d40;
+}
+
+.uam-btn-science-remove:hover:not(:disabled) {
+  background: #80cbc4;
+}
+
 .uam-loading,
 .uam-empty {
   padding: 40px 20px;
@@ -279,9 +330,9 @@
 .uam-stats {
   margin-top: 16px;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--color-outline);
   display: flex;
   gap: 20px;
   flex-wrap: wrap;

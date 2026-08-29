@@ -1,13 +1,13 @@
 /* エクセル風日別予約表示テーブル */
 .daily-reservation-table {
   width: 100%;
-  background: #ffffff; /* 既に白 */
-  border: 1px solid #d4dbe2; /* 統一ライン色 */
+  background: #ffffff;
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-medium);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   font-size: 13px;
   overflow: hidden; /* 横スクロール抑止 */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06); /* 影わずかに弱め */
+  box-shadow: none;
   /* レスポンシブ対応のため最小幅を設定 */
   min-width: 0;
   box-sizing: border-box;
@@ -41,8 +41,8 @@
 .filter-field select {
   width: 100%;
   padding: 9px 12px;
-  border-radius: 10px;
-  border: 1px solid #d4dbe2;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-outline);
   font-size: 0.92rem;
   color: #24292f;
   background: #ffffff;
@@ -61,8 +61,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid #d4dbe2;
-  border-radius: 14px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
   background: #ffffff;
   font-weight: 600;
   color: #24292f;
@@ -76,18 +76,19 @@
 .filters-reset {
   justify-self: end;
   padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: rgba(45, 127, 211, 0.12);
-  color: #2d7fd3;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-outline);
+  background: var(--color-surface);
+  color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .filters-reset:not(:disabled):hover {
-  background: #2d7fd3;
-  color: #ffffff;
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
 }
 
 .filters-reset:disabled {
@@ -102,15 +103,15 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 0 16px 8px;
-  color: #2d7fd3;
+  color: var(--color-primary);
   font-size: 0.85rem;
 }
 
 .filter-chip {
-  background: rgba(45, 127, 211, 0.2);
-  color: #1f4d7a;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-small);
   font-weight: 600;
   letter-spacing: 0.01em;
 }

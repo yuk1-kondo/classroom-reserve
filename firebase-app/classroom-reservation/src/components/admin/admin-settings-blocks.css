@@ -317,3 +317,26 @@
   background: var(--color-primary-dark);
   border-color: var(--color-primary-dark);
 }
+
+.admin-settings-section {
+  margin-bottom: 2rem;
+}
+
+.admin-settings-section > h4 {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+  color: var(--color-brand-text);
+}
+
+.admin-settings-inline-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-settings-muted {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  color: var(--color-on-surface-variant);
+}

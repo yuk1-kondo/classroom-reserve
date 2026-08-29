@@ -67,6 +67,8 @@ flowchart TB
     SS[system_settings]
     WT[weekly_templates]
     BP[blocked_periods]
+    GG[guidance_group_members]
+    SG[science_group_members]
   end
 
   UI --> CTX --> SV
@@ -81,6 +83,8 @@ flowchart TB
   SV --> SS
   SV --> WT
   SV --> BP
+  SV --> GG
+  SV --> SG
 ```
 
 ### 2.3 認証フロー（概要）
@@ -130,22 +134,29 @@ sequenceDiagram
 
 | コレクション | 主な用途 | 代表データのイメージ | Security Rules（概要） |
 |--------------|----------|----------------------|-------------------------|
-| **`rooms`** | 教室マスタ | 名称・定員・説明 | 読み取り公開 / 認証で write |
+| **`rooms`** | 教室マスタ | 名称・説明・`scienceGroupOnly` 等（定員フィールドは使用しない） | **認証済み read**（一覧クエリ整合のため緩和）。理科の非表示は主にクライアント※ |
 | **`periods`** | 時限マスタ（未使用に近い場合あり） | 時限定義 | 読み取り公開 / 認証で write |
-| **`reservations`** | 予約本体 | roomId, 日時, period, title, createdBy, roomName など | read 公開 / create・update・delete は条件付き※ |
-| **`reservation_slots`** | 同時予約防止用の占有スロット | room×日×時限 などのID | read 公開 / 認証で write |
+| **`reservations`** | 予約本体 | roomId, 日時, period, title, createdBy, roomName など | **認証済み read**。**create** は本人（`createdBy == uid`）。update/delete は従来の条件あり※ |
+| **`reservation_slots`** | 同時予約防止用の占有スロット | room×日×時限 などのID | **認証済み read/write**（トランザクション・未作成 doc 対応のため緩和）※ |
 | **`month_overview`** | 月次集計（削除処理等との整合） | 月IDごとのカウンタ等 | read 公開 / 認証で write |
 | **`admin_users`** | 管理者フラグ | uid または email キー、tier 等 | 認証ユーザ read / admin のみ write |
 | **`user_profiles`** | UID↔メール等（管理者追加の逆引き） | uid, email, displayName | 認証 read / 本人 write |
 | **`user_access`** | ユーザーアクセス管理（一覧・ブロック制御） | uid, email, displayName, status(allowed/blocked), firstSeenAt, lastSeenAt | 認証 read / 本人+admin write / admin delete |
-| **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室・図書館削除パスコード**（`meetingRoomDeletePasscode`）等 | read 公開（UI用） / admin のみ write |
+| **`system_settings`** | グローバル設定 | `global` ドキュメント: 予約上限日、曜日ルール、**会議室削除パスコード** 等 | read 公開（UI用） / admin のみ write |
 | **`weekly_templates`** | 週次固定予約テンプレ | 管理者が定義 | read 公開 / admin のみ write |
-| **`blocked_periods`** | 予約禁止期間 | 期間・教室（任意）・理由 | read 公開 / admin のみ write |
+| **`blocked_periods`** | 予約禁止期間 | 期間・教室（複数可）・時限（複数可）・理由 | read 公開 / admin のみ write |
+| **`guidance_group_members`** | 進路特例メンバー（先日付免除の対象者） | ドキュメントID=UID、`active` 等 | 本人+admin read / admin のみ write |
+| **`science_group_members`** | 理科グループ（実験室の閲覧・予約対象者） | ドキュメントID=UID、`active` 等 | 本人+admin read / admin のみ write |
 
 ### ※ `reservations` の delete 条件（重要）
 
-- **作成者本人**、または **管理者（`admin_users`）**、または **`roomName == '会議室'`**、または **`roomName == '図書館'`** のドキュメントは **認証ユーザーが delete 可能**  
-- **会議室・図書館のパスコード認証はアプリ側のみ**。ルール単体ではパスコードは検証できない（学校運用向けの割り切り）
+- **作成者本人**、または **管理者（`admin_users`）**、または **`roomName == '会議室'`** のドキュメントは **認証ユーザーが delete 可能**  
+- **会議室のパスコード認証はアプリ側のみ**。ルール単体ではパスコードは検証できない（学校運用向けの割り切り）
+
+### ※ 進路・理科の特例（要約）
+
+- **進路**: `guidance_privilege` で会議室 `roomId` を指定し、`guidance_group_members` の有効メンバーがその教室のみ先日付免除（**ルール上の先日付強制は 2026-04 時点で reservations create から外している**。運用は管理画面・UI）。
+- **理科**: 台帳・教室一覧では **`filterScienceOnlyRoomsForViewer` 等で UI から除外**。Firestore ルールは **一覧・作成で詰まらないよう認証ベースに緩和**しているため、**厳密な秘匿はクライアント＋運用前提**（詳細は `HANDOVER_2026-04-15_ledger-firestore-rules.md`）。
 
 ---
 
@@ -157,8 +168,6 @@ sequenceDiagram
 | 本番ビルド | `npm run build` |
 | 本番反映 | `cd firebase-app && firebase deploy --only hosting,firestore:rules` |
 | プレビュー | `firebase hosting:channel:deploy <チャネル名> --expires 7d` |
-
-**補足（プレビューと Rules）:** Hosting のプレビューチャンネルも **本番と同一の Firestore** を参照する。`firestore.rules` を変更した機能（例: 特定 `roomName` の delete 許可追加）を**端まで試す**には、**`firebase deploy --only firestore:rules`** で Rules を反映するか、本番反映時に **`hosting` と `firestore:rules` を同時にデプロイ**すること（Hosting のみ更新すると Rules 未反映で delete が失敗しうる）。
 
 Firebase プロジェクトの選択は **`.firebaserc`** / `firebase use` で確認。
 
@@ -182,7 +191,7 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 
 | 区分 | 管理画面で**操作できる**設定 |
 |------|------------------------------|
-| **管理者（Admin）** | **予約制限**（`system_settings` の予約最終日）<br>**会議室・図書館削除パスコード**（同上）<br>**予約禁止期間**（`blocked_periods`） |
+| **管理者（Admin）** | **予約制限**（`system_settings` の予約最終日）<br>**会議室削除パスコード**（同上）<br>**予約禁止期間**（`blocked_periods`） |
 | **スーパー管理者（Super Admin）** | 上記の **すべて** に加え、<br>**固定予約テンプレート**（`weekly_templates`、テンプレ適用・CSV・一括削除を含む）<br>**ユーザー管理**（`user_access` / `admin_users` への操作など） |
 
 **UI の挙動（`AdminPage.tsx`）**
@@ -194,33 +203,6 @@ Firebase 初期化は `src/firebase/config.ts` で行い、原則：
 
 - `weekly_templates` の **write** は Rules 上は **`isAdmin()`** でも可。ただし **アプリは当該ペインをスーパーのみが開ける**ようにしており、通常管理者はテンプレート機能にアクセスできない（運用は UI 前提）。
 
-### 6.6 CSV一括固定予約（週間定義 × 期間適用）
-
-**画面**: 管理・設定 → **固定予約テンプレート** → 「CSV一括固定予約」。スーパー管理者のみ。実装は `CsvBulkReservations.tsx`。
-
-**役割**: CSV で「曜日 × 教室 × 時限 × タイトル」を定義し、指定した **開始日〜終了日** の範囲で、該当曜日にだけ実予約を一括作成する。
-
-**列（ヘッダー行は任意）**
-
-| 意味 | 推奨ヘッダー例 | 備考 |
-|------|----------------|------|
-| 曜日 | `weekday` / `曜日` | `0`〜`6`（日〜土）、または `月` `火` …、`mon` 等 |
-| 教室 | `room` / `room_name` / `教室` | マスタの **教室名** または **room の id**（名寄せあり） |
-| 時限 | `period` / `periods` / `時限` | `1-3` のような範囲、`1,2,lunch` のような複数可。内部キーは `utils/periods.ts` の `PERIOD_ORDER`（`0`〜`7`、`lunch`、`after` 等） |
-| 予約タイトル（任意） | `title` / `entry` / `内容` | 省略可 |
-
-ヘッダー行がある場合、列名で位置を解決する。**タイトル列として認識されるのは `title` / `entry` / `内容` のみ**（`entry_raw` 等は未対応）。タイトル列が認識されないときのフォールバックは「4列目以降をカンマ結合」となるため、**不要な列（例: 定員）を挟むとタイトルに時限が混ざる**ことがある。運用では **`room_name, weekday, period, entry` の4列**のように、余計な列を入れないか、タイトルは必ず `entry` 等の認識される列名にする。
-
-**行頭 `#` はコメント行**として無視。文字コードは **UTF-8**（Excel は「CSV UTF-8」推奨）。
-
-**サンプル（ヘッダー付き）**
-
-```csv
-room_name,weekday,period,entry
-小演習室1,月,1-3,英語演習
-会議室,火,2,学年会
-```
-
 ---
 
 ## 7. 関連ファイル（変更時の起点）
@@ -230,15 +212,17 @@ room_name,weekday,period,entry
 | Firestore Rules | `firebase-app/firestore.rules` |
 | Hosting 設定 | `firebase-app/firebase.json` |
 | 予約・スロット実装 | `classroom-reservation/src/firebase/firestore.ts` |
+| 引き継ぎ（2026-04 台帳・ルール対応の記録） | `firebase-app/docs/HANDOVER_2026-04-15_ledger-firestore-rules.md` |
+| 引き継ぎ（2026-08 駐車場追加後の教室台帳初回表示） | `firebase-app/docs/HANDOVER_2026-08-27_ledger-first-load-parking.md` |
+| 週末作業メモ（駐車場テスト・ルール復旧・構想） | `firebase-app/docs/HANDOVER_2026-08-27_weekend-parking-work.md` |
 | 認証 | `classroom-reservation/src/firebase/auth.ts` |
 | 管理者 | `classroom-reservation/src/firebase/admin.ts` |
 | ユーザーアクセス管理 | `classroom-reservation/src/firebase/userAccess.ts` |
 | ユーザー管理画面 | `classroom-reservation/src/components/admin/UserAccessManager.tsx` |
 | 管理・設定ページ（左ナビ） | `classroom-reservation/src/components/AdminPage.tsx` / `AdminPage.css`（`/admin?section=`） |
 | システム設定 | `classroom-reservation/src/firebase/settings.ts` |
-| パスコード対象教室の判定 | `classroom-reservation/src/utils/passcodeDeletableRooms.ts` |
-| CSV一括固定予約 | `classroom-reservation/src/components/admin/CsvBulkReservations.tsx` |
-| 予約禁止期間 | `classroom-reservation/src/firebase/blockedPeriods.ts` / `BlockedPeriodsSettings.tsx` |
+| 予約禁止期間サービス | `classroom-reservation/src/firebase/blockedPeriods.ts` |
+| 禁止期間管理画面 | `classroom-reservation/src/components/admin/BlockedPeriodsSettings.tsx` |
 
 ---
 
@@ -254,8 +238,9 @@ room_name,weekday,period,entry
 | 2026-03-21 | v2.9.6 | 管理・設定を **左ナビ（項目一覧）＋右ペイン（選択内容）** に変更。`?section=` クエリで表示項目を同期（ブックマーク・共有可）。スーパー管理者のみ「固定予約テンプレート」「ユーザー管理」を表示。 |
 | 2026-03-21 | v2.9.7 | 予約画面ヘッダーの「管理・設定」は **ログイン済み管理者かつ認証判定完了後**のみ表示。管理画面左ナビは **全項目を常に表示**し、スーパー専用項目は一般管理者向けに **グレーアウト＋disabled**（ツールチップで理由表示）。 |
 | 2026-03-21 | v2.9.7 追記 | ドキュメント **§6.5** に「管理者 vs スーパー管理者」の設定可能範囲を整理。 |
-| 2026-03-21 | v2.11.0 | 教室マスタに **図書館**（`room-22`）を追加。会議室と同様、共有パスコード（`meetingRoomDeletePasscode`）で他者予約削除可能に。`isPasscodeDeletableRoom`（`passcodeDeletableRooms.ts`）で判定を集約。Firestore Rules の `reservations` delete に `roomName == '図書館'` を追加。§5 にプレビューと Rules の関係を追記。 |
-| 2026-04-05 | （ドキュメントのみ） | **§6.6** に CSV一括固定予約の列仕様・ヘッダー名・サンプル・注意（`entry` 列、`entry_raw` 非対応、余計な列とタイトル混入）を追記。§7 に `CsvBulkReservations.tsx`・禁止期間関連パスを追加。 |
+| 2026-03-21 | v2.10.0 | 予約禁止期間設定を拡張。教室・時限ともに複数選択可能（トグルボタン UI）。BlockedPeriod に roomIds / roomNames / periods フィールドを追加。旧データ（単一 roomId）との後方互換性を維持。予約フォームの禁止チェックに時限情報を連携。 |
+| 2026-04-15 | — | 一般ユーザー台帳・予約まわり：`rooms` / `reservations` / `reservation_slots` の Security Rules を認証ベースに整理（一覧クエリ・トランザクション・作成失敗の解消）。`getAllRooms` 等の `id` マッピング修正（`...data` 後に `id: docSnap.id`）。詳細は `HANDOVER_2026-04-15_ledger-firestore-rules.md`。 |
+| 2026-08-27 | v2.18.1（未デプロイ） / 本番 v2.17.5 | 教室台帳：コード側改修（スケルトン・refetch 等）と、本番障害の原因特定（`rooms`/`reservations` 認証必須化）。本番は rules のみ復旧（read 公開に戻す）。週末駐車場テスト用メモ `HANDOVER_2026-08-27_weekend-parking-work.md`。 |
 
 ---
 

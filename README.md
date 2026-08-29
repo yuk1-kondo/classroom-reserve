@@ -2,6 +2,8 @@
 
 React + TypeScript + Firebase による現代的な教室予約管理システム
 
+## 🌐 ライブサイト
+**https://owa-cbs.web.app**
 
 ## 📅 バージョン
 現在バージョン: **2.1.0 (2025-10-17)**
@@ -30,11 +32,6 @@ React + TypeScript + Firebase による現代的な教室予約管理システ�
 - **UI**: FullCalendar v6 + カスタムCSS (MUI 依存最小化)
 - **ビルド**: react-scripts (最適化 / gzip / キャッシュバスティング)
 - **デプロイ**: Firebase CLI (単一 SPA rewrite)
-
-## 📚 ドキュメント（リポジトリ内）
-
-- **技術メモ・引き継ぎ**: [`firebase-app/docs/TECH_MEMO_HANDOVER.md`](firebase-app/docs/TECH_MEMO_HANDOVER.md)（アーキテクチャ・Firestore・管理画面・権限）
-- **CSV一括固定予約**（スーパー管理者向け）の列仕様・サンプルは上記の **§6.6** に記載
 
 ## 🧱 アーキテクチャ概要
 ```

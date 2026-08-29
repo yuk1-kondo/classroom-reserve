@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
-// import { useReservationData } from '../hooks/useReservationData';
 import { useReservationDataContext } from '../contexts/ReservationDataContext';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +11,9 @@ import { useReservationForm } from '../hooks/useReservationForm';
 import { useConflictDetection } from '../hooks/useConflictDetection';
 import { useSystemSettings } from '../hooks/useSystemSettings';
 import { validateDatesWithinMax } from '../utils/dateValidation';
-import { blockedPeriodsService } from '../firebase/blockedPeriods';
+import { canBypassSystemReservationDateLimit } from '../utils/reservationLimits';
+import { blockedPeriodsService, getRoomLabel } from '../firebase/blockedPeriods';
+import { useGuidancePrivilege } from '../hooks/useGuidancePrivilege';
 // import { reservationsService } from '../firebase/firestore';
 import './SidePanel.css';
 // import { displayLabel } from '../utils/periodLabel';
@@ -38,6 +39,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 }) => {
   // カスタムフックで状態管理を分離
   const { currentUser, showLoginModal, setShowLoginModal, handleLoginSuccess, handleLogout, isAdmin } = useAuth();
+  const { meetingRoomId: guidanceMeetingRoomId, isGuidanceMember, refresh: refreshGuidancePrivilege } =
+    useGuidancePrivilege(currentUser?.uid);
   const { rooms, reservations: reservationsFromDaily, addReservations: addReservationsToDaily } = useReservationDataContext();
   const { reservations: monthlyReservations, addReservations: addReservationsToMonthly } = useMonthlyReservations();
   const reservations = React.useMemo(()=>{
@@ -87,27 +90,43 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // スロット取得は削除（予約データから直接競合チェック可能）
   const { conflictCheck, performConflictCheck, resetConflict } = useConflictDetection();
   const { maxDateStr, limitMonths } = useSystemSettings();
-  // 予約作成: 先日付制限・禁止期間の検証を噛ませる（管理者の場合はスキップ）
+  // 予約作成: 先日付は管理者 or 進路指導部+会議室で免除。禁止期間は管理者のみ免除（v1）
   const handleCreateWithLimit = async () => {
     const dates = formHook.getReservationDates();
     const roomId = formHook.formData.selectedRoom;
+    // 進路メンバー判定は非同期読み込み後に state が立つまで遅延するため、
+    // 予約直前に Firestore から再取得してから免除判定する（初回クリックで弾かれるのを防ぐ）
+    let member = isGuidanceMember;
+    let meetingMid = guidanceMeetingRoomId;
+    if (!isAdmin && currentUser?.uid) {
+      const snap = await refreshGuidancePrivilege();
+      member = snap.isGuidanceMember;
+      meetingMid = snap.meetingRoomId;
+    }
+    const bypassDate = canBypassSystemReservationDateLimit({
+      isAdmin,
+      isGuidanceMember: member,
+      selectedRoomId: roomId,
+      guidanceMeetingRoomId: meetingMid
+    });
 
-    // 管理者の場合は全ての制限をスキップ
     if (!isAdmin) {
-      // 先日付制限チェック
-      const result = validateDatesWithinMax(dates, maxDateStr);
-      if (!result.ok) {
-        const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
-        toast.error(msg, { duration: 4000 });
-        return;
+      if (!bypassDate) {
+        const result = validateDatesWithinMax(dates, maxDateStr);
+        if (!result.ok) {
+          const msg = `設定した日付（${maxDateStr}）までしか予約できません。無効な日付: ${result.firstInvalid}`;
+          toast.error(msg, { duration: 4000 });
+          return;
+        }
       }
-      
-      // 禁止期間チェック（時限情報も渡す）
+
       const selectedPeriods = formHook.getReservationPeriods();
       const blocked = await blockedPeriodsService.checkMultiple(dates, roomId, selectedPeriods);
       if (blocked) {
+        const roomLabel = getRoomLabel(blocked);
+        const periodLabel = blocked.periods ? `（${blocked.periods.join(', ')}限）` : '';
         const reasonText = blocked.reason ? `（${blocked.reason}）` : '';
-        toast.error(`${blocked.startDate}〜${blocked.endDate} は予約が禁止されています${reasonText}`, { duration: 5000 });
+        toast.error(`${blocked.startDate}〜${blocked.endDate} は ${roomLabel}${periodLabel} の予約が禁止されています${reasonText}`, { duration: 5000 });
         return;
       }
     }
@@ -118,6 +137,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // 必要な値/関数だけ分解（useEffect依存の安定化）
   const { showForm, formData, getReservationDates, getReservationPeriods } = formHook;
   const { selectedRoom } = formData;
+  const bypassSystemReservationDateLimit = canBypassSystemReservationDateLimit({
+    isAdmin,
+    isGuidanceMember,
+    selectedRoomId: selectedRoom,
+    guidanceMeetingRoomId
+  });
   
   // 管理者機能の表示状態（簡素化）
   // const [csvMessage, setCsvMessage] = useState(''); // 未使用のためコメントアウト（将来のCSV処理で再利用）
@@ -186,7 +211,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   return (
     <div className="side-panel">
       <div className="only-mobile mobile-inline-close-wrapper">
-        <button onClick={onClose} aria-label="閉じる" className="mobile-inline-close-btn">✕ 閉じる</button>
+        <button type="button" onClick={onClose} aria-label="閉じる" className="mobile-inline-close-btn">✕ 閉じる</button>
       </div>
       {/* ユーザー情報セクション */}
       <UserSection
@@ -196,7 +221,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       />
 
       <div className="side-panel-header">
-        <h3>📅 予約管理</h3>
+        <h3>予約管理</h3>
       </div>
 
       {selectedDate ? (
@@ -222,9 +247,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             onCreateReservation={handleCreateWithLimit}
             reservations={reservations}
             selectedDate={selectedDate}
-            maxDateStr={isAdmin ? undefined : maxDateStr}
+            maxDateStr={bypassSystemReservationDateLimit ? undefined : maxDateStr}
             limitMonths={limitMonths}
             isAdmin={isAdmin}
+            bypassSystemReservationDateLimit={bypassSystemReservationDateLimit}
           />
 
           {isAdmin && (
@@ -238,12 +264,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
           {/* 実用的な運用案内メッセージ */}
           <div className="info-message">
-            <p>⚠️ 教室が予約済みの場合は先生間で相談して変更して下さい</p>
+            <p>教室が予約済みの場合は先生間で相談して変更して下さい</p>
           </div>
         </div>
       ) : (
         <div className="no-date-selected">
-          <p>📅 カレンダーから日付をクリックして予約を管理してください</p>
+          <p>日付を選んで予約を管理してください</p>
         </div>
       )}
       
@@ -252,10 +278,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <SimpleLogin
+              variant="embedded"
               onAuthStateChange={handleLoginSuccess}
             />
             <button 
+              type="button"
               className="modal-close-btn"
+              aria-label="閉じる"
               onClick={() => setShowLoginModal(false)}
             >
               ✕

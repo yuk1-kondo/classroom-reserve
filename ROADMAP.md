@@ -59,4 +59,21 @@
 
 ---
 
-更新日: 2025-08-17
+## 🧪 理科グループ（実験3室）— 段階的実装
+
+**目的**: `生物実験室` / `化学実験室` / `物理実験室` を `rooms` に追加し、`science_group_members` でメンバー管理。これらの教室は**理科グループメンバー（と管理者）にのみ**表示・予約可能にする。
+
+| Step | 内容 | 完了条件 |
+|------|------|----------|
+| **1** | データモデル & サービス層 | `Room.scienceGroupOnly`、`COLLECTIONS.SCIENCE_GROUP_MEMBERS`、`sciencePrivilegeService`（進路と同型のメンバー CRUD・`isScienceMember`） |
+| **2** | Firestore ルール | ✅ `science_group_members` の read/write、`rooms` の read 制限、理科専用 `roomId` への `reservations` create/update/read/delete、`reservation_slots` も同趣旨で制限 |
+| **3** | 教室データ投入 & `roomsService` | ✅ `migrationService.ensureScienceLabRooms`・初期化/リセット時は `SCIENCE_LAB_ROOMS` を同梱・管理画面「理科・実験室」から実行可・`useAuth` でログイン切替時に `clearRoomsCache` |
+| **4** | フック & UI フィルタ | ✅ `useScienceGroupMembership`・`filterScienceOnlyRoomsForViewer`・`ReservationDataProvider` / `DailyLedgerView` で理科教室を非表示（管理者・理科メンバーは表示） |
+| **5** | 管理画面 | ✅ 「理科・実験室」でメンバー追加・一覧・削除（スーパー管理者）、`UserAccessManager` に理科バッジ・理科追加/解除 |
+| **6** | 検証 & デプロイ | ✅ `firebase deploy --only hosting,firestore:rules`（本番）、TECH_MEMO に `guidance_group_members` / `science_group_members` 追記 |
+
+**依存**: Step 1 → 2 はルール未適用でもクライアントのみの変更で安全。Step 2 適用後は未ログイン／非メンバーは理科教室ドキュメントを読めなくなる。
+
+---
+
+更新日: 2025-08-17（理科グループ計画 2026-04-15 追記）

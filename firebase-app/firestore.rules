@@ -17,6 +17,50 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // 進路指導部など：会議室の先日付特例メンバーか
+    // guidance_group_members/{uid}.active が false のときは無効（クライアント guidancePrivilegeService.isGuidanceMember と同じ）
+    function isGuidanceGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/guidance_group_members/$(request.auth.uid)).data.active != false;
+    }
+
+    // 特例の対象教室（system_settings/guidance_privilege.meetingRoomId と一致）
+    function isGuidanceMeetingRoomReservation() {
+      return exists(/databases/$(database)/documents/system_settings/guidance_privilege)
+        && request.resource.data.roomId
+          == get(/databases/$(database)/documents/system_settings/guidance_privilege).data.meetingRoomId;
+    }
+
+    // 理科グループ：実験室などの利用メンバーか（science_group_members / active は進路と同様）
+    function isScienceGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/science_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/science_group_members/$(request.auth.uid)).data.active != false;
+    }
+
+    // 教室ドキュメントが理科グループ専用か（rooms.scienceGroupOnly == true）
+    function roomIsScienceGroupOnly(roomId) {
+      return exists(/databases/$(database)/documents/rooms/$(roomId))
+        && get(/databases/$(database)/documents/rooms/$(roomId)).data.scienceGroupOnly == true;
+    }
+
+    function isParkingGroupMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/parking_group_members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parking_group_members/$(request.auth.uid)).data.active != false;
+    }
+
+    function isParkingDeleter() {
+      return isParkingGroupMember()
+        && get(/databases/$(database)/documents/parking_group_members/$(request.auth.uid)).data.canDelete == true;
+    }
+
+    // 駐車場データは認証済みなら誰でも利用可。画面側のパスコードは UI ゲート（会議室削除と同様）。
+    function canUseParking() {
+      return isAuthenticated();
+    }
+
     // 管理者ユーザー管理コレクション
     match /admin_users/{userId} {
       // 認証済みユーザーは読み取り可能（管理者判定のため）
@@ -42,49 +86,66 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 教室と時限データは誰でも読み取り可能
+    // 管理者が user_access から削除した UID（同期・再ログインで再作成しない）
+    match /user_access_exclusions/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 進路指導部など：先日付特例メンバー（UID=ドキュメントID）
+    match /guidance_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // 理科グループメンバー（UID=ドキュメントID）
+    match /science_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // 教室：台帳は未ログインでも閲覧できるよう read は公開（書き込みは管理者のみ）。
+    // 理科専用の非表示はクライアント filterScienceOnlyRoomsForViewer で担保する。
     match /rooms/{roomId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
     match /periods/{periodId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
-    // 予約情報は誰でも読み取り可能、書き込みは認証済みユーザーのみ
+    // 予約情報：台帳表示のため read は公開（作成・更新・削除は下記どおり認証必須）。
+    // 理科専用の非表示は台帳UI・教室一覧のフィルタで担保。
     match /reservations/{reservationId} {
       allow read: if true;
       // 作成は認証済み + 作成者一致 + 先日付制限内（設定が存在すれば）
       // 管理者の場合は日付制限をスキップ
+      // 理科専用教室への予約は理科メンバーまたは管理者のみ
+      // 先日付は管理UIで運用。作成は本人のみ（理科専用の拒否はデータ不整合で誤爆しやすいため create では room 参照しない）
       allow create: if isAuthenticated()
-        && request.resource.data.createdBy == request.auth.uid
-        && (
-          // 管理者の場合は制限なし
-          isAdmin()
-          // 設定が無ければ制限なし
-          || !exists(/databases/$(database)/documents/system_settings/global)
-          || get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp == null
-          || request.resource.data.startTime <= get(/databases/$(database)/documents/system_settings/global).data.reservationMaxTimestamp
-        );
-    // 更新は作成者 または 管理者
-    allow update: if isAuthenticated() && (
-      request.auth.uid == resource.data.createdBy || isAdmin()
-    );
-    // 削除は作成者 または 管理者 または 会議室・図書館予約（パスコード認証はクライアント側で実施）
-    allow delete: if isAuthenticated() && (
-      request.auth.uid == resource.data.createdBy ||
-      isAdmin() ||
-      resource.data.roomName == '会議室' ||
-      resource.data.roomName == '図書館'
-    );
+        && request.resource.data.createdBy == request.auth.uid;
+    // 更新は作成者 または 管理者（理科専用へ変更・維持は理科メンバーまたは管理者のみ）
+    allow update: if isAuthenticated()
+      && (request.auth.uid == resource.data.createdBy || isAdmin())
+      && (!roomIsScienceGroupOnly(request.resource.data.roomId) || isAdmin() || isScienceGroupMember());
+    // 削除は作成者 または 管理者 または 会議室予約（パスコード認証はクライアント側で実施）
+    // 理科専用の予約の削除は作成者・管理者・理科メンバー（会議室と同様にクライアントで運用）
+    allow delete: if isAuthenticated()
+      && (!roomIsScienceGroupOnly(resource.data.roomId) || isAdmin() || isScienceGroupMember() || request.auth.uid == resource.data.createdBy)
+      && (
+        request.auth.uid == resource.data.createdBy ||
+        isAdmin() ||
+        resource.data.roomName == '会議室'
+      );
     }
 
-    // 予約スロット用コレクション（同時予約防止のための占有情報）
+    // 予約スロット（同時予約防止）。トランザクションで「未作成スロット」を get するため、
+    // read は認証済みに許可（存在しない doc でも resource.data を評価できず拒否されないようにする）。
+    // 作成・更新・削除は引き続き理科専用教室をルールで制限。
     match /reservation_slots/{slotId} {
-      allow read: if true;
-      // 認証済みのみ作成/削除を許可（実利用では Cloud Functions 側管理が理想）
-      allow write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
     }
 
     // 月次サマリー（現在は利用していないが削除処理の整合性維持に必要）
@@ -112,6 +173,35 @@ service cloud.firestore {
     match /blocked_periods/{blockId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /parking_group_members/{memberUid} {
+      allow read: if isAuthenticated() && (request.auth.uid == memberUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /parking_spots/{spotId} {
+      allow read: if canUseParking();
+      allow write: if isAdmin();
+    }
+
+    match /parking_reservations/{reservationId} {
+      allow read: if canUseParking();
+      allow create: if canUseParking()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if canUseParking()
+        && (request.auth.uid == resource.data.createdBy || isAdmin());
+      allow delete: if canUseParking()
+        && (
+          request.auth.uid == resource.data.createdBy ||
+          isAdmin() ||
+          isParkingDeleter()
+        );
+    }
+
+    match /parking_slots/{slotId} {
+      allow read: if canUseParking();
+      allow create, update, delete: if canUseParking();
     }
   }
 }

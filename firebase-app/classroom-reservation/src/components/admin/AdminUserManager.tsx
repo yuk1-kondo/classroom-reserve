@@ -219,7 +219,7 @@ export const AdminUserManager: React.FC = () => {
       {/* 管理者追加セクション（スーパー管理者のみ） */}
       {isSuperAdmin && (
         <div className="add-admin-section">
-          <h4>➕ 新しい管理者を追加</h4>
+          <h4>新しい管理者を追加</h4>
           <div className="add-admin-form">
             <input
               type="email"
@@ -245,14 +245,14 @@ export const AdminUserManager: React.FC = () => {
 
       {/* 管理者リスト */}
       <div className="admin-list-section">
-        <h4>📋 現在の管理者一覧</h4>
+        <h4>現在の管理者一覧</h4>
         {loading ? (
           <div className="loading-message">
-            <span>⏳ 読み込み中...</span>
+            <span>読み込み中...</span>
           </div>
         ) : adminUsers.length === 0 ? (
           <div className="empty-message">
-            <span>📭 管理者が登録されていません</span>
+            <span>管理者が登録されていません</span>
           </div>
         ) : (
           <div className="admin-list">
@@ -270,7 +270,7 @@ export const AdminUserManager: React.FC = () => {
                     disabled={loading}
                     title="管理者権限を削除"
                   >
-                    🗑️ 削除
+                    削除
                   </button>
                 )}
                 {(!isSuperAdmin || user.tier === 'super' || user.email === SUPER_ADMIN_EMAIL || user.uid === superAdminUid) && (

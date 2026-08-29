@@ -29,6 +29,8 @@ interface ReservationFormProps {
   limitMonths?: number;
   // 管理者フラグ（管理者の場合は日付制限をスキップ）
   isAdmin?: boolean;
+  /** 進路指導部が会議室を選んだときなど */
+  bypassSystemReservationDateLimit?: boolean;
 }
 
 export const ReservationForm: React.FC<ReservationFormProps> = ({
@@ -49,7 +51,8 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   selectedDate,
   maxDateStr,
   limitMonths,
-  isAdmin = false
+  isAdmin = false,
+  bypassSystemReservationDateLimit = false
 }) => {
   // カレンダー選択日が無い場合でも、フォームで選んだ日付を曜日判定に使う
   const effectiveSelectedDate = selectedDate || dateRange.startDate;
@@ -59,7 +62,6 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
     const customOrder = [
       'サテライト',
       '会議室',
-      '図書館',
       '社会科教室',
       'グローバル教室①',
       'グローバル教室②',
@@ -100,7 +102,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           onClick={() => onShowForm(true)}
           disabled={loading || !currentUser}
         >
-          ➕ 新しい予約を作成
+          新しい予約を作成
         </button>
       </div>
     );
@@ -109,16 +111,17 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   return (
     <div className="reservation-form-section">
       <div className="reservation-form">
-        <h5>📝 新しい予約</h5>
+        <h5>新しい予約</h5>
         
         {/* 日付範囲選択 */}
         <DateRangeSelector
           dateRange={dateRange}
           setDateRange={setDateRange}
           loading={loading}
-          maxDateStr={isAdmin ? undefined : maxDateStr}
+          maxDateStr={maxDateStr}
           limitMonths={limitMonths}
           isAdmin={isAdmin}
+          bypassSystemReservationDateLimit={bypassSystemReservationDateLimit}
         />
         
         <div className="form-group">

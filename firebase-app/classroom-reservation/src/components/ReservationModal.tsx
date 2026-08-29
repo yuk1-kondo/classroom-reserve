@@ -9,7 +9,6 @@ import './ReservationModal.css';
 import { formatPeriodDisplay, displayLabel } from '../utils/periodLabel';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { systemSettingsService } from '../firebase/settings';
-import { isPasscodeDeletableRoom } from '../utils/passcodeDeletableRooms';
 import PasscodeModal from './PasscodeModal';
 
 interface ReservationModalProps {
@@ -43,7 +42,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [meetingRoomPasscode, setMeetingRoomPasscode] = useState<string | null>(null);
   const [passcodeLoading, setPasscodeLoading] = useState(true);
 
-  // 会議室・図書館削除用パスコード（system_settings.meetingRoomDeletePasscode）を取得
+  // 会議室削除パスコードを取得
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -238,15 +237,19 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   // 仕様変更（要望に合わせて更新）:
   // - 管理者（super/regular 共通）は誰の予約でも削除・編集可能
   // - 一般ユーザーは作成者本人のみ削除可能（編集は不可）
-  // - 会議室・図書館の場合、パスコードを知っている人も削除可能
+  // - 会議室の場合、パスコードを知っている人も削除可能
   const { isAdmin } = useAuth();
   const currentUser = authService.getCurrentUser();
   const isCreator = reservation?.createdBy && currentUser?.uid === reservation?.createdBy;
   
-  const passcodeRoom = isPasscodeDeletableRoom(reservation?.roomName);
+  // 会議室かどうかを判定（表記ゆれ/付加情報に強くする）
+  const isMeetingRoom = (() => {
+    const name = String(reservation?.roomName || '').replace(/\s+/g, '');
+    return name.includes('会議室');
+  })();
   
-  // パスコード削除が可能か（対象教室かつパスコードが設定されている）
-  const canDeleteWithPasscode = !!currentUser && passcodeRoom && !!meetingRoomPasscode && !passcodeLoading;
+  // パスコード削除が可能か（会議室かつパスコードが設定されている）
+  const canDeleteWithPasscode = !!currentUser && isMeetingRoom && !!meetingRoomPasscode && !passcodeLoading;
   
   // 管理者は常に削除可能。一般ユーザーは作成者のみ。
   const canDeleteDirectly = isAdmin || (isCreator === true);
@@ -277,9 +280,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             className="close-button"
             onClick={onClose}
             disabled={loading}
-            title="閉じる"
+            aria-label="閉じる"
           >
-            ✕
+            閉じる
           </button>
         </div>
 
@@ -363,7 +366,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   onClick={() => setIsEditing(true)}
                   disabled={loading}
                 >
-                  ✏️ 編集
+                  編集
                 </button>
               ) : (
                 <div className="edit-inline">
@@ -398,7 +401,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 }}
                 disabled={loading}
               >
-                🗑️ 予約を削除{needsPasscodeForDelete ? '（要パスコード）' : ''}
+                予約を削除{needsPasscodeForDelete ? '（要パスコード）' : ''}
               </button>
             )}
 

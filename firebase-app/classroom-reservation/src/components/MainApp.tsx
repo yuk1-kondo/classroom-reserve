@@ -1,16 +1,14 @@
 // メインアプリケーションコンポーネント
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import CalendarComponent from './CalendarComponent';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
-import DailyReservationTable from './DailyReservationTable';
 import ReservationSheet from './ReservationSheet';
 import DailyLedgerView from './DailyLedgerView';
+import { AppHeader } from './layout/AppHeader';
+import { AppFooter } from './layout/AppFooter';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
-import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 import { MonthlyReservationsProvider, useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { toDateStr } from '../utils/dateRange';
@@ -54,14 +52,14 @@ const DateNavigationButtons: React.FC<{
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser, isAdmin, loading: authLoading } = useAuth();
+  const { currentUser } = useAuth();
   
   // 常に今日の日付を初期値として設定（UX向上：毎回当日の予約を表示）
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateStr(new Date()));
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [showReservationModal, setShowReservationModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
   const [dailyTableDate, setDailyTableDate] = useState<string>(() => toDateStr(new Date()));
   const [showSheet, setShowSheet] = useState(false);
   const [filterMine, setFilterMine] = useState<boolean>(false);
@@ -73,21 +71,6 @@ export const MainApp: React.FC = () => {
     setSelectedDate(normalized);
     setDailyTableDate(normalized);
   }, []);
-
-  const handleDateClick = (dateStr: string) => {
-    if (!currentUser) {
-      toast.error('予約機能を利用するにはログインが必要です');
-      return;
-    }
-    console.log('📅 日付クリック:', dateStr);
-    handleDateNavigate(dateStr);
-    setSelectedEventId('');
-    if (window.innerWidth >= 600) {
-      setShowSidePanel(true);
-    } else {
-      setShowSheet(true);
-    }
-  };
 
   // イベントクリック処理
   const handleEventClick = useCallback((eventId: string) => {
@@ -148,21 +131,6 @@ export const MainApp: React.FC = () => {
     handleOpenReservationPanel();
   }, [handleDateNavigate, handleOpenReservationPanel]);
 
-  const formattedSelectedDate = useMemo(() => {
-    if (!selectedDate) return '日付を選択してください';
-    try {
-      const date = new Date(selectedDate);
-      return date.toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long'
-      });
-    } catch {
-      return selectedDate;
-    }
-  }, [selectedDate]);
-
   const previewDateText = useMemo(() => {
     if (!selectedDate) return '';
     try {
@@ -188,35 +156,21 @@ export const MainApp: React.FC = () => {
   return (
     <MonthlyReservationsProvider>
       <div className="main-app">
-        <header className="main-header">
-          <h1>
-            <img
-              src={process.env.PUBLIC_URL + '/logo_clear.png'}
-              alt="校章"
-              className="header-logo"
-              width={32}
-              height={32}
-            />{' '}
-            桜和高校教室予約システム
-          </h1>
-          <div className="header-info">
-            <div className="system-info">v{APP_VERSION}</div>
-            {/* ログイン済みの管理者のみ表示（一般ユーザー・未ログインでは非表示） */}
-            {currentUser && isAdmin && !authLoading && (
-              <Link to="/admin" className="admin-settings-link">
-                管理・設定
-              </Link>
-            )}
-            <button 
+        <AppHeader
+          title="桜和高校教室予約システム"
+          current="classroom"
+          extraActions={
+            <button
+              type="button"
               className="toggle-panel-button"
               onClick={() => setShowSidePanel(!showSidePanel)}
             >
-              {showSidePanel ? '📋 パネルを閉じる' : '📋 予約管理'}
+              {showSidePanel ? 'パネルを閉じる' : '予約管理'}
             </button>
-          </div>
-        </header>
+          }
+        />
 
-        <main className="main-content">
+        <main id="main-content" className="main-content">
           <div className="ledger-preview-section">
             <div className="ledger-preview-header">
               <DateNavigationButtons
@@ -245,7 +199,7 @@ export const MainApp: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  className="ledger-preview-manage"
+                  className="btn btn-primary ledger-preview-manage"
                   onClick={handleOpenReservationPanel}
                   disabled={!currentUser}
                 >
@@ -282,9 +236,7 @@ export const MainApp: React.FC = () => {
           )}
         </main>
 
-        <footer className="main-footer">
-          <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
-        </footer>
+        <AppFooter />
 
         {/* 予約詳細モーダル */}
         <ReservationModal

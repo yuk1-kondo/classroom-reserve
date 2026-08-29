@@ -11,175 +11,158 @@
   justify-content: center;
   align-items: center;
   z-index: 1001;
+  padding: 16px;
 }
 
 .simple-login-modal {
-  background: white;
+  background: #ffffff;
   border-radius: var(--radius-large);
   box-shadow: var(--elevation-3);
-  width: 90%;
+  width: 100%;
   max-width: 400px;
   position: relative;
 }
 
 .simple-login-header {
   text-align: center;
-  padding: 2rem 2rem 1rem 2rem;
+  padding: 28px 28px 0;
 }
 
 .simple-login-header h2 {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-on-surface);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-header-text);
 }
 
-.close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #666;
-  padding: 0.5rem;
-  border-radius: 4px;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-button:hover {
-  background: var(--color-surface-variant);
-  color: var(--color-on-surface);
+.simple-login-lead {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
 }
 
 .simple-login-body {
-  padding: 0 2rem 2rem 2rem;
-}
-
-.login-description {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: #666;
-  font-size: 1rem;
-}
-
-.login-description p {
-  margin: 0.5rem 0;
-}
-
-.domain-restriction {
-  background: var(--color-info-light);
-  border: 1px solid var(--color-info);
-  color: var(--color-on-surface);
-  border-radius: 6px;
-  padding: 0.75rem;
-  font-size: 0.875rem;
-  margin-top: 1rem;
-}
-
-.login-methods {
+  padding: 20px 28px 28px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .login-method {
   background: var(--color-surface-variant);
-  border-radius: 8px;
-  padding: 1.5rem;
   border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
+  padding: 18px;
 }
 
 .login-method h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #333;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
   text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.domain-restriction {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--color-on-surface);
+  background: var(--color-info-light);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-small);
 }
 
 .google-login-btn {
   background: var(--color-primary);
-  color: white;
+  color: #ffffff;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: var(--radius-medium);
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   width: 100%;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
 .google-login-btn:hover:not(:disabled) {
   background: var(--color-primary-dark);
 }
 
-.google-login-btn:disabled {
-  background: #ccc;
+.google-login-btn:disabled,
+.admin-login-btn:disabled {
+  background: #c3ccd7;
+  border-color: #c3ccd7;
+  color: #ffffff;
   cursor: not-allowed;
 }
 
 .admin-login {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .admin-login input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-medium);
   font-size: 1rem;
   outline: none;
+  box-sizing: border-box;
+  width: 100%;
+  background: #ffffff;
 }
 
 .admin-login input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 .admin-login-btn {
-  background: var(--color-error);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
+  background: #ffffff;
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary);
+  padding: 12px 16px;
+  border-radius: var(--radius-medium);
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .admin-login-btn:hover:not(:disabled) {
-  background: #b91c1c;
-}
-
-.admin-login-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 .error-message {
-  background: #f8d7da;
+  background: var(--color-error-light);
   color: #721c24;
-  padding: 0.75rem;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-small);
   border: 1px solid #f5c6cb;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
-/* 追加: Googleログインボタンを赤テーマにするオプション */
-.primary-red {
-  background: var(--color-error);
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
-.primary-red:hover:not(:disabled) {
-  background: #b91c1c;
-}
-.primary-red:disabled {
-  background: #ccc;
+
+/* サイドパネルの親オーバーレイ内ではカードだけ出す */
+.modal-content .simple-login-modal {
+  box-shadow: none;
+  max-width: none;
 }

@@ -7,7 +7,6 @@
 export const ROOM_DISPLAY_ORDER = [
   'サテライト',
   '会議室',
-  '図書館',
   '社会科教室',
   'グローバル教室①',
   'グローバル教室②',
@@ -36,7 +35,7 @@ export const ROOM_CATEGORIES = {
   LARGE_SEMINAR: /^大演習室/,
   PURPLE: /社会|LL|グローバル/,
   BLUE: /モノラボ|視聴覚|多目的/,
-  RED: /サテライト|会議室|図書館/
+  RED: /サテライト|会議室/
 } as const;
 
 /**
