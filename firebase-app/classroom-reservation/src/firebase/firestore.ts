@@ -4,7 +4,6 @@ import {
   doc, 
   addDoc, 
   updateDoc, 
-  deleteDoc, 
   getDocs, 
   getDoc,
   query, 
@@ -716,100 +715,6 @@ export const reservationsService = {
     }
     console.error('一部削除エラー:', lastErr);
     throw lastErr;
-  },
-
-  // 管理者機能：全ての予約を削除
-  async deleteAllReservations(): Promise<void> { // 旧方式（小規模データ向け）
-    try {
-      console.log('🗑️ 全予約データ削除開始...(旧方式) auth.uid=', (await import('./config')).auth?.currentUser?.uid);
-      const querySnapshot = await getDocs(collection(db, RESERVATIONS_COLLECTION));
-      if (querySnapshot.docs.length === 0) {
-        console.log('削除する予約データがありません');
-        return;
-      }
-  const deletePromises = querySnapshot.docs.map((docRef: QueryDocumentSnapshot<DocumentData>) => deleteDoc(docRef.ref));
-      await Promise.all(deletePromises);
-      console.log(`✅ ${querySnapshot.docs.length}件の予約データを削除しました`);
-    } catch (error) {
-      console.error('❌ 全削除エラー:', error);
-      throw error;
-    }
-  },
-
-  // バッチ版一括削除（推奨）: 500件ずつ commit
-  async deleteAllReservationsBatch(): Promise<number> {
-    try {
-      const { auth } = await import('./config');
-      console.log('🗑️ 全予約データ(バッチ)削除開始 auth.uid=', auth.currentUser?.uid || 'NONE');
-      const snap = await getDocs(collection(db, RESERVATIONS_COLLECTION));
-      const total = snap.docs.length;
-      console.log('取得ドキュメント総数(collection直):', total);
-      if (total === 0) {
-        return 0;
-      }
-      let processed = 0;
-      let batch = writeBatch(db);
-      let ops = 0;
-      for (const d of snap.docs) {
-        const data = d.data() as Reservation;
-        const dateStr = toDateStr((data.startTime as Timestamp).toDate());
-        const periods = this._periods(data.period);
-        // 予約本体
-        batch.delete(d.ref);
-        ops++; processed++;
-        // スロット
-        for (const p of periods) {
-          const slotId = makeSlotId(data.roomId, dateStr, p);
-          const slotRef = doc(db, RESERVATION_SLOTS_COLLECTION, slotId);
-          batch.delete(slotRef);
-          ops++;
-        }
-        if (ops >= 450) { // スロット分もあるので余裕を持ってコミット
-          await batch.commit();
-          console.log(`... バッチコミット (累計 ${processed}/${total})`);
-          batch = writeBatch(db); ops = 0;
-        }
-      }
-      if (ops > 0) {
-        await batch.commit();
-        console.log(`... 最終コミット (累計 ${processed}/${total})`);
-      }
-      console.log(`✅ 一括削除完了 合計 ${processed}件`);
-      return processed;
-    } catch (error) {
-      console.error('❌ バッチ一括削除エラー', error);
-      throw error;
-    }
-  },
-
-  // 追加: startTime 広域レンジで再取得→順次 delete (手動削除が成功するケースに近い)
-  async deleteAllReservationsWideRange(): Promise<number> {
-    const startDate = new Date(2000,0,1);
-    const endDate = new Date(2100,0,1);
-    console.log('🔎 WideRange 取得開始', startDate.toISOString(), endDate.toISOString());
-    const list = await this.getReservations(startDate, endDate);
-    console.log('WideRange ヒット件数:', list.length);
-    let deleted = 0;
-    for (const r of list) {
-      if (r.id) {
-        try {
-          await this.deleteReservation(r.id);
-          deleted++;
-        } catch(e) {
-          console.warn('個別削除失敗', r.id, e);
-        }
-      }
-    }
-    console.log('WideRange 削除完了 件数:', deleted);
-    return deleted;
-  },
-
-  // デバッグ: 全ID列挙
-  async listAllReservationIds(): Promise<string[]> {
-    const snap = await getDocs(collection(db, RESERVATIONS_COLLECTION));
-  const ids = snap.docs.map((d: QueryDocumentSnapshot<DocumentData>) => d.id);
-    console.log('📄 [DEBUG][RESERVATIONS] 全ID一覧:', ids);
-    return ids;
   },
 
   // 予約IDで取得
