@@ -1,0 +1,65 @@
+/* 駐車場台帳 — 4枠でも教室台帳と同じ密度で、セル内の予約を中央に置く */
+
+.parking-ledger.ledger-view {
+  width: 100%;
+}
+
+.parking-ledger .ledger-table-wrapper {
+  width: 100%;
+}
+
+.parking-ledger .ledger-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.parking-ledger .ledger-period-header,
+.parking-ledger .ledger-period-cell {
+  width: 112px;
+  min-width: 112px;
+}
+
+.parking-ledger .ledger-room-header,
+.parking-ledger .ledger-reservation-cell {
+  min-width: 0;
+  width: auto;
+  text-align: center;
+}
+
+.parking-ledger .ledger-empty {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.parking-ledger .ledger-reservation-list {
+  align-items: center;
+}
+
+.parking-ledger .ledger-reservation-item {
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.parking-ledger .ledger-reservation-button {
+  text-align: center;
+  align-items: center;
+}
+
+.parking-ledger .ledger-reservation-title,
+.parking-ledger .ledger-reservation-owner {
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .parking-ledger .ledger-table {
+    table-layout: auto;
+    min-width: 560px;
+  }
+
+  .parking-ledger .ledger-reservation-item {
+    max-width: none;
+  }
+}

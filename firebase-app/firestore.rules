@@ -56,13 +56,9 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/parking_group_members/$(request.auth.uid)).data.canDelete == true;
     }
 
-    function isParkingPublic() {
-      return exists(/databases/$(database)/documents/system_settings/parking)
-        && get(/databases/$(database)/documents/system_settings/parking).data.accessMode == 'public';
-    }
-
+    // 駐車場データは認証済みなら誰でも利用可。画面側のパスコードは UI ゲート（会議室削除と同様）。
     function canUseParking() {
-      return isAuthenticated() && (isAdmin() || isParkingPublic() || isParkingGroupMember());
+      return isAuthenticated();
     }
 
     // 管理者ユーザー管理コレクション

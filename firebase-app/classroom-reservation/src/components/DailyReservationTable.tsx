@@ -577,7 +577,7 @@ export const DailyReservationTable: React.FC<DailyReservationTableProps> = ({
                             }
                           }}
                         >
-                          削除{needsPasscodeForDelete(reservation) ? '🔑' : ''}
+                          削除{needsPasscodeForDelete(reservation) ? '（要パスコード）' : ''}
                         </button>
                       )}
                       {isMine && isConfirming && (

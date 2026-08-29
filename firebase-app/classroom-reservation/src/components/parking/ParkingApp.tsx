@@ -1,17 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useParkingAccess } from '../../hooks/useParkingAccess';
 import { ParkingReservationsProvider } from '../../contexts/ParkingReservationsContext';
-import { ParkingSpot, parkingSpotsService } from '../../firebase/parking';
+import { ParkingSpot, parkingSettingsService, parkingSpotsService } from '../../firebase/parking';
 import { toDateStr } from '../../utils/dateRange';
-import { APP_VERSION } from '../../version';
+import { isParkingSessionUnlocked, unlockParkingSession } from '../../utils/parkingUnlock';
+import PasscodeModal from '../PasscodeModal';
+import SimpleLogin from '../SimpleLogin';
 import ParkingLedgerView from './ParkingLedgerView';
 import ParkingCreateModal from './ParkingCreateModal';
 import ParkingDetailModal from './ParkingDetailModal';
+import { AppHeader } from '../layout/AppHeader';
+import { AppFooter } from '../layout/AppFooter';
 import '../MainApp.css';
 
+const shiftDateStr = (dateStr: string, offsetDays: number) => {
+  const base = new Date(`${dateStr}T00:00:00`);
+  base.setDate(base.getDate() + offsetDays);
+  return toDateStr(base);
+};
+
 const ParkingAppInner: React.FC = () => {
+  const navigate = useNavigate();
   const { currentUser, isAdmin, loading: authLoading, authReady } = useAuth();
   const parking = useParkingAccess(currentUser?.uid, { isAdmin, authReady });
   const [selectedDate, setSelectedDate] = useState(() => toDateStr(new Date()));
@@ -19,14 +30,44 @@ const ParkingAppInner: React.FC = () => {
   const [spots, setSpots] = useState<ParkingSpot[]>([]);
   const [createRequest, setCreateRequest] = useState<{ spotId: string; period: string } | null>(null);
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [accessPasscode, setAccessPasscode] = useState('');
+  const [passcodeLoading, setPasscodeLoading] = useState(true);
+  const [unlocked, setUnlocked] = useState(false);
 
   useEffect(() => {
-    if (!parking.canAccess) return;
+    if (!currentUser) {
+      setPasscodeLoading(false);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        setPasscodeLoading(true);
+        const code = await parkingSettingsService.getAccessPasscode();
+        if (!mounted) return;
+        setAccessPasscode(code);
+        setUnlocked(isParkingSessionUnlocked(code));
+      } catch {
+        if (mounted) {
+          setAccessPasscode('');
+          setUnlocked(false);
+        }
+      } finally {
+        if (mounted) setPasscodeLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!unlocked) return;
     parkingSpotsService
       .getAllSpots()
       .then(list => setSpots(Array.isArray(list) ? list : []))
       .catch(() => setSpots([]));
-  }, [parking.canAccess]);
+  }, [unlocked]);
 
   const previewDateText = useMemo(() => {
     try {
@@ -46,10 +87,22 @@ const ParkingAppInner: React.FC = () => {
     setCreateRequest({ spotId, period });
   }, [currentUser]);
 
-  if (authLoading || parking.loading) {
+  const handleUnlockSuccess = useCallback(() => {
+    unlockParkingSession(accessPasscode);
+    setUnlocked(true);
+  }, [accessPasscode]);
+
+  const handleShiftDate = useCallback((offset: number) => {
+    setSelectedDate(prev => shiftDateStr(prev, offset));
+  }, []);
+
+  if (authLoading || passcodeLoading) {
     return (
       <div className="main-app">
-        <main className="main-content" style={{ padding: 24 }}>読み込み中…</main>
+        <AppHeader title="桜和高校駐車場予約" current="parking" />
+        <main className="main-content auth-gate">
+          <p className="auth-gate-message">読み込み中…</p>
+        </main>
       </div>
     );
   }
@@ -57,65 +110,81 @@ const ParkingAppInner: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="main-app">
-        <header className="main-header">
-          <h1>駐車場予約</h1>
-          <Link to="/" className="admin-settings-link">教室予約へ戻る</Link>
-        </header>
-        <main className="main-content" style={{ padding: 24 }}>
-          <h2>ログインが必要です</h2>
-          <p>駐車場予約を利用するには、教室予約トップからログインしてください。</p>
+        <AppHeader title="桜和高校駐車場予約" current="parking" />
+        <main className="main-content auth-gate">
+          <SimpleLogin variant="page" onAuthStateChange={() => undefined} />
         </main>
+        <AppFooter />
       </div>
     );
   }
 
-  if (!parking.canAccess) {
+  if (!accessPasscode) {
     return (
       <div className="main-app">
-        <header className="main-header">
-          <h1>駐車場予約</h1>
-          <Link to="/" className="admin-settings-link">教室予約へ戻る</Link>
-        </header>
-        <main className="main-content" style={{ padding: 24 }}>
-          <h2>アクセスできません</h2>
-          <p>駐車場予約は現在テスト運用中のため、許可されたメンバーのみ利用できます。</p>
+        <AppHeader title="桜和高校駐車場予約" current="parking" />
+        <main className="main-content auth-gate">
+          <div className="auth-gate-card">
+            <h2>パスコードが未設定です</h2>
+            <p>管理者が入場用パスコードを設定するまで、駐車場予約は利用できません。</p>
+            {isAdmin && (
+              <p>
+                <Link to="/admin?section=parking" className="admin-settings-link">
+                  管理・設定でパスコードを設定
+                </Link>
+              </p>
+            )}
+          </div>
         </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  if (!unlocked) {
+    return (
+      <div className="main-app">
+        <AppHeader title="桜和高校駐車場予約" current="parking" />
+        <main className="main-content auth-gate">
+          <p className="auth-gate-message">駐車場予約を利用するには、パスコードの入力が必要です。</p>
+        </main>
+        <PasscodeModal
+          isOpen
+          onClose={() => navigate('/')}
+          onSuccess={handleUnlockSuccess}
+          correctPasscode={accessPasscode}
+          title="駐車場パスコード"
+          submitLabel="認証して入る"
+          description={
+            <>
+              駐車場予約を利用するには<br />
+              パスコードを入力してください。
+            </>
+          }
+        />
+        <AppFooter />
       </div>
     );
   }
 
   return (
     <div className="main-app">
-      <header className="main-header">
-        <h1>
-          <img
-            src={process.env.PUBLIC_URL + '/logo_clear.png'}
-            alt="校章"
-            className="header-logo"
-            width={32}
-            height={32}
-          />{' '}
-          駐車場予約
-        </h1>
-        <div className="header-info">
-          <div className="system-info">v{APP_VERSION}</div>
-          {parking.accessMode === 'group' && (
-            <span className="system-info">テスト運用</span>
-          )}
-          {currentUser && isAdmin && (
-            <Link to="/admin?section=parking" className="admin-settings-link">
-              管理・設定
-            </Link>
-          )}
-          <Link to="/" className="admin-settings-link">
-            教室予約へ戻る
-          </Link>
-        </div>
-      </header>
+      <AppHeader title="桜和高校駐車場予約" current="parking" />
 
       <main className="main-content">
         <div className="ledger-preview-section">
           <div className="ledger-preview-header">
+            <div className="ledger-preview-nav" role="group" aria-label="日付移動">
+              <button type="button" onClick={() => handleShiftDate(-1)} aria-label="前日">
+                &lt; 前日
+              </button>
+              <button type="button" onClick={() => setSelectedDate(toDateStr(new Date()))} aria-label="今日">
+                今日
+              </button>
+              <button type="button" onClick={() => handleShiftDate(1)} aria-label="翌日">
+                翌日 &gt;
+              </button>
+            </div>
             <div className="ledger-preview-date-block">
               <span className="ledger-preview-date-text">{previewDateText}</span>
             </div>
@@ -141,6 +210,7 @@ const ParkingAppInner: React.FC = () => {
             date={selectedDate}
             authReady={authReady}
             filterMine={filterMine}
+            showToolbar={false}
             onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
             onReservationClick={id => setSelectedEventId(id)}
@@ -148,9 +218,7 @@ const ParkingAppInner: React.FC = () => {
         </div>
       </main>
 
-      <footer className="main-footer">
-        <p>© 2025 桜和高校教室予約システム (owa-cbs)</p>
-      </footer>
+      <AppFooter />
 
       {createRequest && (
         <ParkingCreateModal

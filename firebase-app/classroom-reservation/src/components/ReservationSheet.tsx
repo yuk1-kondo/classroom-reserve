@@ -70,7 +70,7 @@ const ReservationSheet: React.FC<ReservationSheetProps> = ({ date, open, onClose
         <div className="sheet-handle" aria-hidden="true"></div>
         <div className="sheet-header">
           <span id="reservationSheetTitle">予約状況</span>
-          <button data-autofocus onClick={onClose} aria-label="閉じる" className="sheet-close-btn">✕</button>
+          <button type="button" data-autofocus onClick={onClose} aria-label="閉じる" className="sheet-close-btn">✕</button>
         </div>
         <div className="sheet-content">
           {date && (
@@ -82,7 +82,7 @@ const ReservationSheet: React.FC<ReservationSheetProps> = ({ date, open, onClose
           )}
         </div>
         <div className="sheet-footer">
-          <button className="sheet-action-btn" onClick={onOpenSidePanel}>この日の予約を追加・編集</button>
+          <button type="button" className="sheet-action-btn" onClick={onOpenSidePanel}>この日の予約を追加・編集</button>
         </div>
       </div>
       <div className="reservation-sheet-backdrop" onClick={onClose} />

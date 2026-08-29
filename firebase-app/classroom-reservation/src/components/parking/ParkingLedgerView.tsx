@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import '../DailyLedgerView.css';
+import './ParkingLedgerView.css';
 import { Reservation } from '../../firebase/firestore';
 import { ParkingSpot, parkingSpotsService } from '../../firebase/parking';
 import { useParkingReservations } from '../../contexts/ParkingReservationsContext';
@@ -12,6 +13,7 @@ interface ParkingLedgerViewProps {
   date: string;
   authReady: boolean;
   filterMine?: boolean;
+  showToolbar?: boolean;
   onDateChange?: (dateStr: string) => void;
   onCellClick?: (spotId: string, period: string, date: string) => void;
   onReservationClick?: (reservationId: string) => void;
@@ -90,6 +92,7 @@ export const ParkingLedgerView: React.FC<ParkingLedgerViewProps> = ({
   date,
   authReady,
   filterMine = false,
+  showToolbar = true,
   onDateChange,
   onCellClick,
   onReservationClick
@@ -182,12 +185,13 @@ export const ParkingLedgerView: React.FC<ParkingLedgerViewProps> = ({
   );
 
   return (
-    <div className={`ledger-view ${loading ? 'is-loading' : ''}`.trim()}>
+    <div className={`ledger-view parking-ledger ${loading ? 'is-loading' : ''}`.trim()}>
       {loading && (
         <div className="ledger-skeleton" aria-live="polite">読み込み中...</div>
       )}
-      <div className="ledger-toolbar ledger-toolbar--compact">
-        <div className="ledger-nav-buttons" role="group" aria-label="日付移動">
+      {showToolbar && (
+        <div className="ledger-toolbar ledger-toolbar--compact">
+          <div className="ledger-nav-buttons" role="group" aria-label="日付移動">
           <button
             type="button"
             className="ledger-nav-button"
@@ -214,6 +218,7 @@ export const ParkingLedgerView: React.FC<ParkingLedgerViewProps> = ({
           </button>
         </div>
       </div>
+      )}
       <div className="ledger-table-wrapper" ref={tableWrapperRef}>
         <table className="ledger-table">
           <thead>

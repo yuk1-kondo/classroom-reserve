@@ -531,6 +531,50 @@
   color: inherit; /* テキストカラー継承 */
 }
 
+/* 未ログイン・パスコード未設定などの案内 */
+.auth-gate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.auth-gate-message {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: 0.95rem;
+}
+
+.auth-gate-card {
+  background: #ffffff;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-large);
+  box-shadow: var(--elevation-2);
+  max-width: 420px;
+  width: 100%;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.auth-gate-card h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-header-text);
+}
+
+.auth-gate-card p {
+  margin: 0 0 12px;
+  color: var(--color-on-surface-variant);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.auth-gate-card p:last-child {
+  margin-bottom: 0;
+}
+
 /* カレンダーコンテナの調整 */
 .calendar-section .calendar-container {
   flex: 1;

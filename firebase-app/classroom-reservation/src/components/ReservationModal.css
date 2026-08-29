@@ -99,8 +99,14 @@
   flex-direction: row;
   align-items: stretch;
   gap: 10px;
-  margin: 20px 0 16px;
+  margin: 16px 0 0;
   justify-content: flex-end;
+}
+
+/* 本文の外に置かれた場合でも、カード端に張り付かない */
+.reservation-modal > .reservation-actions {
+  padding: 8px 24px 20px;
+  margin: 0;
 }
 
 .reservation-actions.confirm-mode { margin-top: 4px; }
@@ -267,7 +273,11 @@
   }
 
   .reservation-actions {
-    margin: 24px 6px 18px;
+    margin: 16px 0 0;
+  }
+
+  .reservation-modal > .reservation-actions {
+    padding: 8px 18px 18px;
   }
 }
 

@@ -219,7 +219,7 @@ export const AdminUserManager: React.FC = () => {
       {/* 管理者追加セクション（スーパー管理者のみ） */}
       {isSuperAdmin && (
         <div className="add-admin-section">
-          <h4>➕ 新しい管理者を追加</h4>
+          <h4>新しい管理者を追加</h4>
           <div className="add-admin-form">
             <input
               type="email"
@@ -270,7 +270,7 @@ export const AdminUserManager: React.FC = () => {
                     disabled={loading}
                     title="管理者権限を削除"
                   >
-                    🗑️ 削除
+                    削除
                   </button>
                 )}
                 {(!isSuperAdmin || user.tier === 'super' || user.email === SUPER_ADMIN_EMAIL || user.uid === superAdminUid) && (

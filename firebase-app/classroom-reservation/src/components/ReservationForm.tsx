@@ -102,7 +102,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
           onClick={() => onShowForm(true)}
           disabled={loading || !currentUser}
         >
-          ➕ 新しい予約を作成
+          新しい予約を作成
         </button>
       </div>
     );
@@ -111,7 +111,7 @@ export const ReservationForm: React.FC<ReservationFormProps> = ({
   return (
     <div className="reservation-form-section">
       <div className="reservation-form">
-        <h5>📝 新しい予約</h5>
+        <h5>新しい予約</h5>
         
         {/* 日付範囲選択 */}
         <DateRangeSelector

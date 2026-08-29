@@ -7,6 +7,22 @@ import { formatPeriodDisplay } from '../../utils/periodLabel';
 import { useParkingReservations } from '../../contexts/ParkingReservationsContext';
 import '../ReservationModal.css';
 
+function getReservationPeriods(reservation: Reservation | null): string[] {
+  if (!reservation?.period) return [];
+  return reservation.period.includes(',')
+    ? reservation.period.split(',').map(p => p.trim()).filter(Boolean)
+    : [reservation.period];
+}
+
+function formatReservationDate(timestamp: Timestamp): string {
+  const date = timestamp.toDate();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+  return `${year}/${month}/${day} (${weekday})`;
+}
+
 interface Props {
   open: boolean;
   reservationId: string | null;
@@ -75,21 +91,8 @@ export const ParkingDetailModal: React.FC<Props> = ({
 
   if (!open) return null;
 
-  const getPeriods = (r: Reservation | null): string[] => {
-    if (!r?.period) return [];
-    return r.period.includes(',') ? r.period.split(',').map(p => p.trim()).filter(Boolean) : [r.period];
-  };
-  const isMulti = getPeriods(reservation).length > 1;
-
-  const formatDate = (timestamp: Timestamp): string => {
-    const d = timestamp.toDate();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-    return `${y}/${m}/${dd} (${w})`;
-  };
-
+  const periods = getReservationPeriods(reservation);
+  const isMulti = periods.length > 1;
   const allowDelete = reservation ? canDelete(reservation.createdBy) : false;
 
   const handleDelete = async () => {
@@ -99,7 +102,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
       if (deleteMode === 'partial' && selectedPeriodsToDelete.size > 0) {
         const periodsToDelete = Array.from(selectedPeriodsToDelete);
         await parkingReservationsService.deletePartialPeriods(reservation.id, periodsToDelete);
-        const remaining = getPeriods(reservation).length - periodsToDelete.length;
+        const remaining = getReservationPeriods(reservation).length - periodsToDelete.length;
         if (remaining <= 0) removeReservation(String(reservation.id));
         window.dispatchEvent(new CustomEvent('parking:changed', {
           detail: { type: remaining <= 0 ? 'deleted' : 'updated', id: String(reservation.id) }
@@ -113,7 +116,9 @@ export const ParkingDetailModal: React.FC<Props> = ({
         }));
         toast.success('予約を削除しました');
       }
-      try { await refetch(); } catch {}
+      try { await refetch(); } catch (e) {
+        console.error('駐車場予約の再取得に失敗しました', e);
+      }
       onClose();
     } catch {
       setError('予約の削除に失敗しました');
@@ -147,7 +152,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
       <div className="reservation-modal compact" onClick={e => e.stopPropagation()}>
         <div className="reservation-modal-header">
           <h2>駐車場予約の詳細</h2>
-          <button className="close-button" onClick={onClose} disabled={loading}>✕</button>
+          <button className="close-button" onClick={onClose} disabled={loading} aria-label="閉じる">閉じる</button>
         </div>
         <div className="reservation-modal-body">
           {loading && <div className="loading-message">読み込み中...</div>}
@@ -156,7 +161,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
             <div className={`reservation-details ${isEditing ? 'is-editing' : ''}`}>
               <div className="detail-card">
                 <span className="detail-label">日付</span>
-                <span className="detail-value">{formatDate(reservation.startTime)}</span>
+                <span className="detail-value">{formatReservationDate(reservation.startTime)}</span>
               </div>
               <div className="detail-card">
                 <span className="detail-label">時限</span>
@@ -166,7 +171,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
                 <span className="detail-label">駐車場</span>
                 <span className="detail-value">{reservation.roomName}</span>
               </div>
-              <div className={`detail-card detail-card--wide ${isEditing ? 'is-active' : ''}`}>
+              <div className={`detail-card detail-card--wide detail-card--editable ${isEditing ? 'is-active' : ''}`}>
                 <span className="detail-label">予約者</span>
                 <span className="detail-value">
                   {!isEditing ? (
@@ -182,7 +187,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
                   )}
                 </span>
               </div>
-              <div className={`detail-card detail-card--wide ${isEditing ? 'is-active' : ''}`}>
+              <div className={`detail-card detail-card--wide detail-card--editable ${isEditing ? 'is-active' : ''}`}>
                 <span className="detail-label">予約内容</span>
                 <span className="detail-value">
                   {!isEditing ? (
@@ -200,15 +205,16 @@ export const ParkingDetailModal: React.FC<Props> = ({
               </div>
             </div>
           )}
-        </div>
-        <div className={`reservation-actions ${showDeleteConfirm ? 'confirm-mode' : ''}`}>
+
+          <div className={`reservation-actions ${showDeleteConfirm ? 'confirm-mode' : ''}`}>
           {canEdit && reservation && !showDeleteConfirm && (
             !isEditing ? (
-              <button className="edit-button" onClick={() => setIsEditing(true)} disabled={loading}>✏️ 編集</button>
+              <button type="button" className="edit-button" onClick={() => setIsEditing(true)} disabled={loading}>編集</button>
             ) : (
               <div className="edit-inline">
-                <button className="confirm-edit-btn" onClick={handleSave} disabled={loading}>保存</button>
+                <button type="button" className="confirm-edit-btn" onClick={handleSave} disabled={loading}>保存</button>
                 <button
+                  type="button"
                   className="cancel-edit-btn"
                   onClick={() => {
                     setIsEditing(false);
@@ -223,8 +229,8 @@ export const ParkingDetailModal: React.FC<Props> = ({
             )
           )}
           {allowDelete && reservation && !showDeleteConfirm && (
-            <button className="delete-button" onClick={() => setShowDeleteConfirm(true)} disabled={loading}>
-              🗑️ 予約を削除
+            <button type="button" className="delete-button" onClick={() => setShowDeleteConfirm(true)} disabled={loading}>
+              予約を削除
             </button>
           )}
           {allowDelete && showDeleteConfirm && (
@@ -233,35 +239,36 @@ export const ParkingDetailModal: React.FC<Props> = ({
                 <div className="delete-mode-selection">
                   <span className="confirm-text-strong">削除方法を選択してください</span>
                   <div className="delete-mode-buttons">
-                    <button className="delete-mode-btn full" onClick={() => setDeleteMode('full')} disabled={loading}>全部削除</button>
-                    <button className="delete-mode-btn partial" onClick={() => setDeleteMode('partial')} disabled={loading}>一部削除</button>
-                    <button className="cancel-delete-btn" onClick={() => setShowDeleteConfirm(false)} disabled={loading}>キャンセル</button>
+                    <button type="button" className="delete-mode-btn full" onClick={() => setDeleteMode('full')} disabled={loading}>全部削除</button>
+                    <button type="button" className="delete-mode-btn partial" onClick={() => setDeleteMode('partial')} disabled={loading}>一部削除</button>
+                    <button type="button" className="cancel-delete-btn" onClick={() => setShowDeleteConfirm(false)} disabled={loading}>キャンセル</button>
                   </div>
                 </div>
               ) : isMulti && deleteMode === 'partial' ? (
                 <div className="partial-delete-selection">
                   <span className="confirm-text-strong">削除する時限を選択してください</span>
-                  <div>
-                    {getPeriods(reservation).map(p => (
-                      <label key={p} style={{ display: 'block', margin: '4px 0' }}>
+                  <div className="period-checkboxes">
+                    {periods.map(periodKey => (
+                      <label key={periodKey} className="period-checkbox-label">
                         <input
                           type="checkbox"
-                          checked={selectedPeriodsToDelete.has(p)}
+                          checked={selectedPeriodsToDelete.has(periodKey)}
                           onChange={e => {
                             setSelectedPeriodsToDelete(prev => {
                               const next = new Set(prev);
-                              if (e.target.checked) next.add(p);
-                              else next.delete(p);
+                              if (e.target.checked) next.add(periodKey);
+                              else next.delete(periodKey);
                               return next;
                             });
                           }}
-                        />{' '}
-                        {formatPeriodDisplay(p)}
+                        />
+                        <span>{formatPeriodDisplay(periodKey)}</span>
                       </label>
                     ))}
                   </div>
                   <div className="delete-mode-buttons">
                     <button
+                      type="button"
                       className="confirm-delete-btn"
                       onClick={handleDelete}
                       disabled={loading || selectedPeriodsToDelete.size === 0}
@@ -269,7 +276,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
                     >
                       削除する
                     </button>
-                    <button className="cancel-delete-btn" onClick={() => { setDeleteMode(null); setSelectedPeriodsToDelete(new Set()); }} disabled={loading}>
+                    <button type="button" className="cancel-delete-btn" onClick={() => { setDeleteMode(null); setSelectedPeriodsToDelete(new Set()); }} disabled={loading}>
                       戻る
                     </button>
                   </div>
@@ -278,10 +285,10 @@ export const ParkingDetailModal: React.FC<Props> = ({
                 <div className="delete-mode-selection">
                   <span className="confirm-text-strong">この予約を削除しますか？</span>
                   <div className="delete-mode-buttons">
-                    <button className="confirm-delete-btn" onClick={handleDelete} disabled={loading} ref={confirmDeleteBtnRef}>
+                    <button type="button" className="confirm-delete-btn" onClick={handleDelete} disabled={loading} ref={confirmDeleteBtnRef}>
                       削除する
                     </button>
-                    <button className="cancel-delete-btn" onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={loading}>
+                    <button type="button" className="cancel-delete-btn" onClick={() => { setShowDeleteConfirm(false); setDeleteMode(null); }} disabled={loading}>
                       キャンセル
                     </button>
                   </div>
@@ -289,6 +296,7 @@ export const ParkingDetailModal: React.FC<Props> = ({
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

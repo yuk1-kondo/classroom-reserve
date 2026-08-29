@@ -1,8 +1,8 @@
 /**
- * 駐車場：枠の登録・公開切替・メンバー／削除権限
+ * 駐車場：枠の登録・入場パスコード・他人予約の削除権限
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { PARKING_SPOTS, ParkingAccessMode } from '../../constants/parking';
+import { PARKING_SPOTS } from '../../constants/parking';
 import {
   parkingPrivilegeService,
   parkingSettingsService,
@@ -23,9 +23,11 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
   const { isAdmin } = useAuth();
   const [spotLoading, setSpotLoading] = useState(false);
   const [spotMessage, setSpotMessage] = useState<string | null>(null);
-  const [accessMode, setAccessMode] = useState<ParkingAccessMode>('group');
-  const [modeSaving, setModeSaving] = useState(false);
-  const [modeMessage, setModeMessage] = useState<string | null>(null);
+  const [accessPasscode, setAccessPasscode] = useState('');
+  const [savedPasscode, setSavedPasscode] = useState('');
+  const [passcodeSaving, setPasscodeSaving] = useState(false);
+  const [passcodeMessage, setPasscodeMessage] = useState<string | null>(null);
+  const [showPasscode, setShowPasscode] = useState(false);
 
   const [members, setMembers] = useState<ParkingMemberRecord[]>([]);
   const [newUid, setNewUid] = useState('');
@@ -57,14 +59,16 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
   const loadMembers = async () => {
     setMemberLoading(true);
     try {
-      const [list, accessList, mode] = await Promise.all([
+      const [list, accessList, settings] = await Promise.all([
         parkingPrivilegeService.listMembers(),
         userAccessService.getAllUsers(),
-        parkingSettingsService.getAccessMode()
+        parkingSettingsService.get()
       ]);
       setMembers(list.sort((a, b) => (a.uid || '').localeCompare(b.uid || '')));
       setAccessUsers(accessList);
-      setAccessMode(mode);
+      const code = String(settings.accessPasscode || '');
+      setSavedPasscode(code);
+      setAccessPasscode(code);
     } catch (e) {
       console.error(e);
       setMemberMessage('メンバー一覧の読み込みに失敗しました');
@@ -87,24 +91,52 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
       if (skipped.length) parts.push(`既に登録済: ${skipped.join('、')}`);
       setSpotMessage(parts.length ? parts.join(' / ') : '処理しました。');
     } catch (e: any) {
-      setSpotMessage(e?.message || '駐車場枠の登録に失敗しました');
+      const code = String(e?.code || '');
+      if (code === 'permission-denied' || /insufficient permissions/i.test(String(e?.message || ''))) {
+        setSpotMessage('権限エラーです。駐車場用の Firestore ルールが本番に未反映の可能性があります。');
+      } else {
+        setSpotMessage(e?.message || '駐車場枠の登録に失敗しました');
+      }
     } finally {
       setSpotLoading(false);
     }
   };
 
-  const handleSetMode = async (mode: ParkingAccessMode) => {
+  const validatePasscode = (value: string): boolean => /^[a-zA-Z0-9]{6}$/.test(value);
+
+  const handleSavePasscode = async () => {
     if (!currentUserId) return;
-    setModeSaving(true);
-    setModeMessage(null);
+    if (!validatePasscode(accessPasscode)) {
+      setPasscodeMessage('パスコードは英数字6桁で入力してください');
+      return;
+    }
+    setPasscodeSaving(true);
+    setPasscodeMessage(null);
     try {
-      await parkingSettingsService.setAccessMode(mode, currentUserId);
-      setAccessMode(mode);
-      setModeMessage(mode === 'public' ? '全員公開に切り替えました' : 'テスト（グループのみ）に切り替えました');
+      await parkingSettingsService.setAccessPasscode(accessPasscode, currentUserId);
+      setSavedPasscode(accessPasscode);
+      setPasscodeMessage('入場パスコードを保存しました');
     } catch (e: any) {
-      setModeMessage(e?.message || '公開設定の保存に失敗しました');
+      setPasscodeMessage(e?.message || 'パスコードの保存に失敗しました');
     } finally {
-      setModeSaving(false);
+      setPasscodeSaving(false);
+    }
+  };
+
+  const handleClearPasscode = async () => {
+    if (!currentUserId) return;
+    if (!window.confirm('入場パスコードを削除しますか？\n削除すると、駐車場予約は利用できなくなります。')) return;
+    setPasscodeSaving(true);
+    setPasscodeMessage(null);
+    try {
+      await parkingSettingsService.setAccessPasscode('', currentUserId);
+      setSavedPasscode('');
+      setAccessPasscode('');
+      setPasscodeMessage('パスコードを削除しました');
+    } catch (e: any) {
+      setPasscodeMessage(e?.message || 'パスコードの削除に失敗しました');
+    } finally {
+      setPasscodeSaving(false);
     }
   };
 
@@ -164,8 +196,8 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
     <div className="admin-settings-block">
       {!hideTitle && <h3>駐車場グループ</h3>}
 
-      <section style={{ marginBottom: '2rem' }}>
-        <h4 style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>駐車場4枠の登録</h4>
+      <section className="admin-settings-section">
+        <h4>駐車場4枠の登録</h4>
         <p className="admin-settings-desc">
           教室予約の <code>rooms</code> には追加しません。駐車場専用コレクションへ次の4枠を登録します。
         </p>
@@ -180,40 +212,59 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
         {spotMessage && <p className="admin-settings-message">{spotMessage}</p>}
       </section>
 
-      <section style={{ marginBottom: '2rem' }}>
-        <h4 style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>公開範囲</h4>
+      <section className="admin-settings-section">
+        <h4>入場パスコード</h4>
         <p className="admin-settings-desc">
-          テスト中はグループメンバー（と管理者）のみ。完了後に全員公開へ切り替えます（再デプロイ不要）。
+          駐車場ボタンは全員に表示されます。画面を開くには、ここで設定した6桁のパスコードが必要です。
         </p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <button
-            type="button"
-            className="admin-settings-save"
-            onClick={() => handleSetMode('group')}
-            disabled={modeSaving || accessMode === 'group'}
-          >
-            テスト（グループのみ）
-          </button>
-          <button
-            type="button"
-            className="admin-settings-save"
-            onClick={() => handleSetMode('public')}
-            disabled={modeSaving || accessMode === 'public'}
-          >
-            全員公開
-          </button>
+        <div className="admin-settings-block__row" style={{ marginBottom: '8px' }}>
+          <label className="admin-settings-block__label">現在のパスコード</label>
+          <span className="admin-settings-block__mono">
+            {showPasscode ? (savedPasscode || '未設定') : (savedPasscode ? '●'.repeat(savedPasscode.length) : '未設定')}
+          </span>
+          {savedPasscode && (
+            <button
+              type="button"
+              className="admin-settings-block__btn admin-settings-block__btn--small"
+              onClick={() => setShowPasscode(v => !v)}
+            >
+              {showPasscode ? '隠す' : '表示'}
+            </button>
+          )}
         </div>
-        <p style={{ fontSize: '0.9rem' }}>
-          現在: <strong>{accessMode === 'public' ? '全員公開' : 'テスト（グループのみ）'}</strong>
-        </p>
-        {modeMessage && <p className="admin-settings-message">{modeMessage}</p>}
+        <div className="admin-settings-inline-row">
+          <input
+            type="text"
+            value={accessPasscode}
+            onChange={e => setAccessPasscode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6))}
+            placeholder="英数字6桁"
+            maxLength={6}
+            disabled={passcodeSaving}
+            className="admin-settings-block__field admin-settings-block__field--mono"
+          />
+          <span className="admin-settings-block__counter">{accessPasscode.length}/6文字</span>
+          <button
+            type="button"
+            className="admin-settings-block__btn admin-settings-block__btn--primary"
+            onClick={handleSavePasscode}
+            disabled={passcodeSaving || !validatePasscode(accessPasscode)}
+          >
+            {passcodeSaving ? '保存中…' : '保存'}
+          </button>
+          {savedPasscode && (
+            <button type="button" onClick={handleClearPasscode} disabled={passcodeSaving}>
+              削除
+            </button>
+          )}
+        </div>
+        {passcodeMessage && <p className="admin-settings-message">{passcodeMessage}</p>}
       </section>
 
       {isAdmin && (
         <section>
-          <h4 style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>駐車場グループメンバー</h4>
+          <h4>駐車場グループメンバー</h4>
           <p className="admin-settings-desc">
-            テスト中の利用権限です。チェックした人は公開後も他人の駐車場予約を削除できます。
+            他人の駐車場予約を削除できる人です。通常の予約は、パスコードを知っているログイン済みユーザーなら自分の分を作成・削除できます。
           </p>
           {memberMessage && <p className="admin-settings-message">{memberMessage}</p>}
           {memberLoading ? (
@@ -241,7 +292,7 @@ export const ParkingGroupSettings: React.FC<Props> = ({ currentUserId, hideTitle
                   }}
                 >
                   {pickerRows.length === 0 ? (
-                    <p style={{ margin: '8px 0', fontSize: '0.9rem', color: '#666' }}>該当するユーザーがありません。</p>
+                    <p className="admin-settings-muted">該当するユーザーがありません。</p>
                   ) : (
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                       {pickerRows.map(u => {

@@ -1,18 +1,17 @@
 // メインアプリケーションコンポーネント
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import SidePanel from './SidePanel';
 import ReservationModal from './ReservationModal';
 import ReservationSheet from './ReservationSheet';
 import DailyLedgerView from './DailyLedgerView';
+import { AppHeader } from './layout/AppHeader';
+import { AppFooter } from './layout/AppFooter';
 import { useAuth } from '../hooks/useAuth';
 import './MainApp.css';
-import { APP_VERSION } from '../version';
 import { ReservationDataProvider } from '../contexts/ReservationDataContext';
 import { MonthlyReservationsProvider, useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { toDateStr } from '../utils/dateRange';
-import { useParkingAccess } from '../hooks/useParkingAccess';
 
 // 日付ナビゲーションボタン用の内部コンポーネント
 const DateNavigationButtons: React.FC<{
@@ -53,8 +52,7 @@ const DateNavigationButtons: React.FC<{
 };
 
 export const MainApp: React.FC = () => {
-  const { currentUser, isAdmin, loading: authLoading, authReady } = useAuth();
-  const parking = useParkingAccess(currentUser?.uid, { isAdmin, authReady });
+  const { currentUser } = useAuth();
   
   // 常に今日の日付を初期値として設定（UX向上：毎回当日の予約を表示）
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateStr(new Date()));
@@ -158,40 +156,21 @@ export const MainApp: React.FC = () => {
   return (
     <MonthlyReservationsProvider>
       <div className="main-app">
-        <header className="main-header">
-          <h1>
-            <img
-              src={process.env.PUBLIC_URL + '/logo_clear.png'}
-              alt="校章"
-              className="header-logo"
-              width={32}
-              height={32}
-            />{' '}
-            桜和高校教室予約システム
-          </h1>
-          <div className="header-info">
-            <div className="system-info">v{APP_VERSION}</div>
-            {/* ログイン済みの管理者のみ表示（一般ユーザー・未ログインでは非表示） */}
-            {currentUser && parking.canAccess && !authLoading && !parking.loading && (
-              <Link to="/parking" className="admin-settings-link">
-                駐車場予約
-              </Link>
-            )}
-            {currentUser && isAdmin && !authLoading && (
-              <Link to="/admin" className="admin-settings-link">
-                管理・設定
-              </Link>
-            )}
-            <button 
+        <AppHeader
+          title="桜和高校教室予約システム"
+          current="classroom"
+          extraActions={
+            <button
+              type="button"
               className="toggle-panel-button"
               onClick={() => setShowSidePanel(!showSidePanel)}
             >
               {showSidePanel ? 'パネルを閉じる' : '予約管理'}
             </button>
-          </div>
-        </header>
+          }
+        />
 
-        <main className="main-content">
+        <main id="main-content" className="main-content">
           <div className="ledger-preview-section">
             <div className="ledger-preview-header">
               <DateNavigationButtons
@@ -220,7 +199,7 @@ export const MainApp: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  className="ledger-preview-manage"
+                  className="btn btn-primary ledger-preview-manage"
                   onClick={handleOpenReservationPanel}
                   disabled={!currentUser}
                 >
@@ -257,9 +236,7 @@ export const MainApp: React.FC = () => {
           )}
         </main>
 
-        <footer className="main-footer">
-          <p>© 2025 桜和高校教室予約システム (owa-cbs) - Developed by YUKI KONDO</p>
-        </footer>
+        <AppFooter />
 
         {/* 予約詳細モーダル */}
         <ReservationModal

@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ParkingAccessMode } from '../constants/parking';
-import { parkingPrivilegeService, parkingSettingsService } from '../firebase/parking';
+import { parkingPrivilegeService } from '../firebase/parking';
 
 /**
- * 駐車場リンク／画面の権限。呼び出し元の useAuth 結果を渡すこと
- * （内部で useAuth すると onAuthStateChanged と教室キャッシュ破棄が二重になり、台帳初回取得と競合する）。
+ * 駐車場の削除権限。呼び出し元の useAuth 結果を渡すこと
+ * （内部で useAuth すると onAuthStateChanged と教室キャッシュ破棄が二重になる）。
+ * 画面への入場はログイン＋パスコード（ParkingApp）。データ権限は認証済みなら全員。
  */
 export function useParkingAccess(
   uid: string | undefined,
   auth: { isAdmin: boolean; authReady: boolean }
 ) {
   const { isAdmin, authReady } = auth;
-  const [accessMode, setAccessMode] = useState<ParkingAccessMode>('group');
   const [isMember, setIsMember] = useState(false);
   const [canDeleteOthers, setCanDeleteOthers] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -26,14 +25,11 @@ export function useParkingAccess(
     }
     setLoading(true);
     try {
-      const mode = await parkingSettingsService.getAccessMode();
-      setAccessMode(mode);
       const rec = await parkingPrivilegeService.getMembership(uid);
       const member = !!rec && rec.active !== false;
       setIsMember(member);
       setCanDeleteOthers(member && rec?.canDelete === true);
     } catch {
-      setAccessMode('group');
       setIsMember(false);
       setCanDeleteOthers(false);
     } finally {
@@ -45,7 +41,7 @@ export function useParkingAccess(
     refresh();
   }, [refresh]);
 
-  const canAccess = Boolean(uid) && (isAdmin || accessMode === 'public' || isMember);
+  const canAccess = Boolean(uid);
 
   const canDeleteReservation = (createdBy?: string) => {
     if (!uid) return false;
@@ -55,7 +51,6 @@ export function useParkingAccess(
   };
 
   return {
-    accessMode,
     isMember,
     canAccess,
     canDeleteOthers,

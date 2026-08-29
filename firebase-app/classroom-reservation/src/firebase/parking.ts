@@ -39,6 +39,7 @@ export interface ParkingMemberRecord {
 
 export interface ParkingSettings {
   accessMode?: ParkingAccessMode;
+  accessPasscode?: string;
   updatedBy?: string;
   updatedAt?: Timestamp;
 }
@@ -75,17 +76,33 @@ function mapReservation(docSnap: QueryDocumentSnapshot<DocumentData>): Reservati
 }
 
 export const parkingSettingsService = {
-  async getAccessMode(): Promise<ParkingAccessMode> {
+  async get(): Promise<ParkingSettings> {
     const snap = await getDoc(doc(db, COLLECTIONS.SYSTEM_SETTINGS, PARKING_SETTINGS_DOC_ID));
-    if (!snap.exists()) return 'group';
-    const mode = (snap.data() as ParkingSettings).accessMode;
+    if (!snap.exists()) return {};
+    return snap.data() as ParkingSettings;
+  },
+
+  async getAccessMode(): Promise<ParkingAccessMode> {
+    const mode = (await this.get()).accessMode;
     return mode === 'public' ? 'public' : 'group';
+  },
+
+  async getAccessPasscode(): Promise<string> {
+    return String((await this.get()).accessPasscode || '').trim();
   },
 
   async setAccessMode(accessMode: ParkingAccessMode, updatedBy: string): Promise<void> {
     await setDoc(
       doc(db, COLLECTIONS.SYSTEM_SETTINGS, PARKING_SETTINGS_DOC_ID),
       { accessMode, updatedBy, updatedAt: Timestamp.now() },
+      { merge: true }
+    );
+  },
+
+  async setAccessPasscode(accessPasscode: string, updatedBy: string): Promise<void> {
+    await setDoc(
+      doc(db, COLLECTIONS.SYSTEM_SETTINGS, PARKING_SETTINGS_DOC_ID),
+      { accessPasscode, updatedBy, updatedAt: Timestamp.now() },
       { merge: true }
     );
   }

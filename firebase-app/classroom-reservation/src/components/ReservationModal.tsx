@@ -280,9 +280,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             className="close-button"
             onClick={onClose}
             disabled={loading}
-            title="閉じる"
+            aria-label="閉じる"
           >
-            ✕
+            閉じる
           </button>
         </div>
 
@@ -366,7 +366,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   onClick={() => setIsEditing(true)}
                   disabled={loading}
                 >
-                  ✏️ 編集
+                  編集
                 </button>
               ) : (
                 <div className="edit-inline">
@@ -401,7 +401,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 }}
                 disabled={loading}
               >
-                🗑️ 予約を削除{needsPasscodeForDelete ? '（要パスコード）' : ''}
+                予約を削除{needsPasscodeForDelete ? '（要パスコード）' : ''}
               </button>
             )}
 

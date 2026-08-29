@@ -133,7 +133,7 @@ export const ParkingCreateModal: React.FC<Props> = ({
       <div className="reservation-modal compact" onClick={e => e.stopPropagation()}>
         <div className="reservation-modal-header">
           <h2>駐車場を予約</h2>
-          <button className="close-button" onClick={onClose} disabled={loading}>✕</button>
+          <button className="close-button" onClick={onClose} disabled={loading} aria-label="閉じる">閉じる</button>
         </div>
         <div className="reservation-modal-body">
           <div className="reservation-form">
@@ -186,11 +186,11 @@ export const ParkingCreateModal: React.FC<Props> = ({
               />
             </div>
           </div>
-        </div>
-        <div className="reservation-actions">
-          <button className="edit-button" onClick={handleCreate} disabled={loading}>
-            {loading ? '作成中…' : '予約する'}
-          </button>
+          <div className="reservation-actions">
+            <button type="button" className="edit-button" onClick={handleCreate} disabled={loading}>
+              {loading ? '作成中…' : '予約する'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

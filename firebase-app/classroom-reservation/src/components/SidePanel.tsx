@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { UserSection } from './UserSection';
 import { ReservationForm } from './ReservationForm';
 import SimpleLogin from './SimpleLogin';
-// import { useReservationData } from '../hooks/useReservationData';
 import { useReservationDataContext } from '../contexts/ReservationDataContext';
 import { useMonthlyReservations } from '../contexts/MonthlyReservationsContext';
 import { useAuth } from '../hooks/useAuth';
@@ -212,7 +211,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   return (
     <div className="side-panel">
       <div className="only-mobile mobile-inline-close-wrapper">
-        <button onClick={onClose} aria-label="閉じる" className="mobile-inline-close-btn">✕ 閉じる</button>
+        <button type="button" onClick={onClose} aria-label="閉じる" className="mobile-inline-close-btn">✕ 閉じる</button>
       </div>
       {/* ユーザー情報セクション */}
       <UserSection
@@ -222,7 +221,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       />
 
       <div className="side-panel-header">
-        <h3>📅 予約管理</h3>
+        <h3>予約管理</h3>
       </div>
 
       {selectedDate ? (
@@ -265,12 +264,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
           {/* 実用的な運用案内メッセージ */}
           <div className="info-message">
-            <p>⚠️ 教室が予約済みの場合は先生間で相談して変更して下さい</p>
+            <p>教室が予約済みの場合は先生間で相談して変更して下さい</p>
           </div>
         </div>
       ) : (
         <div className="no-date-selected">
-          <p>📅 カレンダーから日付をクリックして予約を管理してください</p>
+          <p>日付を選んで予約を管理してください</p>
         </div>
       )}
       
@@ -279,10 +278,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <SimpleLogin
+              variant="embedded"
               onAuthStateChange={handleLoginSuccess}
             />
             <button 
+              type="button"
               className="modal-close-btn"
+              aria-label="閉じる"
               onClick={() => setShowLoginModal(false)}
             >
               ✕

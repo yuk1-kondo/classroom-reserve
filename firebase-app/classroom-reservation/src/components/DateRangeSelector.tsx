@@ -112,7 +112,7 @@ export const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
         )}
         {isAdmin && (
           <div className="helper-text admin-hint" aria-live="polite" style={{ color: '#0066cc', fontWeight: 'bold' }}>
-            ⚙️ 管理者モード: 日付制限なしで予約できます
+            管理者モード: 日付制限なしで予約できます
           </div>
         )}
       </div>
